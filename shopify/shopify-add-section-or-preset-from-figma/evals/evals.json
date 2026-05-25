@@ -1,0 +1,19 @@
+{
+  "skill_name": "shopify-add-section-or-preset-from-figma",
+  "evals": [
+    {
+      "id": 1,
+      "name": "anita-split-between-hero-and-collections",
+      "prompt": "Template: index.json\nPosition: After \"Hero - Split\", before \"Collection Grid\"\nDesktop: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/AnitaJackelLeatherDesign.com?node-id=2001-3582\nMobile: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/AnitaJackelLeatherDesign.com?node-id=2002-668",
+      "expected_output": "New section inserted in templates/index.json with highlight-text eyebrow (two-tone WELCOME TO / ANITA JACKEL LEATHER DESIGN), an h2 Cormorant Garamond Vivienne Westwood quote, a richtext multi-paragraph Anita story, and a media block with empty image field (merchant uploads). Order array updated so the new section sits between section_txcNm7 and collections_grid_GRa7qX. JSON parses valid.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "anita-split-after-testimonials",
+      "prompt": "Template: index.json\nPosition: After \"Testimonials\" (section type testimonial-carousel)\nDesktop: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/AnitaJackelLeatherDesign.com?node-id=2001-3582\nMobile: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/AnitaJackelLeatherDesign.com?node-id=2002-668",
+      "expected_output": "Same section content as Test 1, but inserted AFTER the testimonial_carousel section — at position 7 in the order array (between testimonial_carousel_qNeddc and section_WpWLXc). Tests that the skill's position-parsing handles named sections other than the Anita-specific 'Hero - Split' / 'Collection Grid' pair.",
+      "files": []
+    }
+  ]
+}
