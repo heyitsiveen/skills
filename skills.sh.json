@@ -1,0 +1,16 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Shopify",
+      "description": "Skills for Shopify.",
+      "skills": [
+        "shopify-add-section-or-preset-from-figma",
+        "shopify-app-style-override-from-figma",
+        "shopify-build-section-or-block-from-figma",
+        "shopify-copy-template-content"
+      ]
+    }
+  ]
+}
