@@ -53,7 +53,7 @@ If the user provides a Figma URL and a placement hint but hasn't indicated which
 - **DO NOT** silently drop a Figma element that doesn't have a clean existing-primitive mapping. Surface it as a "Known caveat" in the plan and ask the user whether to omit, approximate, or escalate to `shopify-build-section-or-block-from-figma` (which can author a new `.liquid` file).
 - **DO NOT** trust Figma frame names blindly when enumerating elements. "Frame 73" or "Container" tells you nothing about the role; verify by content — heading text, primary label, or position-relative-to-siblings.
 - **DO NOT** invent or override CSS properties through `custom_css` or per-instance schema settings to add spreads, transitions, hover transforms, or filter effects Figma doesn't specify. The composing-from-existing-primitives skill is meant to use whatever the existing primitive exposes — if Figma's spec requires a property the primitive doesn't expose, surface as a "Known caveat" and escalate to `shopify-build-section-or-block-from-figma`. Don't bolt on CSS in `custom_css` to bridge the gap; that's a fidelity violation that's invisible to the merchant.
-- **DO NOT** ship a composition where the existing primitives' built-in icons don't match Figma's icon style. If a `button` block's icon variant doesn't match Figma's icon shape, do NOT rationalize "merchant can swap" — surface in "Known caveats" and escalate to BUILD if the gap is large. Composing from primitives means accepting their visual constraints; if the constraints break Figma fidelity, that's a routing problem (wrong skill), not a "fix in JSON" problem.
+- **DO NOT** ship a composition where the existing primitives' built-in icons don't match Figma's icon **shape/style**. If a `button` block's icon variant doesn't match Figma's icon shape, do NOT rationalize "merchant can swap" — surface in "Known caveats" and escalate to BUILD if the gap is large. Composing from primitives means accepting their visual constraints; if the constraints break Figma fidelity, that's a routing problem (wrong skill), not a "fix in JSON" problem. (This bullet is about icon **shape**. Button **colour** mismatches are NOT a BUILD case — resolve them with the global-variant recolour in "Button colour resolution" below.)
 
 ## Enumerate Figma elements (MANDATORY first step for both modes)
 
@@ -130,11 +130,26 @@ From the Figma `get_design_context` responses, extract and map:
 | Multi-paragraph prose (3+ paragraphs) | `text` block, `text_style: "richtext"`, fill `richtext` with `<p>...</p>` blocks |
 | Image | `media` block, `media_type: "image"`, leave `image` key OMITTED so the merchant uploads via the editor. Use `desktop_custom_height: "{px}px"` + `mobile_custom_height: "{px}px"` (fixed pixel values — grep production themes; you will find zero uses of `"100%"` here) |
 | Video | `media` block, `media_type: "video"`, set `video_autoplay/loop/mute` explicitly |
-| CTA / button | `button` block — `label`, `url`, `variant`, `size`, `icon_mode` |
+| CTA / button | `button` block — `label`, `url`, `variant`, `size`, `icon_mode`. Pick the variant by ROLE (primary/solid → `default`; secondary/bordered/ghost → `secondary` or `outline`); if its colour doesn't match Figma, recolour that variant globally in `config/settings_data.json` (see "Button colour resolution" below) — do NOT ask per run, never `custom_css`. |
 | Two-column layout desktop / single-column mobile | Top-level `section` with `desktop_grid_columns: 2`, `mobile_grid_columns: 1`, `desktop_gap`, `mobile_gap`, padding tuple |
 | Flex container for 2+ children with alignment | `group` block, `display_type: "flex"`, `desktop_direction`, `desktop_column_align_items`, `desktop_gap`, etc. |
 | Mobile reorder (image above text on mobile, side-by-side on desktop) | Wrap the text in a `group` that has `mobile_display_order: true` + `display_order: "2"` — the inverse sibling defaults to `"1"` |
 | Divider line | `divider` block — `orientation`, `color_mode` |
+
+### Button colour resolution (standing default — do NOT ask)
+
+The `button` block exposes only `variant` + `size` — never a per-instance colour. When Figma's button colour doesn't match the variant you mapped, **recolour that variant GLOBALLY in `config/settings_data.json`** and apply it automatically (do NOT ask each run; never use `custom_css`). Map Figma → variant by ROLE: primary/solid CTA → `default`; secondary / bordered / ghost CTA → `secondary` or `outline`.
+
+Variant → settings keys (fill / text / hover-bg / hover-text):
+
+- **`default`** (primary): `primary_background_color`, `primary_foreground_color`, `primary_hover_background_color`, `primary_hover_foreground_color`
+- **`secondary`**: `secondary_background_color`, `secondary_foreground_color`, `secondary_hover_background_color`, `secondary_hover_foreground_color`
+- **`outline`**: `outline_foreground_color` (text), `outline_hover_background_color`, `outline_hover_foreground_color` (background is transparent)
+
+**Two things to flag in the report (not ask):**
+
+- A variant recolour is **site-wide** — every button of that variant across the store changes. State this explicitly.
+- **Border colour is NOT per-variant.** Both `secondary` and `outline` borders pull the global `--color-border` (`settings.border_color`), shared by ~50 files (cards, inputs, dividers, menus…). A coloured *outline ring* therefore can't be done via settings without repainting borders store-wide — recolour fill + text only, surface the border as a "Known caveat", and escalate ONLY the border to `shopify-build-section-or-block-from-figma` if pixel-perfect is required.
 
 ### Phase 4 — Clarify (single batched AskUserQuestion, max 4 questions)
 
@@ -143,8 +158,11 @@ Only ask about genuinely ambiguous choices — never about routine settings.
 Typical question set:
 1. **Section display name** (the `name` field visible in the Shopify theme editor sidebar) — offer 2–3 options based on the content.
 2. **CTA handling** — if Figma shows no button, ask whether to add one anyway or omit to match design.
-3. **Image field** — confirm leave-empty-for-merchant-upload (usually yes); offer placeholder CDN path as alternative.
-4. **Figma-parity compromises** — if any (see "Known compromises" below), surface them so the user can redirect.
+3. **Figma-parity compromises** — if any (see "Known compromises" below), surface them so the user can redirect.
+
+**Standing defaults — apply automatically, do NOT ask** (established preferences; only revisit if the user volunteers otherwise):
+- **Images** — always leave the `image` / `bg_image` key OMITTED for merchant upload. Never ask about image source; never reference a placeholder CDN path.
+- **Button colours** — when a Figma button colour doesn't match its variant, recolour the variant globally in `config/settings_data.json` (see "Button colour resolution" above). Never ask; never use `custom_css`.
 
 **Respect the user's explicit dropdown selection.** If a typed note conflicts with the selection, flag the conflict and keep the dropdown value — do not silently override based on the note.
 
@@ -277,7 +295,7 @@ Same as template mode's Phase 3 mapping table. The mapping from Figma primitives
 
 Typical questions for preset mode:
 1. **Preset name** — 2–4 options following the theme's convention (e.g. `FAQs - Split`, `Contact & FAQs`, `FAQs - Get In Touch`). Merchant-facing, shown in the editor sidebar.
-2. **Icon size / image field handling** — if Figma shows icons (`contact-link`) or hero images (`media`), confirm defaults (size, or leave empty for merchant upload).
+2. **Icon size** — if Figma shows icons (`contact-link`), confirm the icon size. (Image / `media` fields follow the standing default: key omitted for merchant upload — do NOT ask. Button colours follow "Button colour resolution" — do NOT ask.)
 3. **Item count** — accordion items, card counts, carousel slides — match Figma vs. match an existing preset pattern for consistency.
 4. **Figma-parity compromises** — any trade-offs to surface (e.g. `contact-link` has no responsive typography split).
 
