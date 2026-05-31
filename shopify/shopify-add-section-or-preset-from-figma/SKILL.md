@@ -539,6 +539,38 @@ print('OK' if not fail else 'FAIL — fix paragraphs above')
 
 Split any paragraph over the limit across multiple consecutive `paragraph` settings. `shopify theme check` does NOT catch this.
 
+### Step 4b — Schema empty-string `default` values (CRITICAL — not caught by theme-check)
+
+**Shopify rejects any setting that declares `"default": ""`** (an empty string). At push/sync time it raises `FileSaveError: Invalid <section|block> '<name>': setting with id="<id>" default can't be blank`, and the file is rejected — the section/block fails to save. If a `default` key is present it MUST be non-blank; for a field that should start empty, **omit the `default` key entirely** (do not set it to `""`, a space, or a placeholder).
+
+This applies in preset mode and any time you author or edit `{% schema %}` settings. `shopify theme check` does NOT catch it — it only surfaces server-side on save/sync. Validate with:
+
+```bash
+python -c "
+import json, glob, re
+fail = False
+for f in glob.glob('sections/*.liquid') + glob.glob('blocks/*.liquid'):
+    d = open(f, encoding='utf-8').read()
+    m = re.search(r'{%-?\s*schema\s*-?%}(.*?){%-?\s*endschema\s*-?%}', d, re.S)
+    if not m: continue
+    try: schema = json.loads(m.group(1))
+    except Exception: continue
+    def walk(node):
+        global fail
+        if isinstance(node, dict):
+            if 'default' in node and node['default'] == '':
+                print(f'FAIL {f}: setting id={node.get(\"id\")!r} has empty-string default — omit the default key')
+                fail = True
+            for v in node.values(): walk(v)
+        elif isinstance(node, list):
+            for v in node: walk(v)
+    walk(schema)
+print('OK' if not fail else 'FAIL — remove the empty default keys above')
+"
+```
+
+Fix: delete the `"default": ""` key from each flagged setting. Note the regex schema-extractor above also handles the trimmed `{%- schema -%}` tag form — prefer it over `d.index('{% schema %}')`, which silently skips files that use trimmed tags.
+
 ### Step 5 — Required schema fields + naming sanity
 
 Confirm every schema block the edit touches (or creates) satisfies:
@@ -562,6 +594,7 @@ If any check errors out, do NOT commit. Common failures and fixes:
 - `JSONDecodeError: Expecting ',' delimiter` — missing comma between preset objects in the array. The `old_string` anchor should have included the preceding preset's closing `}` so you could add `,` after it.
 - `AssertionError: order/sections mismatch` — you added a key to `sections` but not `order`, or vice versa. Both edits must land together.
 - `FileSaveError: ... paragraph content too long` — a `paragraph` setting exceeded 500 chars. Split it into multiple consecutive paragraphs.
+- `FileSaveError: ... setting with id="X" default can't be blank` — a setting declares `"default": ""`. Remove the `default` key (see Step 4b).
 - `ValidSchemaTranslations` theme-check offense — a `t:` key in schema has no matching entry in `locales/en.default.schema.json`.
 - `shopify theme check` flags a new offense — inspect the reported line; most commonly a missing `{% endif %}`, stray `{% ... %}` tag, or unterminated string.
 
