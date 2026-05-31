@@ -576,6 +576,38 @@ print('OK' if not fail else 'FAIL — fix paragraphs above')
 
 If a walkthrough step needs more than ~450 chars to explain, split it across multiple consecutive `paragraph` settings. The admin renders them as separate paragraphs visually — continuity is preserved.
 
+#### 6d2. Schema empty-string `default` values (CRITICAL — not caught by theme-check)
+
+**Shopify rejects any setting that declares `"default": ""`** (an empty string). At push/sync time it raises `FileSaveError: Invalid <section|block> '<name>': setting with id="<id>" default can't be blank`, and the file is rejected — the section/block fails to save and does not sync. If a `default` key is present it MUST be non-blank; for a field that should start empty (common for optional `text`/`textarea`/`html` settings), **omit the `default` key entirely** — do NOT set it to `""`, a space, or a placeholder.
+
+This bites most when block settings are added with `"default": ""` scaffolding. `shopify theme check` does NOT catch it — it only surfaces server-side on save/sync (a Liquid formatter will happily keep an empty default). Validate with:
+
+```bash
+python -c "
+import json, glob, re
+fail = False
+for f in glob.glob('sections/*.liquid') + glob.glob('blocks/*.liquid'):
+    d = open(f, encoding='utf-8').read()
+    m = re.search(r'{%-?\s*schema\s*-?%}(.*?){%-?\s*endschema\s*-?%}', d, re.S)
+    if not m: continue
+    try: schema = json.loads(m.group(1))
+    except Exception: continue
+    def walk(node):
+        global fail
+        if isinstance(node, dict):
+            if 'default' in node and node['default'] == '':
+                print(f'FAIL {f}: setting id={node.get(\"id\")!r} has empty-string default — omit the default key')
+                fail = True
+            for v in node.values(): walk(v)
+        elif isinstance(node, list):
+            for v in node: walk(v)
+    walk(schema)
+print('OK' if not fail else 'FAIL — remove the empty default keys above')
+"
+```
+
+Fix: delete the `"default": ""` key from each flagged setting. Note the regex schema-extractor above also handles the trimmed `{%- schema -%}` tag form — prefer it over `d.index('{% schema %}')` (used in 6c/6d), which silently skips files that use trimmed schema tags.
+
 #### 6e. Schema label & setting ID length sanity
 
 Shopify enforces limits on setting IDs (no spaces, must be valid Liquid-safe identifier) and generally recommends labels under ~50 chars for sidebar readability. Verify:
@@ -703,6 +735,7 @@ After committing and pushing, Shopify's GitHub integration validates the change 
 - Roll back invalid block references
 - Drop unknown `t:` translation keys
 - Reject `paragraph` settings over 500 chars
+- Reject settings that declare an empty-string `default` (`"default": ""`) — see 6d2
 
 Local `shopify theme dev` reads your committed files directly — what you see is what you committed. The live theme renders only what survived Shopify's deploy validation. They diverge silently.
 
