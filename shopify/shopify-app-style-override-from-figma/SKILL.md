@@ -1,6 +1,6 @@
 ---
 name: shopify-app-style-override-from-figma
-description: Use when the user wants to OVERRIDE the visual styles of a third-party Shopify app widget (e.g., upsell bundles, review widgets, popup app blocks, deals embeds, social-proof tiles, recommendation carousels) to match a Figma design — without modifying the app's code or HTML. Inspects the live rendered DOM via the chrome-in-chrome MCP to extract the app's element tree, class names, and computed styles, then writes CSS overrides scoped under a containing panel id for clean specificity wins (no !important needed). Triggers on phrases like "override the styles of [App Name]", "restyle the [app] widget to match Figma", "match this Figma — the widget is from a Shopify app", "the app block looks wrong, fix the styling", "skin the bundle widget", "the upsell renders fine but it doesn't match the design", or any request providing a live preview URL + Figma URL where the styled element is injected by a Shopify app rather than authored in the theme. Does NOT modify the app, its HTML, or its embed registration — purely CSS overrides in an existing theme stylesheet. Distinct from the three "from-Figma" siblings: not composing JSON (`shopify-add-section-or-preset-from-figma`), not creating .liquid files (`shopify-build-section-or-block-from-figma`), and not editing first-party theme code (`shopify-update-existing-section-from-figma`) — exclusively for app-injected DOM.
+description: Use when the user wants to OVERRIDE the visual styles of a third-party Shopify app widget (e.g., upsell bundles, review widgets, popup app blocks, deals embeds, social-proof tiles, recommendation carousels) to match a Figma design — without modifying the app's code or HTML. Inspects the live rendered DOM via the chrome-in-chrome MCP to extract the app's element tree, class names, and computed styles, then writes CSS overrides scoped under a containing panel id for clean specificity wins — and matching the app's own !important when it uses one. Triggers on phrases like "override the styles of [App Name]", "restyle the [app] widget to match Figma", "match this Figma — the widget is from a Shopify app", "the app block looks wrong, fix the styling", "skin the bundle widget", "the upsell renders fine but it doesn't match the design", or any request providing a live preview URL + Figma URL where the styled element is injected by a Shopify app rather than authored in the theme. Does NOT modify the app, its HTML, or its embed registration — purely CSS overrides in an existing theme stylesheet. Distinct from the three "from-Figma" siblings: not composing JSON (`shopify-add-section-or-preset-from-figma`), not creating .liquid files (`shopify-build-section-or-block-from-figma`), and not editing first-party theme code (`shopify-update-existing-section-from-figma`) — exclusively for app-injected DOM.
 user-invocable: true
 ---
 
@@ -19,7 +19,7 @@ Use this skill when the styled element is rendered by a Shopify app's runtime �
 
 **Never modify the app's HTML, JS, or registration.** You don't own the widget. Your override surface is CSS only, scoped under an existing theme container.
 
-**Never use `!important` reflexively.** Specificity arithmetic does the job: id-scoping (`#ContainerId .app-class`) reaches `1,1,0`, beating the app's typical `0,2,0` class-chain rules. Reach for `!important` only after measuring real specificity and confirming it's needed.
+**Lead with specificity; reach for `!important` only to match the app's own.** The default tool is id-scoping: `#ContainerId .app-class` reaches `1,1,0` and beats the app's typical `0,2,0` class rules with no `!important`. But the cascade checks **importance before specificity** — so if the app declares a property `!important`, your id-scoped non-important rule loses no matter how specific it is, and you must match it with your own `!important` (your higher specificity then breaks the `!important`-vs-`!important` tie). For apps that `!important` their CSS aggressively, **blanket `!important` on every override declaration is an accepted, robust fallback** — it also survives app updates that bump their selectors' specificity; confirm the scope with the user, then apply it uniformly. (See lesson #5 and Phase 5.)
 
 **Never depend on per-instance hash classes.** Apps frequently add a unique scoping hash like `.koala-styles-AYUkxbm05Wmkyd3VlS__123…` that changes on reinstall. Anchor selectors on the BEM-named classes only.
 
@@ -194,7 +194,63 @@ This table goes verbatim into the plan file. Reviewers can sanity-check it befor
 - Compute your override specificity. ID + class = `1,1,0`. ID + class + class = `1,2,0`.
 - Confirm yours is higher. If not, widen the anchor or escalate to `:where()` neutralization, NOT `!important`.
 
-### Phase 5 — Plan (plan mode)
+### Phase 5 — Verify live (inject candidate CSS + measure)
+
+Before committing overrides to the file — and again after — confirm they reproduce the Figma geometry and typography against the *live* widget. Measure; don't eyeball. This runs in the browser exactly like Phase 2 (fine during plan mode) and is re-run after Phase 7.
+
+**The loop:**
+
+1. Inject ONE `<style>` with a stable id holding your candidate overrides (scoped under the panel id). Overwrite its `.textContent` each pass instead of adding new `<style>` elements, and wipe stale tests first so old rules don't pollute the measurement:
+   ```javascript
+   document.querySelectorAll('style[id^="kh-override-test"]').forEach(e => e.remove());
+   const s = document.createElement('style');
+   s.id = 'kh-override-test';
+   s.textContent = `#PanelId .app-class { ... }`;
+   document.head.appendChild(s);
+   ```
+2. Measure the element chain with `getBoundingClientRect()` + `getComputedStyle()` and compare to the Figma px tokens (widths, gaps, font-size/weight/line-height, border, radius).
+3. Iterate selectors/values until the numbers match Figma.
+
+**Head-vs-body cascade caveat (load-bearing — it costs the most round-trips):**
+
+An injected `<head>` `<style>` **cannot** override a rule that already ships in the theme's body `{% style %}` block at *equal specificity* — the body rule comes later in the DOM, so it wins on source order. Therefore:
+
+- Injection cleanly verifies **new** rules (no deployed twin) and rules that win by specificity or `!important`.
+- Injection **cannot** preview *changing an existing deployed declaration* at equal specificity (e.g. `display: block → flex`, `flex: 1 1 auto → 1 1 0`). The injected version silently loses and you measure the OLD value — it looks like your fix "did nothing".
+- **Workaround:** force the injected test with `!important` (head `!important` beats body non-important) to confirm the *value/behaviour* works, then make the real change by **editing the existing rule in the file in place** — not by appending a duplicate selector.
+
+**Tab hygiene:** call `tabs_context_mcp` first (Phase 2); re-call it whenever a tool errors "tab no longer exists" (tabs go stale when the user reloads or closes them) and reuse the already-open preview tab rather than navigating a fresh one.
+
+**Reusable measurement helper** — given the panel id and a chain of selectors, returns each element's width / right-edge / computed `flex`/`padding`/`margin`, plus the gaps between a parent's children, so you can spot exactly where a width collapses or a gap is wrong:
+
+```javascript
+(() => {
+  const P = '#PanelId';                              // the scoping panel id
+  const root = document.querySelector(`${P} .app-root`);
+  const m = sel => {
+    const e = (root || document).querySelector(sel);
+    if (!e) return null;
+    const c = getComputedStyle(e), r = e.getBoundingClientRect();
+    return { w: Math.round(r.width), right: Math.round(r.right),
+             flex: c.flex, padding: c.padding, margin: c.margin };
+  };
+  const gapsOf = sel => {                             // gaps between a parent's children
+    const p = (root || document).querySelector(sel); if (!p) return null;
+    const k = [...p.children]; const g = [];
+    for (let i = 1; i < k.length; i++)
+      g.push(Math.round(k[i].getBoundingClientRect().top - k[i-1].getBoundingClientRect().bottom));
+    return g;
+  };
+  return JSON.stringify({
+    chain: ['.app-row', '.app-label', '.app-control'].map(s => ({ s, ...m(s) })),
+    sectionGaps: gapsOf('.app-stack')
+  }, null, 2);
+})();
+```
+
+Adjust the selectors to the widget. A child that won't fill its parent almost always reveals the culprit here — an app `padding-right` on the row, or a `flex-basis` that isn't `0` (see lesson #15).
+
+### Phase 6 — Plan (plan mode)
 
 Write the plan file with these sections:
 
@@ -204,29 +260,20 @@ Write the plan file with these sections:
 - **Files to modify** — typically the parent snippet only.
 - **Class-to-Figma mapping** — the table from Phase 4, full.
 - **Detailed CSS** — every override block, ready to paste, scoped under the parent container id.
-- **Why this works without `!important`** — specificity arithmetic explained.
+- **Why this works** — the specificity arithmetic, and where you matched the app's `!important` (or applied blanket `!important`) and why.
+- **Verified live** — the Phase 5 measurements vs the Figma tokens (widths, gaps, type) that confirm the overrides land.
 - **What this does NOT do** — moves widget? changes HTML? Future-proof against app updates? Be explicit about the boundaries.
-- **Verification** — DevTools spot-checks, hover state checks, regression check on surrounding panel.
 - **Risk + rollback** — single-file diff, `git revert` reverses cleanly. Future app updates may rename classes (low risk for BEM-using apps, surface as known limit).
 
 On approval, `ExitPlanMode`.
 
-### Phase 6 — Execute
+### Phase 7 — Execute
 
 1. `Read` 5–10 lines around the existing `<style>` block's closing `</style>` to capture indentation.
 2. `Edit` — append the override block immediately before `</style>`. The `old_string` should include the last few lines of pre-existing rules + `</style>` so the anchor is unique.
 3. `git diff --stat` to confirm a single-file change with the expected line count.
 
 Do not commit unless asked.
-
-### Phase 7 — Verify
-
-1. Push the commit (if user agreed). Refresh the preview URL.
-2. **Visual check** — widget now renders with target colors, typography, spacing, borders.
-3. **DevTools spot-checks** — for 3-5 key selectors, confirm `getComputedStyle` returns the override values, not the app's defaults.
-4. **Hover/active state test** — interactive elements (buttons, checkboxes if customized) work and show correct hover/focus styles.
-5. **Regression check** — surrounding panel content (above and below the widget) renders correctly. Overrides are scoped, so this should be unaffected; any breakage is a sign of an over-broad selector.
-6. **Mobile viewport** — verify at the mobile breakpoint. App widgets often have their own mobile-specific styles; your overrides must beat those too.
 
 ### Phase 8 — Report
 
@@ -283,14 +330,20 @@ If the widget renders OUTSIDE your snippet (e.g., directly under `<body>` becaus
 
 ### 5. Specificity math is the override's load-bearing assumption
 
-Every override's effectiveness rides on this calculation. Always do it:
+Every override's effectiveness rides on this calculation. The cascade resolves in three tiers **in order — origin/importance → specificity → source order** — so importance is checked *first*: an `!important` declaration beats any non-important one regardless of specificity.
+
+- App: `.app__cta { background: orange !important; }` → `(0,1,0)` **important**.
+- You: `#PanelId .app__cta { background: blue; }` → `(1,1,0)`, not important → **LOSES** (importance outranks specificity).
+- You: `#PanelId .app__cta { background: blue !important; }` → both important, so specificity breaks the tie, `(1,1,0) > (0,1,0)` → **WINS**.
+
+When neither side uses `!important`, specificity then source-order decides:
 
 - App's selector: `.app__cta:hover` → specificity `(0, 2, 0)` (one class + one pseudo).
 - Your selector: `#PanelId .app__cta:hover` → `(1, 2, 0)`. **Wins.**
 - App's selector: `.app__cta.app__cta--primary:hover` → `(0, 3, 0)`.
 - Your selector: `#PanelId .app__cta` → `(1, 1, 0)`. **Loses** — needs to be `#PanelId .app__cta.app__cta--primary` or `#PanelId .app__cta:hover` to compete.
 
-Run a quick mental specificity check on each override before writing it. The app's `<style>` block in DevTools shows their selectors verbatim — copy the most-class-heavy one and add 1 to the id-count.
+Run a quick mental specificity check on each override before writing it. The app's `<style>` block in DevTools shows their selectors verbatim — copy the most-class-heavy one and add 1 to the id-count. **Scan it for `!important`, too** — if the app marks a property you're overriding, you must match it (see "The rule" and lesson #14).
 
 ### 6. Hover/active/disabled states need separate rules
 
@@ -343,9 +396,45 @@ Apps often ship their own mobile-specific CSS via media queries. Your override a
 
 **Always test both viewports**, and write a matching mobile override (`@media (max-width: 1023px)` or your theme's breakpoint) when desktop and mobile Figma diverge.
 
+**Flex-axis trap:** a width-fill fix like `flex: 1 1 0` behaves differently per direction — on a `flex-direction: column` element it grows the item *vertically*, not horizontally. So when mobile stacks (column) but desktop is a row, keep width-fill fixes (and the out-of-flow repositioning of lesson #16) inside the desktop `@media` so they don't distort the stacked mobile layout.
+
+### 14. Injected test CSS can't beat the theme's body `{% style %}` at equal specificity
+
+When you verify overrides by injecting a `<style>` into `<head>` (Phase 5), it loses to a rule already shipped in the theme's body `{% style %}` block at *equal specificity* — body comes later in the DOM, so source order hands it the win. Injection therefore can't preview *changing* an existing deployed declaration (`display: block → flex`, `flex: 1 1 auto → 1 1 0`): you'll measure the OLD value and think your fix did nothing.
+
+Confirm the value with a forced `!important` injection (head `!important` beats body non-important), then make the real change by **editing that exact rule in the file** — not by appending a second copy of the selector.
+
+### 15. Reaching the container edge: flex-grow fills the *content box*, not padding
+
+A child won't reach its parent's edge if the app put `padding` on the parent — `flex-grow` only distributes free space *inside* the content box, never into padding. Zero the app's `padding` (e.g. a stray `padding-right`) on that row. Two more traps on the same problem:
+
+- `flex-basis: auto` grows an item from its *content* width (so it barely expands). Use `flex: 1 1 0` (basis `0`) to make it consume all free space.
+- A filled flex *container* is not a filled *child*: an inner control (a `<select>`, an `<input>`) keeps its intrinsic width unless you give it `width: 100%`. Pair it with `box-sizing: border-box` so its own padding doesn't overflow the container.
+
+Walk the width chain with the Phase 5 measurement helper to find which level collapses.
+
+### 16. An app control pinned in a full-height flex column caps your content width
+
+When the app lays the card out as flex siblings `[control-column | content-column]` (e.g. a radio in its own column), the content column can never reach the card's far edge — the control's column occupies it for the full height. Figma usually shows that control as a top-corner *overlay*, not a column. Reproduce that by taking the control **out of flow**: `position: absolute; top/right` on the control, with `position: relative` on the card as its anchor. The content column then spans the full width. Scope this to the breakpoint that needs it (lesson #13) — mobile often wants the control back in flow.
+
+### 17. Per-variant styling via `:has()`
+
+Apps frequently render the same class for every variant/state and differentiate only by a child marker. Branch on that descendant with `:has()`:
+
+```css
+#PanelId .option:has(.one-time-price) .label { font-weight: 400; }
+#PanelId .option:has(.subscription-price) .price { font-weight: 600; }
+```
+
+Bonus: `:has()` carries the specificity of its argument, so `…:has(.x) .label` `(1,2,0)` also out-specifies a shared `… .label` `(1,1,0)` rule you wrote earlier.
+
+### 18. Deploy lag — the preview trails your commits
+
+A Shopify theme connected to GitHub redeploys the preview on **push**, not on your local commit. A freshly committed fix won't appear in the preview until that deploy syncs — then a hard-refresh. Live injection (Phase 5) shows the fix *immediately*, so use it for the feedback loop and tell the user to let the deploy catch up before judging the deployed result (otherwise you'll both be looking at the previous build).
+
 ## Anti-patterns
 
-- **Using `!important` reflexively.** First do specificity math; reach for `!important` only after verifying it's needed.
+- **Using `!important` blindly, without specificity math.** Reflexive use is still discouraged — do the math first. But **matching the app's `!important` is required** (importance beats specificity), and blanket `!important` across the whole override block is an accepted fallback for apps that aggressively `!important` their own CSS (confirm scope with the user first). See "The rule" and lesson #5.
 - **Targeting per-instance hash classes** (e.g., `.koala-styles-<hash>`). Anchor on BEM names instead.
 - **Editing the app's HTML or JS.** Out of scope. App-injected DOM is your override target, not your edit surface.
 - **Skipping live DOM inspection** and guessing at class names. Apps' actual class names rarely match what you'd guess from their docs.
@@ -357,67 +446,6 @@ Apps often ship their own mobile-specific CSS via media queries. Your override a
 - **Forgetting hover/active state overrides.** Base rules win at rest, lose on hover if the app has its own `:hover` rules. Mirror every state.
 - **Authoring CSS in PR descriptions instead of the file.** Your overrides go IN the snippet's `<style>` block, not in commit messages or chat.
 - **Targeting the per-section_id'd panel only without a fallback.** If the section id changes (theme editor regenerates section keys when sections are duplicated), your selectors stop matching that one instance. The override CSS in a snippet is rendered per-section-instance with the matching id — this is fine. But for embedded SECTION blocks (not snippets), prefer scoping under a stable class on the parent rather than `#shopify-section-{{ section.id }}` for portability.
-
-## Validation (HARD GATE before commit)
-
-Less heavy than the schema-touching skills (no Liquid edits, no JSON edits, no schema validation). Still mandatory.
-
-### Step 1 — Diff sanity
-
-```bash
-git diff --stat <parent-file>
-```
-
-Expect: 1 file changed, line count roughly matching `(BEM-class-count × 6-12 lines per rule block) + comment lines`. A diff of 50 lines for 5 mapped classes is plausible; 500 lines is suspicious.
-
-### Step 2 — Inline visual verification
-
-Push the commit (or use `shopify theme dev` for local), refresh the preview URL.
-
-For 5 key BEM classes from your mapping table, in DevTools:
-
-- Inspect the element.
-- Confirm the override rule appears in the "Styles" pane.
-- Confirm the override's value is the computed value (no scrolling or strikethrough indicating it's been beaten by a more specific rule).
-
-### Step 3 — Hover/active state tour
-
-Click through every interactive element in the widget. Confirm:
-
-- Resting state matches Figma.
-- Hover state matches Figma (or has a sensible default if Figma doesn't specify).
-- Active/pressed state doesn't visually break.
-- Disabled state (if applicable) is muted as expected.
-
-### Step 4 — Regression check on surrounding panel
-
-The override CSS is scoped to the app's BEM classes only. Anything outside that class set should be untouched. Quick spot-checks:
-
-- The parent panel (rest of the snippet) renders identically to before the override.
-- Sibling elements (e.g., trust badges, accordions, testimonial card) still match Figma per their own styles.
-- Mobile viewport: same checks at the mobile breakpoint.
-
-### Step 5 — Optional: theme check (passes by default for CSS-only changes)
-
-```bash
-shopify theme check --path <theme-root> -C theme-check:all --fail-level=warning \
-  -x AssetSizeCSS \
-  -x AssetSizeJavaScript \
-  -x AssetSizeAppBlockCSS \
-  -x AssetSizeAppBlockJavaScript \
-  -x RemoteAsset
-```
-
-CSS-only edits inside `{% style %}` or `<style>` blocks rarely trip theme-check. Run it anyway as a sanity guard. If new offenses appear, they're usually unrelated drift you can flag in the report as out-of-scope.
-
-The five excluded checks (`AssetSize*` and `RemoteAsset`) verify deploy-weight budgets and external-asset reachability — orthogonal to the Liquid/schema/JSON correctness this skill validates. On themes with 150+ assets, leaving them enabled inflates wall-time to 20+ minutes per run while surfacing offenses that aren't actionable in the context of this skill's edits. Every other rule in `theme-check:all` (Liquid syntax, schema validity, translation completeness, deprecated tags, parser-blocking scripts, etc.) remains active. If you separately need asset-weight verification before deploy, run `shopify theme check --path <theme-root> -C theme-check:all --fail-level=warning` (without `-x` flags) on its own.
-
-### What "fail" looks like
-
-- **Override appears in DevTools but is struck-through** → specificity loss. Re-do the math; widen the anchor or add a class.
-- **Override doesn't appear in DevTools at all** → the selector doesn't match. The class name is wrong (typo? stale screenshot?). Re-run Phase 2 inspection.
-- **Override applies on desktop, not on mobile** → app's own mobile media query is winning. Add a mobile override block.
-- **Hover state reverts to the app's color** → forgot the matching `:hover` override. Add it.
 
 ## Quick reference
 
@@ -463,10 +491,10 @@ Restyle <App Name> widget to match Figma <Figma node label>
 
 <One-paragraph body describing the override scope:>
 - BEM class mapping table summary
-- Specificity strategy (no !important / id-scoped / etc.)
+- Specificity strategy (id-scoped / matched the app's !important / blanket !important / etc.)
 - What the override does NOT do (HTML untouched, no JS, no app code)
 
-Co-Authored-By: Claude Opus 4.7 (1M context) <noreply@anthropic.com>
+Co-Authored-By: Claude Opus 4.8 (1M context) <noreply@anthropic.com>
 ```
 
 Real example (post-Koala-bundle work):
