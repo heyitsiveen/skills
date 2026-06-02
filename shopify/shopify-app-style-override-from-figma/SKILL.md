@@ -250,6 +250,32 @@ An injected `<head>` `<style>` **cannot** override a rule that already ships in 
 
 Adjust the selectors to the widget. A child that won't fill its parent almost always reveals the culprit here — an app `padding-right` on the row, or a `flex-basis` that isn't `0` (see lesson #15).
 
+**Verify centering — two questions, not one.** Measuring an element's *box center* against the container center is a false signal: a full-width block with left-aligned text has its box center AT the container center, so left-aligned text reads as "centered." Test the **left edge against the ideal centered left** within the container's content box — and for full-width text, also confirm `text-align: center`:
+
+```javascript
+const centered = (el, container) => {
+  const er = el.getBoundingClientRect(), cr = container.getBoundingClientRect();
+  const cs = getComputedStyle(container);
+  const padL = parseFloat(cs.paddingLeft), padR = parseFloat(cs.paddingRight);
+  const contentW = cr.width - padL - padR, contentLeft = cr.left + padL;
+  return Math.abs(er.left - (contentLeft + (contentW - er.width) / 2)) < 4;
+};
+// A FULL-WIDTH text node returns ~true here regardless of alignment, so for text
+// also require getComputedStyle(el).textAlign === 'center'. (See lessons #19 and #20.)
+```
+
+**Reach a real mobile viewport.** Resizing the browser window often can't shrink the storefront — the preview renders it fixed-width, or its device toggle nests the store in a (usually same-origin) `<iframe>`. So `window.innerWidth` stays desktop and top-window `document.querySelector` reads the preview *wrapper* (you'll get "0 sections / nothing rendered" — a false alarm). Read INTO the iframe to get a genuine mobile viewport, then run the helper + `centered()` against its `doc`/`win`:
+
+```javascript
+const fr = document.querySelector('iframe');
+let doc = document, win = window;
+try { if (fr && fr.contentDocument) { doc = fr.contentDocument; win = fr.contentWindow; } } catch (e) {}
+// win.innerWidth is now the device width (e.g. 390); win.matchMedia('(max-width:47.99rem)').matches === true.
+// Run every querySelector / getComputedStyle against `doc` (not the top window).
+```
+
+Confirm same-origin first (the `try` guards a cross-origin iframe, which can't be read). This is the only reliable way to verify **mobile** layout/centering here — window-resize can't deliver it. (See lesson #21.)
+
 ### Phase 6 — Plan (plan mode)
 
 Write the plan file with these sections:
@@ -396,7 +422,7 @@ Apps often ship their own mobile-specific CSS via media queries. Your override a
 
 **Always test both viewports**, and write a matching mobile override (`@media (max-width: 1023px)` or your theme's breakpoint) when desktop and mobile Figma diverge.
 
-**Flex-axis trap:** a width-fill fix like `flex: 1 1 0` behaves differently per direction — on a `flex-direction: column` element it grows the item *vertically*, not horizontally. So when mobile stacks (column) but desktop is a row, keep width-fill fixes (and the out-of-flow repositioning of lesson #16) inside the desktop `@media` so they don't distort the stacked mobile layout.
+**Flex-axis trap:** a width-fill fix like `flex: 1 1 0` behaves differently per direction — on a `flex-direction: column` element it grows the item *vertically*, not horizontally. So when mobile stacks (column) but desktop is a row, keep width-fill fixes (and the out-of-flow repositioning of lesson #16) inside the desktop `@media` so they don't distort the stacked mobile layout. To actually *obtain* a mobile viewport for measurement (window-resize often can't), see lesson #21.
 
 ### 14. Injected test CSS can't beat the theme's body `{% style %}` at equal specificity
 
@@ -415,7 +441,7 @@ Walk the width chain with the Phase 5 measurement helper to find which level col
 
 ### 16. An app control pinned in a full-height flex column caps your content width
 
-When the app lays the card out as flex siblings `[control-column | content-column]` (e.g. a radio in its own column), the content column can never reach the card's far edge — the control's column occupies it for the full height. Figma usually shows that control as a top-corner *overlay*, not a column. Reproduce that by taking the control **out of flow**: `position: absolute; top/right` on the control, with `position: relative` on the card as its anchor. The content column then spans the full width. Scope this to the breakpoint that needs it (lesson #13) — mobile often wants the control back in flow.
+When the app lays the card out as flex siblings `[control-column | content-column]` (e.g. a radio in its own column), the content column can never reach the card's far edge — the control's column occupies it for the full height. Figma usually shows that control as a top-corner *overlay*, not a column. Reproduce that by taking the control **out of flow**: `position: absolute; top/right` on the control, with `position: relative` on the card as its anchor. The content column then spans the full width. Scope this to the breakpoint that needs it (lesson #13) — mobile often wants the control back in flow. (Related trap: a child's own `align-self` overrides the parent's `align-items`, so centering the parent doesn't reach it — see lesson #20.)
 
 ### 17. Per-variant styling via `:has()`
 
@@ -431,6 +457,30 @@ Bonus: `:has()` carries the specificity of its argument, so `…:has(.x) .label`
 ### 18. Deploy lag — the preview trails your commits
 
 A Shopify theme connected to GitHub redeploys the preview on **push**, not on your local commit. A freshly committed fix won't appear in the preview until that deploy syncs — then a hard-refresh. Live injection (Phase 5) shows the fix *immediately*, so use it for the feedback loop and tell the user to let the deploy catch up before judging the deployed result (otherwise you'll both be looking at the previous build).
+
+### 19. Measuring centering: the box-center lie
+
+`(rect.left + rect.width/2) − containerCenter ≈ 0` reports "centered" even when a full-width block's text visibly hugs the left — because the *box* spans the full width, its center sits at the container center regardless of where the text sits inside it. This produces confident false positives (it cost three "it's centered now" claims that weren't).
+
+Test the **left edge against the ideal centered left** instead: `|rect.left − (contentLeft + (contentW − rect.width)/2)| < ~4px`. And for a full-width text node that *also* passes that test, require `getComputedStyle(el).textAlign === 'center'`. Two questions, always: is the **box** centered within its container, and is the **text** centered within the box?
+
+### 20. Centering levers: which property actually moves it
+
+Centering a flex child is not one-size-fits-all — the app fights each lever differently:
+
+- **`align-self` beats the parent's `align-items`.** If the app sets `align-self` on a child (e.g. a price wrapper at `align-self: baseline`), centering the parent's `align-items` won't touch it. Override the child's own `align-self: center`.
+- **Full-width vs content-width picks the lever.** On a narrow (mobile) card, a label whose one-line text exceeds the card fills it (caps + wraps) → it's effectively full-width, so `align-items`/`align-self: center` do nothing; you need `text-align: center`. The *same* label on a wide (desktop) card is content-width and centers via `align-items`. One element can need different levers per breakpoint.
+- **Apps hard-set `text-align: left`** on labels/values, overriding the center inherited from a container. Override it explicitly.
+- **Strip app defaults at EVERY breakpoint.** A `padding` / `text-align` / `margin` you neutralized on desktop still applies on mobile (a deliver row's `padding-right: 16px`, only stripped on desktop, offset the mobile centering by half its value). A fix scoped to one breakpoint leaves the other broken (see #13).
+
+### 21. A same-origin iframe preview is a real mobile viewport
+
+Resizing the browser window often can't produce a mobile viewport — the preview renders the store at a fixed width, or its device toggle nests the store in a usually-same-origin `<iframe>`. Two consequences:
+
+- **Top-window `document.querySelector` reads the wrapper, not the store** — you get `0` sections / "nothing rendered" false alarms. The store is inside the iframe.
+- **That iframe is a genuine mobile viewport.** `const fr = document.querySelector('iframe'); fr.contentWindow.innerWidth` (e.g. `390`) and `fr.contentDocument` let you read computed styles and measure media-query-dependent layout that window-resizing couldn't produce. Verify mobile centering INSIDE the iframe.
+
+Guard with `try { fr.contentDocument }` — a cross-origin iframe can't be read (fall back to asking the user to open DevTools' device mode and report). See Phase 5's "Reach a real mobile viewport."
 
 ## Anti-patterns
 
