@@ -482,6 +482,30 @@ Resizing the browser window often can't produce a mobile viewport — the previe
 
 Guard with `try { fr.contentDocument }` — a cross-origin iframe can't be read (fall back to asking the user to open DevTools' device mode and report). See Phase 5's "Reach a real mobile viewport."
 
+### 22. The Figma is drawn on white — light tokens vanish on a tinted live card
+
+A design's light tokens (a near-white border like `#f5f5f5`, a pale avatar/chip fill like `#fdf6e3`) read fine against the Figma's white frame but **disappear** when the live widget sits on a tinted card — a merchant `*_background` setting, a brand tint — whose color is only a few units away (`#f5f5f5` border on an `#f5f5f0` card). Symptom: "the border/element isn't showing" while computed styles confirm it IS applied. Diagnose by comparing the element's computed color to the **live background color**, not by eye. Fix: either darken each light token until it reads on the tint (drifts from the Figma value), or — cleaner — restore the surface to the Figma's (usually `#ffffff`), which makes every light token render as designed at once. Changing the card background may override a merchant setting, so confirm first.
+
+### 23. Faked label text in an absolutely-positioned `::before` doesn't size its box — and flex can crush it
+
+Apps often hide the real content and inject a label via a fixed-width element's `::before { position: absolute }` (common for histogram/rating-row labels). The box does NOT grow to fit the text, and `flex-shrink` can squeeze it even below its set width — so the absolute text overflows and overlaps the next flex item (you'll measure a *negative* gap). Fix: set the label box to the exact Figma label width and add `flex-shrink: 0`. Measure the real gap from `label.left + measuredTextWidth` (canvas `measureText` at the computed font), not from the box's right edge.
+
+### 24. App avatar/icon glyphs are usually pseudo-elements painted with background-COLOR
+
+An "avatar" or "icon" showing a silhouette plus a small badge is frequently an empty element (`querySelector` finds no children, computed `background-image` is `none`) whose parts are `::before`/`::after` drawn with `background-color` + `border-radius`. Identify each by probing its `position`/`top`/`left`/`backgroundColor` — an `absolute` corner pseudo in the brand color is the badge. Hide the unwanted part with `::after { display: none }`. CSS can't inject text the app never renders: if the Figma shows an initial letter where the app draws a silhouette, you can match the circle and color but not the letter — say so rather than chasing it.
+
+### 25. Element trapped in the wrong container → relocate with a tiny idempotent script (not a magic-number offset)
+
+When the design needs an element where the app renders it in a *different* container (earlier in the DOM, or a narrower fixed-width column), the cascade can't reach it — `position: absolute` only anchors to a positioned ancestor and forces a hardcoded `top` that breaks across content/viewports (measure to prove this before accepting it). The robust fix is a theme-side relocation (NOT app-side): query the node and its target, `appendChild` only when `node.parentElement !== target` (idempotent — the guard prevents an infinite observer loop), and re-run on app re-render via a `MutationObserver` on the stable theme wrapper. Pair with higher-specificity flex CSS on the destination row. This crosses CSS-only into theme-JS — get explicit user opt-in. (Contrast lesson #16, which stays in-flow within a single parent.)
+
+### 26. Preview a *changed* deployed rule by injecting at +1 specificity
+
+Lesson #14 means a head-injected test can't beat a body `{% style %}` rule you're changing at equal specificity, so the preview shows the OLD value and your edit looks like a no-op. To preview the real result before pushing (while the stale shipped rules are still live), inject the test scoped under one extra ancestor (`.parent .app-class` vs `.app-class`) so it out-specifies the stale rule — then make the real edit in-file at the file's normal specificity. The boosted scope is a preview device only; don't ship it.
+
+### 27. Reuse a finished override across sibling/base themes via git blob hash
+
+Agencies clone a base theme per client, so a widget's host snippet is often byte-identical across stores. Before re-deriving overrides for a sibling/base theme, confirm the host file is identical: `git hash-object <dest-file>` vs the source's `git rev-parse <ref>:<path>`. If the blobs match, replicate the finished file verbatim (`git show <ref>:<path> > <dest>`) and re-hash to confirm parity — far safer than re-applying a dozen edits by hand. Flag that hardcoded design tokens (brand colors, a forced white surface) carry the *source* store's design; adjust if the destination brand differs.
+
 ## Anti-patterns
 
 - **Using `!important` blindly, without specificity math.** Reflexive use is still discouraged — do the math first. But **matching the app's `!important` is required** (importance beats specificity), and blanket `!important` across the whole override block is an accepted fallback for apps that aggressively `!important` their own CSS (confirm scope with the user first). See "The rule" and lesson #5.
@@ -496,6 +520,8 @@ Guard with `try { fr.contentDocument }` — a cross-origin iframe can't be read 
 - **Forgetting hover/active state overrides.** Base rules win at rest, lose on hover if the app has its own `:hover` rules. Mirror every state.
 - **Authoring CSS in PR descriptions instead of the file.** Your overrides go IN the snippet's `<style>` block, not in commit messages or chat.
 - **Targeting the per-section_id'd panel only without a fallback.** If the section id changes (theme editor regenerates section keys when sections are duplicated), your selectors stop matching that one instance. The override CSS in a snippet is rendered per-section-instance with the matching id — this is fine. But for embedded SECTION blocks (not snippets), prefer scoping under a stable class on the parent rather than `#shopify-section-{{ section.id }}` for portability.
+- **Running multiple agent sessions in one shared git working tree.** Their commits race: a staged file gets swept into another session's commit (landing under the wrong message), and a pre-commit `lint-staged` stash/restore can clobber your *uncommitted* edits. Use a separate git worktree per concurrent session, and commit promptly (staged-only) so in-progress work isn't left exposed. Stage explicitly by path (`git add <file>`) — never `-A` — so you can't bundle another session's files.
+- **Trusting a screenshot over measurement.** The browser-MCP screenshot endpoint can time out or lag behind the DOM. Treat `getBoundingClientRect()` + `getComputedStyle()` as the source of truth and screenshots as confirmation, not the primary check.
 
 ## Quick reference
 
