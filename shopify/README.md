@@ -67,6 +67,22 @@ Mobile: [figma URL]
 
 ---
 
+## shopify-update-content-from-figma
+
+Use when the user wants to REPLACE the text/copy of EXISTING sections in a Shopify template JSON to match Figma frames — given a template plus one or more `Section Name: Figma URL` pairs. Values-only edits on sections that already exist: never adds/removes/restructures sections or blocks, never edits .liquid, never fabricates images. Swaps an icon reference only when a matching already-uploaded asset exists; otherwise flags images/icons for manual upload.
+
+> Content/copy only — distinct from the sibling Figma skills: not composing new sections (add-section-or-preset), not building new .liquid (build-section-or-block), not whole-page layout sync (sync-page-from-figma), not editing .liquid code. The canonical case is fixing a duplicated template's leftover copy (e.g. a Marri product template still carrying Jarrah text) from the Figma source of truth. Find each section by name (grep types + headings), grep the copy out of big sections instead of reading them whole, diff current → Figma, and edit only what differs (some strings will already match).
+
+```shell
+# How to use:
+/shopify-update-content-from-figma
+Template: @templates/product.marri-honey-default.json
+<Section Name from the template>: [figma URL]
+<Section Name from the template>: [figma URL]   # one line per section to update
+```
+
+---
+
 ## shopify-copy-template-content
 
 Use when the user wants to copy one or more SECTIONS or BLOCKS from a source Shopify template JSON file (e.g. `index.json`) into one or more sibling template JSON files (e.g. `product.json`, `product.in-stock.json`, `collection.json`, `page.*.json`) at a specified position. Never modifies the source. Skips items that already exist in a target (idempotent). Aborts before any write if a referenced name can't be resolved.
