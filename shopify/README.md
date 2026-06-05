@@ -98,3 +98,19 @@ To Position: After "Hero"
 ```
 
 ---
+
+## shopify-migrate-page-to-new-theme
+
+Use when the user wants to migrate/recreate an EXISTING Shopify page (page, collection, or product template) from an OLD theme onto a NEW theme/codebase. Produces TWO deliverables — a comprehensive markdown spec doc AND a copy-paste handoff prompt for a fresh Claude Code session inside the new theme. Content is kept verbatim; the look is RESTYLED to the new theme's own design system — it scans the new theme's `config/settings_data.json` colors + fonts and adopts THOSE, never the old theme's.
+
+> Two sources of truth: content/structure = OLD theme (verbatim, incl. typos); colors/fonts/components = NEW theme (scanned). The spec doc + reference screenshots are written into the new theme's `docs/`. Not for Figma builds/syncs, same-theme section copying, app-widget restyling, theme-settings edits, whole-store/Hydrogen migrations, or net-new pages.
+
+```shell
+# How to use:
+/shopify-migrate-page-to-new-theme
+Old template: @templates/page.30-days-of-wellness.json
+Live URL: https://store.com/pages/<handle>   # optional — found via /sitemap.xml if omitted
+New theme: C:\path\to\new-theme              # style source + where docs are written
+```
+
+---
