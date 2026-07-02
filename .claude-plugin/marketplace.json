@@ -3,20 +3,86 @@
   "owner": {
     "name": "heyitsiveen"
   },
-  "description": "Shopify, Figma, and git skills for Claude Code.",
+  "description": "Shopify, Figma, and git skills for Claude Code, split into one plugin per bucket.",
   "version": "0.1.0",
   "plugins": [
     {
-      "name": "heyitsiveen-skills",
-      "source": ".",
-      "description": "Shopify theme & app-integration skills built from Figma designs, plus a clean git-commit helper.",
+      "name": "heyitsiveen-skills-personal",
+      "source": "./personal",
+      "description": "Shopify theme & app-integration skills built from Figma designs.",
       "version": "0.1.0",
       "author": {
         "name": "heyitsiveen"
       },
       "homepage": "https://github.com/heyitsiveen/skills",
-      "keywords": ["shopify", "figma", "liquid", "theme", "git"],
-      "category": "productivity"
+      "keywords": ["shopify", "figma", "liquid", "theme", "rebuy"],
+      "category": "productivity",
+      "strict": false,
+      "skills": [
+        "./shopify/figma-shopify-builder",
+        "./shopify/rebuy-widget-customization",
+        "./shopify/shopify-add-section-or-preset-from-figma",
+        "./shopify/shopify-app-style-override-from-figma",
+        "./shopify/shopify-copy-template-content",
+        "./shopify/shopify-inject-app-into-liquid",
+        "./shopify/shopify-migrate-page-to-new-theme",
+        "./shopify/shopify-update-content-from-figma"
+      ]
+    },
+    {
+      "name": "heyitsiveen-skills-engineering",
+      "source": "./engineering",
+      "description": "General dev tools — currently a clean Conventional Commits git helper.",
+      "version": "0.1.0",
+      "author": {
+        "name": "heyitsiveen"
+      },
+      "homepage": "https://github.com/heyitsiveen/skills",
+      "keywords": ["git", "commit", "engineering"],
+      "category": "productivity",
+      "strict": false,
+      "skills": [
+        "./global/gc"
+      ]
+    },
+    {
+      "name": "heyitsiveen-skills-in-progress",
+      "source": "./in-progress",
+      "description": "Work-in-progress skill drafts. No skills published yet.",
+      "version": "0.1.0",
+      "author": {
+        "name": "heyitsiveen"
+      },
+      "homepage": "https://github.com/heyitsiveen/skills",
+      "category": "productivity",
+      "strict": false,
+      "skills": []
+    },
+    {
+      "name": "heyitsiveen-skills-misc",
+      "source": "./misc",
+      "description": "Miscellaneous skills. No skills published yet.",
+      "version": "0.1.0",
+      "author": {
+        "name": "heyitsiveen"
+      },
+      "homepage": "https://github.com/heyitsiveen/skills",
+      "category": "productivity",
+      "strict": false,
+      "skills": []
+    },
+    {
+      "name": "heyitsiveen-skills-productivity",
+      "source": "./productivity",
+      "description": "Productivity skills. No skills published yet.",
+      "version": "0.1.0",
+      "author": {
+        "name": "heyitsiveen"
+      },
+      "homepage": "https://github.com/heyitsiveen/skills",
+      "category": "productivity",
+      "strict": false,
+      "skills": []
     }
   ]
 }

@@ -2,16 +2,21 @@
 
 [![skills.sh](https://skills.sh/b/heyitsiveen/skills)](https://skills.sh/heyitsiveen/skills)
 
-Agent Skills for Claude Code — mostly **Shopify** theme & app-integration workflows built from **Figma** designs, plus a clean git-commit helper. Packaged as a Claude Code plugin and installable via [skills.sh](https://skills.sh).
+Agent Skills for Claude Code — mostly **Shopify** theme & app-integration workflows built from **Figma** designs, plus a clean git-commit helper. Packaged as Claude Code plugins (one per bucket) and installable via [skills.sh](https://skills.sh).
 
 ## Install
 
 ### As a Claude Code plugin
 
+Add the marketplace, then install whichever bucket-plugins you want:
+
 ```sh
 /plugin marketplace add heyitsiveen/skills
-/plugin install heyitsiveen-skills@heyitsiveen
+/plugin install heyitsiveen-skills-personal@heyitsiveen       # Shopify + Figma skills
+/plugin install heyitsiveen-skills-engineering@heyitsiveen    # git commit helper
 ```
+
+The `in-progress`, `misc`, and `productivity` buckets are published too, but stay hidden in Discover until they contain a skill.
 
 ### Via skills.sh (Claude Code, Cursor, Copilot, and more)
 
@@ -61,8 +66,7 @@ Skills are organised as `<bucket>/<domain>/<skill>/`, where the domain is `globa
 ├── skills.sh.json                # grouping config for skills.sh
 ├── CLAUDE.md                     # repo conventions
 ├── .claude-plugin/
-│   ├── marketplace.json          # Claude Code marketplace manifest
-│   └── plugin.json               # the bundled plugin (lists every active skill)
+│   └── marketplace.json          # marketplace manifest — one plugin per bucket
 ├── engineering/
 │   └── global/gc/                # git commit helper             (published)
 ├── personal/

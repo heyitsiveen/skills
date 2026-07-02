@@ -23,7 +23,7 @@ Every **active** skill (anything not under `deprecated/`) must be listed in all 
 
 1. **`README.md`** — one linked entry per skill, grouped by category and by invocation.
 2. **`skills.sh.json`** — grouping config for the [skills.sh](https://skills.sh) directory (lists skills by `name`).
-3. **`.claude-plugin/plugin.json`** — the `skills` array holds one `./<bucket>/<domain>/<name>` path per skill.
+3. **`.claude-plugin/marketplace.json`** — each bucket is published as its own plugin (`heyitsiveen-skills-<bucket>`); that plugin's `skills` array holds one `./<domain>/<name>` path per skill (relative to the bucket's `source`).
 
 Skills under `deprecated/` must appear in **none** of the three. Whenever you add, rename, move, or retire a skill, update all three (and this file if a bucket or domain changes).
 
@@ -36,11 +36,12 @@ Skills under `deprecated/` must appear in **none** of the three. Whenever you ad
 
 ## Distribution
 
-The repo root is both a Claude Code **plugin marketplace** (`.claude-plugin/marketplace.json`) and a single bundled **plugin** (`.claude-plugin/plugin.json`, named `heyitsiveen-skills`). Install:
+The repo root is a Claude Code **plugin marketplace** (`.claude-plugin/marketplace.json`). Each top-level bucket is published as its own plugin, `heyitsiveen-skills-<bucket>`, defined **inline** in the marketplace (`strict: false`, so there is no per-bucket `plugin.json`). Empty buckets are listed but stay hidden in `/plugin` Discover until they hold a skill. Install the marketplace, then the buckets you want:
 
 ```sh
 /plugin marketplace add heyitsiveen/skills
-/plugin install heyitsiveen-skills@heyitsiveen
+/plugin install heyitsiveen-skills-personal@heyitsiveen
+/plugin install heyitsiveen-skills-engineering@heyitsiveen
 ```
 
 It's also installable via skills.sh: `npx skills add heyitsiveen/skills`.
