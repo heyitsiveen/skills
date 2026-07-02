@@ -1,0 +1,27 @@
+{
+  "$schema": "https://skills.sh/schemas/skills.sh.schema.json",
+  "notGrouped": "bottom",
+  "groupings": [
+    {
+      "title": "Shopify",
+      "description": "Shopify theme & app-integration skills, mostly built from Figma designs.",
+      "skills": [
+        "figma-shopify-builder",
+        "shopify-add-section-or-preset-from-figma",
+        "shopify-app-style-override-from-figma",
+        "shopify-copy-template-content",
+        "shopify-inject-app-into-liquid",
+        "shopify-migrate-page-to-new-theme",
+        "shopify-update-content-from-figma",
+        "rebuy-widget-customization"
+      ]
+    },
+    {
+      "title": "Git",
+      "description": "Version-control helpers.",
+      "skills": [
+        "gc"
+      ]
+    }
+  ]
+}

@@ -1,0 +1,47 @@
+{
+  "skill_name": "shopify-build-section-or-block-from-figma",
+  "evals": [
+    {
+      "id": 1,
+      "name": "section-product-spotlight-index-between",
+      "prompt": "Build this Figma into a new Shopify section for me and drop it on the homepage.\n\nTemplate: index.json\nPosition: After \"Hero - Split\", before \"Collection Grid\"\nDesktop: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/AnitaJackelLeatherDesign.com?node-id=2001-828\nMobile: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/AnitaJackelLeatherDesign.com?node-id=2001-301",
+      "expected_output": "New sections/<kebab-name>.liquid with full schema + scoped dynamic style + static stylesheet + preset. Updated templates/index.json with the new section wired between the two named sections. Theme-check: zero new offenses.",
+      "files": []
+    },
+    {
+      "id": 2,
+      "name": "section-explicit-order-product-template",
+      "prompt": "Add this as a new section on my product template at position 4.\n\nTemplate: product.json\nPosition: Order #4\nDesktop: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/Example?node-id=123-456\nMobile: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/Example?node-id=123-789",
+      "expected_output": "New sections/<kebab-name>.liquid created, inserted at the 4th entry (index 3) of product.json's order array. Skill asks clarifying questions about section name, product data source, and color mode before writing.",
+      "files": []
+    },
+    {
+      "id": 3,
+      "name": "section-missing-mobile-url",
+      "prompt": "Hey, can you turn this Figma into a new section on the homepage?\n\nTemplate: index.json\nPosition: After \"Testimonials\"\nDesktop: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/Design?node-id=2001-828",
+      "expected_output": "Skill detects the missing mobile URL and asks for it via AskUserQuestion before proceeding. Does not guess or proceed without it.",
+      "files": []
+    },
+    {
+      "id": 4,
+      "name": "block-register-only",
+      "prompt": "Turn this Figma design into a new reusable Shopify block. Just register it — don't place it in a template yet.\n\nType: block\nParent: Register only\nDesktop: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/Design?node-id=3100-100\nMobile: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/Design?node-id=3100-200",
+      "expected_output": "New blocks/<kebab-name>.liquid file with {% doc %} header, {{ block.shopify_attributes }} on the root element, schema without \"tag\" at top level, scoped to #<slug>-{{ block.id }}. No template JSON changes. No parent section schema changes.",
+      "files": []
+    },
+    {
+      "id": 5,
+      "name": "block-add-to-section-schema",
+      "prompt": "Create this Figma design as a new block type and make it available inside the Hero section of my homepage.\n\nType: block\nParent: In sections/hero-glass.liquid schema\nPosition: (new block type in schema, order doesn't matter)\nDesktop: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/Design?node-id=3200-100\nMobile: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/Design?node-id=3200-200",
+      "expected_output": "New blocks/<kebab-name>.liquid file. sections/hero-glass.liquid's {% schema %} \"blocks\" array has a new entry `{ \"type\": \"<kebab-name>\" }`. No template JSON changes (no instance placed; just registered as an available block type for the Hero section).",
+      "files": []
+    },
+    {
+      "id": 6,
+      "name": "block-insert-instance-in-template",
+      "prompt": "Add this Figma as a new block inside the existing 'Collection Grid' section on my homepage, at position 2 of its block order.\n\nType: block\nParent: Inside \"Collection Grid\" in index.json\nPosition: Order #2 within block_order\nDesktop: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/Design?node-id=3300-100\nMobile: https://www.figma.com/design/gT3s03RRUege4MMMuOlyXK/Design?node-id=3300-200",
+      "expected_output": "New blocks/<kebab-name>.liquid created. templates/index.json modified: the 'Collection Grid' section's blocks object has a new entry `block_<xxx>` with `type: <kebab-name>`, and block_order has it inserted at position 2 (index 1).",
+      "files": []
+    }
+  ]
+}

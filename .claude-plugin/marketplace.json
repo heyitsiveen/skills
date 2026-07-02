@@ -1,0 +1,22 @@
+{
+  "name": "heyitsiveen",
+  "owner": {
+    "name": "heyitsiveen"
+  },
+  "description": "Shopify, Figma, and git skills for Claude Code.",
+  "version": "0.1.0",
+  "plugins": [
+    {
+      "name": "heyitsiveen-skills",
+      "source": ".",
+      "description": "Shopify theme & app-integration skills built from Figma designs, plus a clean git-commit helper.",
+      "version": "0.1.0",
+      "author": {
+        "name": "heyitsiveen"
+      },
+      "homepage": "https://github.com/heyitsiveen/skills",
+      "keywords": ["shopify", "figma", "liquid", "theme", "git"],
+      "category": "productivity"
+    }
+  ]
+}
