@@ -22,8 +22,10 @@ Create a single, clean git commit from the current changes. Follow the [Conventi
 
 3. **Write the message** (Conventional Commits):
    - **Subject:** `type(scope): summary`
-     - `type` ∈ `feat` `fix` `docs` `style` `refactor` `perf` `test` `build` `ci` `chore` `revert`
-     - `scope` optional, lowercase (e.g. `auth`, `api`, `ui`)
+     - `type` ∈ `feat` `fix` `docs` `style` `refactor` `perf` `test` `build` `ci` `chore` `revert` `init`
+       - `init` — a repo's first commit, or scaffolding a brand-new skill/project/module (e.g. `init: scaffold skills marketplace`).
+     - `scope` — prefer one; lowercase, naming the area or domain touched (e.g. `shopify`, `global`, `gc`, `auth`). Omit only for repo-wide changes.
+     - Examples: `feat(shopify): add rebuy widget skill`, `fix(gc): stop staging env files`, `init: scaffold skills marketplace`.
      - imperative mood ("add", not "added"), ≤ 50 chars, no trailing period
    - **Body** (only when it adds value): blank line, then wrap at ~72 cols; use bullets for distinct changes; explain **what & why**, not how.
    - **Footer** when relevant: `BREAKING CHANGE: …`, `Closes #123`.
