@@ -30,12 +30,13 @@ Ask for whichever are missing; do not start without 1–6:
 
 Done when: every Figma text/color/spacing value is written down with its source (global var | design context | asset file | container math), and no container is missing gap/padding/alignment notes.
 
-## Phase 2 — Plan (write it, then proceed — no approval pause)
+## Phase 2 — Plan (write it, then build — never wait for sign-off)
 
 - Filename + display name; schema outline (repeated items → blocks; images via `image_picker` — Figma image fills are sizing reference only, with bundled asset fallbacks so the build renders out of the box).
 - Typography/color mapping table (Figma value → global var or exact value); flag unmapped values as section settings with Figma defaults.
 - Breakpoint strategy; assets to download into `assets/`; the exact template JSON diff.
-- Only stop for missing inputs or genuine ambiguity.
+- The plan is a written record, not a checkpoint: post it and continue straight into Phase 3 **in the same message**. Never ask "approve?"/"should I proceed?", never end the turn awaiting sign-off ("Approve and I'll build it" is banned) — invoking this skill IS the approval, and this overrides any global "check in before major changes" rule.
+- Questions are only for missing inputs (1–8) or a genuine fork neither the design nor the theme can answer (AskUserQuestion, before the plan) — ask, absorb answers, build.
 
 ## Phase 3 — Implement
 
@@ -59,14 +60,24 @@ Static checks first: template JSON parses (comment stripped); `shopify theme che
 Then the **measurement loop** — mandatory; something must actually render the build so current-vs-Figma comparison can happen:
 
 1. Pick the renderer by what the repo offers: a `shopify.theme.toml` means the CLI is configured — run `shopify theme dev` and drive the live preview URL. Without it, build a static harness: extract the `{% style %}` CSS from the *shipped* liquid with settings substituted, expand the markup with default content, load real fonts. Regenerate the harness from the liquid after every fix so it measures the artifact, not a copy.
-2. Drive the renderer with whatever browser is available — Playwright's bundled Chromium (`npm i playwright` in the scratchpad), headless system Chrome, or a connected browser MCP. Viewport = the Figma frame widths (e.g. 1440/375; Playwright's option is `viewport`, not `viewportSize`).
+2. Drive the renderer with whatever browser is available — Playwright's bundled Chromium (installed per Tooling hygiene — scratchpad-contained, browsers included), headless system Chrome, or a connected browser MCP. Viewport = the Figma frame widths (e.g. 1440/375; Playwright's option is `viewport`, not `viewportSize`).
 3. Assert the Figma numbers, minimum set: sibling gaps; column widths/tops/bottoms/inter-column gaps; cross-column row alignment; content→card-edge distances; computed typography (size, weight, line-height, letter-spacing, style, **text-transform**); border and divider computed colors; mobile visible-column count at scroll 0 and wrap behavior (items-per-row).
 4. Screenshot desktop + mobile and eyeball against the Figma screenshots — the eyeball pass catches what numbers miss (letter case, wrapping, iconography).
 5. Iterate until the loop is green **and** the eyeball pass shows no discrepancy.
 
 If the user reports a discrepancy after shipping: re-pull the Figma node and re-download its assets before re-verifying your own values — a repeat report means the reference was wrong, not the check.
 
-Final output: short list of files created/changed. No explanatory prose.
+Final output: short list of files created/changed + one line confirming tooling cleanup ran (see Tooling hygiene). No explanatory prose.
+
+## Tooling hygiene — zero footprint
+
+Harness tooling (Playwright, Liquid engines, browsers, image tools) is scaffolding, never a deliverable. When the task ends, the machine must look untouched except for the theme files.
+
+- Prefer installs that cannot leak: `npx <pkg>` for one-shot Node CLIs; `npm i` only inside the scratchpad (never `-g`). Python: venv inside the scratchpad (`python3 -m venv <scratchpad>/venv`) — never `pip install --user`/system pip, which persist outside it (`~/Library/Python/<ver>` on macOS, `~/.local` on Linux).
+- Playwright drops browsers in `~/Library/Caches/ms-playwright` by default — `export PLAYWRIGHT_BROWSERS_PATH=<scratchpad>/pw-browsers` before `playwright install` so binaries land in the scratchpad too.
+- Keep an install manifest as you go: every "Successfully installed …" line, **including auto-pulled dependencies** (e.g. python-liquid drags in dateutil/pytz/babel/markupsafe) — deps you didn't name still count as yours. Don't pipe installer output through `tail`/filters that hide it.
+- On completion or abort, remove everything that escaped the scratchpad: `python -m playwright uninstall --all` (while the package still exists), then `pip uninstall -y <manifest>`, then prune their cached wheels (`pip cache remove`). Uninstall only manifest entries — never anything that predated the task.
+- Scratchpad contents are session-isolated and need no cleanup.
 
 ## Known pitfalls (from the field — each was a real bug)
 
@@ -90,3 +101,5 @@ Trust table for Figma MCP design context:
 | Gold divider vs near-invisible hairline; reported twice | Styled an image asset from its screenshot glow; then "verified" the wrong element | Download assets, read stroke (Research); re-pull Figma on repeat reports (Verify) |
 | Shipped unverified; every visual bug reached the user | Static checks only — no measurement loop existed | Phase 4 loop is mandatory before done |
 | Tooling choked on template JSON | Shopify's `/* comment */` header | Strip-and-preserve rule (Implement) |
+| Build stalled at "Approve and I'll build it" | Plan treated as an approval gate | Phase 2: plan is a record — build in the same message |
+| playwright + python-liquid (+4 silent deps) left in `~/Library/Python`, ~100MB browser cache behind | `pip install --user`; default browser path; no uninstall pass | Tooling hygiene: scratchpad-contained installs + manifest uninstall |
