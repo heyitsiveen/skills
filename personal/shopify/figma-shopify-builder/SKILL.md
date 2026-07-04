@@ -72,9 +72,17 @@ Visual — required; never assumed or skipped silently:
 
 If no render or capture path exists even with temporary installs, stop and report exactly what's missing.
 
-**Cleanup — leave the machine as found:** ledger every temporary install (name, method, location) as it happens. Once the proof passes: uninstall project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, clear the npx cache, delete temp output. A login session the user completed themselves stays (it's theirs — note it). Nothing temporary gets committed.
+### Cleanup — leave the machine as found, with one exception
 
-**Final output:** short list of files created/changed + the tooling ledger with each entry's removal confirmed (or "nothing installed"). No other prose.
+Ledger every temporary install (name, method, location) as it happens. Once the proof passes: uninstall project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, clear the npx cache, and delete the static harness, temp renders, and intermediate captures. A login session the user completed themselves stays (it's theirs — note it).
+
+**Retain** only the final comparison set: Figma references + final result captures (desktop + mobile, plus finals of any documented deviations), self-explanatory names (`figma-desktop.png` / `result-desktop.png`), in a clearly named folder **outside the theme repo** (e.g. sibling `../<theme>-visual-check/`) so it can never be committed. The user reviews it, then deletes it — it is the one deliberate leftover.
+
+### Final output (no other prose)
+
+- Files created/changed.
+- The tooling ledger, each install with removal confirmation — or "nothing installed".
+- Absolute paths of the retained comparison images.
 
 ## Rules
 

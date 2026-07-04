@@ -22,7 +22,7 @@
         "./shopify/figma-shopify-builder",
         "./shopify/rebuy-widget-customization",
         "./shopify/shopify-add-section-or-preset-from-figma",
-        "./shopify/shopify-app-style-override-from-figma",
+        "./shopify/shopify-app-restyle",
         "./shopify/shopify-copy-template-content",
         "./shopify/shopify-inject-app-into-liquid",
         "./shopify/shopify-migrate-page-to-new-theme",
