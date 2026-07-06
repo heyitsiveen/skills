@@ -68,7 +68,7 @@ Visual — required; never assumed or skipped silently:
 
 **Capture (first available):** connected browser MCP or installed Chrome; else temporary Playwright via npx (`npx playwright install chromium` — the browser goes on the ledger). Theme-dev specifics that waste hours when unknown: wait on `load`, never `networkidle` (the hot-reload socket keeps the network busy); the section wrapper is `#shopify-section-template--…__<template-key>`; hide the theme's sticky header group before element screenshots or it composites over the capture.
 
-**Compare loop:** capture desktop + mobile at the Figma frame widths; compare against the Phase 1 screenshots — typography, spacing, colors, alignment, sizing, layout order. `npx pixelmatch` quantifies when dimensions match (crop first). Measure discrepancies with pixel probes/region crops instead of guessing. Expect a rasterizer-class residue (word-wrap flips, antialiasing, gradient interpolation) — distinguish it from real defects. Fix → re-render → re-capture until no visible difference remains at either breakpoint beyond the plan's documented deviations. Temp output lives outside the theme repo.
+**Compare loop:** capture desktop + mobile at the Figma frame widths; compare against the Phase 1 screenshots — typography, spacing, colors, alignment, sizing, layout order. `npx pixelmatch` quantifies when dimensions match (crop first). Measure discrepancies with pixel probes/region crops instead of guessing. Expect a rasterizer-class residue (word-wrap flips, antialiasing, gradient interpolation) — distinguish it from real defects. Fix → re-render → re-capture until no visible difference remains at either breakpoint beyond the plan's documented deviations. All captures — intermediate and final — live in this build's subfolder inside the repo-root `visual-check/` folder (gitignored — see **Retain**).
 
 If no render or capture path exists even with temporary installs, stop and report exactly what's missing.
 
@@ -76,7 +76,7 @@ If no render or capture path exists even with temporary installs, stop and repor
 
 Ledger every temporary install (name, method, location) as it happens. Once the proof passes: uninstall project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, clear the npx cache, and delete the static harness, temp renders, and intermediate captures. A login session the user completed themselves stays (it's theirs — note it).
 
-**Retain** only the final comparison set: Figma references + final result captures (desktop + mobile, plus finals of any documented deviations), self-explanatory names (`figma-desktop.png` / `result-desktop.png`), in a clearly named folder **outside the theme repo** (e.g. sibling `../<theme>-visual-check/`) so it can never be committed. The user reviews it, then deletes it — it is the one deliberate leftover.
+**Retain** only the final comparison set: Figma references + final result captures (desktop + mobile, plus finals of any documented deviations), self-explanatory names (`figma-desktop.png` / `result-desktop.png`), in this build's subfolder inside the root `visual-check/` folder (e.g. `visual-check/<section-handle>/`). Add `visual-check/` to the theme's `.gitignore` (one entry covers every section's subfolder — create `.gitignore` if absent) so the set lives in the repo yet is never committed. The user reviews it, then deletes it — it is the one deliberate leftover.
 
 ### Final output (no other prose)
 

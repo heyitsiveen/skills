@@ -49,7 +49,8 @@ guess), **browser MCP / Chrome DevTools MCP / Playwright MCP** (inspect + captur
   stylesheet cannot beat it. Pick **stable hooks** to target: the app's container
   class/ID, its classes and data-attributes — never generated IDs or `nth-child`
   chains, which break on app updates or option edits. Take baseline screenshots at the
-  Figma frame widths; save all snapshots to a temp dir **outside the theme repo**.
+  Figma frame widths; save all snapshots to this build's subfolder inside the
+  repo-root `visual-check/` folder (gitignored — see **Retain**).
   - **Wrong state?** If the widget renders in a different state on dev vs live
     (e.g. sold out on one, in stock on the other) — STOP and follow
     `environment-mismatch.md`. A comparison against the wrong state is not evidence.
@@ -121,8 +122,11 @@ and delete temp renders, snapshots, and intermediate captures.
 
 **Retain** only the final comparison set: Figma references + final result captures
 (desktop + mobile, plus finals of any extra states), self-explanatory names
-(`figma-desktop.png` / `result-desktop.png`), in a clearly named folder **outside the
-theme repo** (e.g. sibling `../<theme>-visual-check/`) so it can never be committed.
+(`figma-desktop.png` / `result-desktop.png`), in this build's subfolder inside
+the root `visual-check/` folder (e.g. `visual-check/<app-handle>/`). Add
+`visual-check/` to the theme's `.gitignore` (one entry covers every build's
+subfolder — create `.gitignore` if absent) so the set lives in the repo yet is
+never committed.
 The user reviews it, then deletes it — it is the one deliberate leftover.
 
 ### Final output (no other prose)
