@@ -19,6 +19,7 @@
       "category": "productivity",
       "strict": false,
       "skills": [
+        "./shopify/client-theme-onboarding",
         "./shopify/figma-shopify-builder",
         "./shopify/rebuy-widget-customization",
         "./shopify/shopify-add-section-or-preset-from-figma",
