@@ -1,54 +1,78 @@
 ---
 name: client-theme-onboarding
-description: Onboard a client Shopify theme repo from zero — interview, deep-scan, classify standard vs custom, then generate AGENTS.md, CLAUDE.md, ARCHITECTURE.md, COMMANDS.md, REVAMP-TODO.md and shopify.theme.toml. Use when the user asks to onboard a client theme, set up working docs / agent rules for a theme repo, or regenerate one of those onboarding docs.
+description: Generate AI-facing docs for a client Shopify theme repo — deep-scan the theme, then write the agent doc pack (AGENTS.md + CLAUDE.md symlink, ARCHITECTURE.md, COMMANDS.md, REVAMP-TODO.md, shopify.theme.toml) in imperative, grounded, token-lean form for Claude Code/LLM agents, not humans. Use when the user asks to onboard a client theme, write docs for the agent, create a CLAUDE.md / AGENTS.md / AI-readable reference for a theme repo, or regenerate one of the pack docs.
 ---
 
-# Client Theme Onboarding
+# Client Theme Onboarding — AI-facing docs
 
-A client's theme: assume zero prior knowledge, and assume nothing about its structure — many client themes are not standard Shopify. Four gates, strictly in order: **interview → deep scan → plan approval → write**; each gate opens only with the user's input or approval.
+Every doc this skill writes is consumed by agents (Claude Code, LLM tools), not humans. Purpose: make every future agent session on this repo more accurate and cheaper to run. The user reads gates and reports; the docs are machine instructions.
 
-Every sentence in the generated docs must trace to a source — the scan, the ClickUp details, or the meeting transcript. What no source answers becomes an open question, recorded, never invented.
+Assume zero prior knowledge of the theme and nothing about its structure. Four gates, strictly in order: **interview → deep scan → plan approval → write**; each gate opens only with the user's input or approval.
 
-Read any file before editing it; smallest possible diffs; files outside the six targets need the user's OK first.
+## Doc Contract — every generated doc passes all 8
+
+1. **Imperative + unambiguous** — exact commands, paths, IDs, values. Banned: "run the appropriate command", "as needed", marketing/tutorial prose.
+2. **Grounded** — every claim traces to the scan, ClickUp, or the transcript. No source → it becomes an open question, never content.
+3. **Deterministic** — each instruction is executable or checkable without interpretation: a command, a path, a pass/fail condition.
+4. **Token-efficient** — tables/lists over paragraphs; one fact lives in one file; other files point to it by filename instead of restating.
+5. **Scannable** — fixed heading contract per doc (REFERENCE.md); an agent greps a heading and lands on the answer.
+6. **Example-driven** — ✅ correct / ❌ wrong pairs for every rule with a common wrong path.
+7. **Failure-explicit** — `error → cause → fix` tables for every failure the scan or the user surfaced.
+8. **Progressive disclosure** — AGENTS.md is the lean entry; depth lives in ARCHITECTURE.md / COMMANDS.md / REVAMP-TODO.md, loaded on demand.
+
+The contract binds this skill's own files too.
 
 ## Step 1 — Interview
 
-One AskUserQuestion call, four questions; record every answer (or explicit "none"):
+One AskUserQuestion call, four questions. Record each answer or an explicit "none":
 
-1. **Working branch** for the revamp — check it out; create it from the base branch if it doesn't exist.
-2. **Store + environments** for `shopify.theme.toml` — store handle (`*.myshopify.com`), plus per-environment theme IDs only if the user wants them (offer `shopify theme list --store <handle>` if the IDs aren't handy). Recommend **store-only — no `theme` id, no `password`**: `shopify theme dev` then creates its own disposable development theme and cannot touch the dev, staging, or live theme; an id in the toml would point the CLI at a real one.
-3. **ClickUp project details** — pasted text or a file path (scope, special requests, notes, deadlines). Optional.
+1. **Working branch** — `git checkout <branch>`; if missing, create it from the base branch.
+2. **Store + environments** for `shopify.theme.toml` — store handle (`*.myshopify.com`); per-environment theme IDs only if the user wants them (offer `shopify theme list --store <handle>`). Recommend store-only — rationale + spec: REFERENCE.md §shopify.theme.toml.
+3. **ClickUp project details** — pasted text or a file path. Optional.
 4. **Meeting transcript** — pasted text or a file path. Optional.
 
-Done when: branch checked out and answers 1–4 recorded.
+Done when: branch checked out, answers 1–4 recorded.
 
 ## Step 2 — Deep scan (read-only)
 
-No writes of any kind in this step. Cover the whole repo:
+No writes of any kind in this step. Cover:
 
-- Directory tree; every config file; `package.json` scripts; build tooling; linting; CI; existing docs; `.shopifyignore`; any existing `shopify.theme.toml`, CLAUDE.md, or AGENTS.md.
-- **Tripwires** — the facts that hurt the client if missed. Read every CI workflow: which branch pushes deploy, and to where? (A push that auto-deploys the live storefront is the most important fact in the repo.) Committed secrets (`.npmrc`, `.env` tokens): flag for rotation; the values stay out of the docs. Sync exclusions (the build tool's ignore files): paths that never auto-sync need a documented manual-move workflow.
-- **Verdict: STANDARD or CUSTOM.** STANDARD = the Shopify dirs (`assets/ config/ layout/ locales/ sections/ snippets/ templates/`, optionally `blocks/`) at the repo root with no build pipeline in front of them. CUSTOM = source dirs, compile step, framework, generated output, nesting. State the verdict with its evidence; every generated doc describes the ACTUAL structure.
-- Conventions: section/snippet naming, CSS approach, JS patterns, schema style, third-party app footprint (Klaviyo, Judge.me, subscriptions…).
-- Dev loop: the exact command that syncs local ↔ theme, and how to detect an already-running watcher (a `pgrep` pattern) — the docs will carry the rule "check for a running watcher before starting one, and before edits meant to sync".
+- Directory tree; every config file; `package.json` scripts; build tooling; linting; CI; existing docs; `.shopifyignore`; existing `shopify.theme.toml` / CLAUDE.md / AGENTS.md.
+- **Tripwires** — record each as `action → consequence → rule`:
+  - CI workflows: which branch pushes deploy, and to where. A push that auto-deploys the live storefront is the repo's most important fact.
+  - Committed secrets (`.npmrc`, `.env`): flag for rotation; the values never enter the docs.
+  - Sync exclusions (the build tool's ignore files): paths that never auto-sync get a manual-move workflow in the docs.
+- **Verdict: STANDARD or CUSTOM.** STANDARD = `assets/ config/ layout/ locales/ sections/ snippets/ templates/` (+ optional `blocks/`) at the repo root, no build pipeline in front. CUSTOM = source dirs, compile step, framework, generated output, nesting. State the verdict with evidence; the docs describe the ACTUAL structure.
+- Conventions: section/snippet naming, CSS approach, JS patterns, schema style, app footprint (Klaviyo, Judge.me, subscriptions…).
+- Dev loop: the exact sync command; watcher detection (`pgrep` pattern); every known failure mode (these become the `error → cause → fix` rows).
 
-Done when: verdict + evidence stated, tripwires listed, conventions and dev-loop facts recorded.
+Done when: verdict + evidence stated; tripwires, conventions, dev-loop facts, and failure modes recorded.
 
 ## Step 3 — Plan gate
 
-Present a bullet outline of each generated file's contents, every bullet sourced (scan / ClickUp / transcript). Any target file that already exists: show the diff of what would change — the user sees every overwrite before it happens. Wait for approval.
+Bullet outline per doc, every bullet tagged with its source (scan / ClickUp / transcript). Any target file that already exists: show the diff. Wait for approval.
 
 ## Step 4 — Generate
 
-Blueprints for all six files: [templates.md](templates.md). Write:
-AGENTS.md · CLAUDE.md · ARCHITECTURE.md · COMMANDS.md · REVAMP-TODO.md · shopify.theme.toml
+Write per [REFERENCE.md](REFERENCE.md), shaped like [EXAMPLES.md](EXAMPLES.md):
+
+| output | note |
+|---|---|
+| AGENTS.md | canonical rules — the lean entry doc |
+| CLAUDE.md | `ln -s AGENTS.md CLAUDE.md` (fallback: REFERENCE.md §CLAUDE.md) |
+| ARCHITECTURE.md | the map: tree, deviations, build/deploy flow |
+| COMMANDS.md | command table + `error → cause → fix` table |
+| REVAMP-TODO.md | task rows + open-questions table |
+| shopify.theme.toml | spec: REFERENCE.md §shopify.theme.toml |
 
 Then:
-- Add the five `.md` docs to `.git/info/exclude` — they are agency-internal and stay out of the client repo.
-- Save three memories: `project` (client, scope, contacts, deadlines), `feedback` (deploy-safety rules the user gave + tripwires found), `reference` (build-system cheatsheet) — cross-linked with `[[…]]`.
+- Append the five doc names (AGENTS, CLAUDE, ARCHITECTURE, COMMANDS, REVAMP-TODO) to `.git/info/exclude` — agency-internal, never in the client repo.
+- Save three memories, cross-linked with `[[…]]`: `project` (client, scope, contacts, deadlines) · `feedback` (deploy-safety rules + tripwires) · `reference` (build-system cheatsheet).
 
-Done when: six files written, exclusions added, three memories saved.
+Done when: six outputs written, exclusions appended, three memories saved.
 
-## Step 5 — Verify
+## Step 5 — Verify + contract lint
 
-Report: current branch · files written · the STANDARD/CUSTOM verdict restated · every unresolved question, grouped by source (ClickUp gaps, transcript ambiguities, scan unknowns). The same questions live at the bottom of REVAMP-TODO.md.
+1. Lint every generated doc against the Doc Contract, all 8 items per doc. Fix violations before reporting.
+2. Confirm every cross-doc pointer resolves; `readlink CLAUDE.md` prints `AGENTS.md`.
+3. Report: branch · files written · STANDARD/CUSTOM verdict · open questions grouped by source (ClickUp gaps, transcript ambiguities, scan unknowns) — the same list as REVAMP-TODO.md's table.

@@ -42,7 +42,7 @@ Pixel-accurate theme building, app-widget styling & injection, and template cont
 
 **Model-invoked**
 
-- **[client-theme-onboarding](./personal/shopify/client-theme-onboarding/SKILL.md)** — Onboard a client theme repo from zero: interview, deep-scan, classify standard vs custom, then generate AGENTS.md / CLAUDE.md / ARCHITECTURE.md / COMMANDS.md / REVAMP-TODO.md + `shopify.theme.toml`.
+- **[client-theme-onboarding](./personal/shopify/client-theme-onboarding/SKILL.md)** — Generate AI-facing docs for a client theme repo: deep-scan, then write the agent doc pack (AGENTS.md + CLAUDE.md symlink / ARCHITECTURE.md / COMMANDS.md / REVAMP-TODO.md + `shopify.theme.toml`) — imperative, grounded, token-lean, for agents, not humans.
 - **[figma-shopify-builder](./personal/shopify/figma-shopify-builder/SKILL.md)** — Build pixel-accurate theme sections or blocks from Figma — every value traced to the design, never invented.
 - **[rebuy-widget-customization](./personal/shopify/rebuy-widget-customization/SKILL.md)** — Replace a Rebuy widget's markup with custom Vue 2 templates while Rebuy's engine, discounts, and subscriptions keep running underneath.
 - **[shopify-app-restyle](./personal/shopify/shopify-app-restyle/SKILL.md)** — Restyle a third-party app's widget to match a Figma design using `!important`-scoped theme CSS overrides, proven pixel-accurate against the Figma frames.
