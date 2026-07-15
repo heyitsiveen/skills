@@ -5,9 +5,9 @@ Applies on top of the Doc Contract (SKILL.md). `<angle-brackets>` = fill from a 
 ## Shared rules
 
 - Headings below are contracts: exact text (emoji included — stable grep anchors), exact order. Omit a section only where marked *conditional*; a STANDARD theme fills deviation sections with "none — standard layout", never omits them.
-- Budgets are ceilings: AGENTS.md ≤ 120 lines · ARCHITECTURE.md ≤ 150 · COMMANDS.md ≤ 100 · REVAMP-TODO.md ≤ 150.
+- Budgets are ceilings: AGENTS.md ≤ 120 lines · ARCHITECTURE.md ≤ 150 · COMMANDS.md ≤ 100 · REVAMP-TODO.md ≤ 150. COMPONENTS.md is the one exemption — no ceiling; one dense row per item, completeness beats brevity.
 - Dates absolute (`2026-07-10`, never "today"); paths repo-relative; every command copy-paste runnable.
-- One fact, one home: safety → AGENTS.md · structure → ARCHITECTURE.md · commands/failures → COMMANDS.md · tasks/questions → REVAMP-TODO.md. Other docs point by filename, never restate.
+- One fact, one home: safety → AGENTS.md · structure → ARCHITECTURE.md · reusable building blocks → COMPONENTS.md · commands/failures → COMMANDS.md · tasks/questions → REVAMP-TODO.md. Other docs point by filename, never restate.
 
 ## AGENTS.md — canonical rules (lean entry doc)
 
@@ -15,7 +15,7 @@ Applies on top of the Doc Contract (SKILL.md). `<angle-brackets>` = fill from a 
 # Project Rules — <Client> Theme (<Agency> revamp)
 
 > <STANDARD|CUSTOM> · <build system, or "no build pipeline">.
-> Map: **ARCHITECTURE.md** · Tasks: **REVAMP-TODO.md** · Commands: **COMMANDS.md**.
+> Map: **ARCHITECTURE.md** · Reuse: **COMPONENTS.md** · Tasks: **REVAMP-TODO.md** · Commands: **COMMANDS.md**.
 
 ## 🚫 Git & deploy safety (non-negotiable)
 | action | consequence | rule |
@@ -24,7 +24,7 @@ Applies on top of the Doc Contract (SKILL.md). `<angle-brackets>` = fill from a 
 | <one row per CI/secret/sync tripwire from the scan> | | |
 - Work ONLY on `<working branch>`. Commit only when explicitly asked<; commit convention if enforced, e.g. Angular Conventional Commits (commitlint)>.
 - Never edit or publish the client's live/published theme.
-- These five docs are in `.git/info/exclude` — never commit them.
+- These six docs are in `.git/info/exclude` — never commit them.
 - <Committed secret: `<file>` — treat as secret, rotation flagged; value not reproduced here.>
 
 ## 🎨 Tech stack (always)
@@ -43,6 +43,8 @@ Applies on top of the Doc Contract (SKILL.md). `<angle-brackets>` = fill from a 
 
 ## 🧩 Code conventions
 - <naming · CSS approach · JS pattern · schema style — one line each, with one example path from the repo>
+- Everything new is namespaced `{prefix}-`: ✅ `sections/{prefix}-testimonial-carousel.liquid` ❌ `sections/testimonial-carousel.liquid` · ✅ `<{prefix}-carousel>` ❌ `<theme-carousel>` · ✅ `.{prefix}-carousel__track`, `--{prefix}-gap` ❌ `.carousel__track`, `--gap` — same for schema block/setting IDs and JS module/function names.
+- Before writing new code: search COMPONENTS.md by reuse keyword — match → reuse or extend it; no match → build new under `{prefix}-`.
 
 ## 📐 Working style
 - Smallest diff that works; read before editing; check in before major changes; ask when multiple valid approaches exist.
@@ -71,6 +73,26 @@ Required sections, exact order:
 3. `## Build & deploy flow` — one arrow chain per pipeline (`edit <src> → compile <out> → sync <how> → theme <id>`), then CI table `workflow | trigger | deploys to`.
 4. `## Key templates, sections, snippets` — table `path | role | edit or leave`.
 5. `## Data flow & integrations` — table `integration | hook point | owned by` (settings, metafields, APIs, apps).
+
+## COMPONENTS.md — reuse inventory (REQUIRED on every run)
+
+The doc that stops rebuilds: build/composition tasks search it before writing anything new. The header carries that rule so every later session obeys it without re-asking:
+
+```markdown
+# COMPONENTS — <Client> theme reuse inventory
+
+> Check here BEFORE writing new code: search by reuse keyword.
+> Match → reuse or extend it. No match → build new under `{prefix}-` (AGENTS.md 🧩).
+
+## Custom web components
+| name | file path(s) | what it does | reuse keywords |
+|---|---|---|---|
+| `<tag-name>` | <definition + registration paths> | <one line> | <search terms a build task would try> |
+```
+
+- Five categories, one `##` table each, exact order: **Custom web components** (every registered custom element) · **JavaScript** (reusable scripts/utilities not tied to one component — debounce, cart-AJAX, focus traps) · **Functions** (reusable Liquid utility snippets/filters — parameterized snippets, money/class-list helpers) · **Flows** (multi-step interaction sequences — add-to-cart, quick-view, facet filtering) · **Patterns** (recurring structural/design patterns — sticky header, drawer/modal, wave separators, sold-out state).
+- One row per item, exhaustive: nothing left out for seeming minor — a thin row beats an omission. `reuse keywords` = the synonyms a build task would search (carousel, slider, slideshow).
+- Sources, all from the Step 2 scan: `customElements.define` registrations, util/helper exports, parameterized snippets, event/fetch sequences, repeated section/CSS structures.
 
 ## COMMANDS.md — commands + failures
 

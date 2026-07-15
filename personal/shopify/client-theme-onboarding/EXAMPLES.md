@@ -12,6 +12,7 @@ Real case: Mrs Wordsmith theme (`mrswordsmith/shopify-theme`), scanned 2026-07-0
 | F4 | a new `.scss` file compiles only after a watcher restart (entry list read once at startup) | transcript ~9:20 (Curtis) |
 | F5 | working branch `feat/goldenweb` | interview |
 | F6 | paid extra: `pages/educators-hub` sales page + technical report | ClickUp |
+| F7 | `<slider-component>` = `webComponents/SliderComponent.ts`, registered site-wide in `global/global.ts`; markup contract in `sections/scrolling-cards.liquid` | scan |
 
 ## Output — AGENTS.md §safety (from F1, F5)
 
@@ -47,6 +48,25 @@ Real case: Mrs Wordsmith theme (`mrswordsmith/shopify-theme`), scanned 2026-07-0
 | question | who answers | blocks |
 |---|---|---|
 | `templates/*.json` never auto-sync (F3) — who pastes template JSON into the admin at handoff? | agency PM | go-live checklist |
+```
+
+## Output — COMPONENTS.md rows (from F7 + scan)
+
+```markdown
+## Custom web components
+| name | file path(s) | what it does | reuse keywords |
+|---|---|---|---|
+| `<slider-component>` | `theme/_qs/js/src/webComponents/SliderComponent.ts` · registered in `global/global.ts` · markup: `sections/scrolling-cards.liquid` | scroll track + dots/arrows/autoplay, available on every page | carousel, slider, slideshow, scroll |
+
+## Functions
+| name | file path(s) | what it does | reuse keywords |
+|---|---|---|---|
+| `svg-wave-top` / `svg-wave-bottom` | `theme/snippets/svg-wave-*.liquid` | wave section separators, take `fill:` | wave, separator, curve, divider |
+
+## Flows
+| name | file path(s) | what it does | reuse keywords |
+|---|---|---|---|
+| add-to-cart | `.ajax_cart` handler in `global/global.ts` → `fetch('/cart.js')`, dispatches `updatecart` | AJAX add-to-cart from any product form | add to cart, ATC, cart ajax |
 ```
 
 ## ❌ → ✅ — the rewrite this skill exists for

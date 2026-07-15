@@ -1,6 +1,6 @@
 ---
 name: client-theme-onboarding
-description: Generate AI-facing docs for a client Shopify theme repo — deep-scan the theme, then write the agent doc pack (AGENTS.md + CLAUDE.md symlink, ARCHITECTURE.md, COMMANDS.md, REVAMP-TODO.md, shopify.theme.toml) in imperative, grounded, token-lean form for Claude Code/LLM agents, not humans. Use when the user asks to onboard a client theme, write docs for the agent, create a CLAUDE.md / AGENTS.md / AI-readable reference for a theme repo, or regenerate one of the pack docs.
+description: Generate AI-facing docs for a client Shopify theme repo — deep-scan the theme, then write the agent doc pack (AGENTS.md + CLAUDE.md symlink, ARCHITECTURE.md, COMPONENTS.md reuse inventory, COMMANDS.md, REVAMP-TODO.md, shopify.theme.toml) in imperative, grounded, token-lean form for Claude Code/LLM agents, not humans. Use when the user asks to onboard a client theme, write docs for the agent, create a CLAUDE.md / AGENTS.md / AI-readable reference for a theme repo, or regenerate one of the pack docs.
 ---
 
 # Client Theme Onboarding — AI-facing docs
@@ -18,20 +18,21 @@ Assume zero prior knowledge of the theme and nothing about its structure. Four g
 5. **Scannable** — fixed heading contract per doc (REFERENCE.md); an agent greps a heading and lands on the answer.
 6. **Example-driven** — ✅ correct / ❌ wrong pairs for every rule with a common wrong path.
 7. **Failure-explicit** — `error → cause → fix` tables for every failure the scan or the user surfaced.
-8. **Progressive disclosure** — AGENTS.md is the lean entry; depth lives in ARCHITECTURE.md / COMMANDS.md / REVAMP-TODO.md, loaded on demand.
+8. **Progressive disclosure** — AGENTS.md is the lean entry; depth lives in ARCHITECTURE.md / COMPONENTS.md / COMMANDS.md / REVAMP-TODO.md, loaded on demand.
 
 The contract binds this skill's own files too.
 
 ## Step 1 — Interview
 
-One AskUserQuestion call, four questions. Record each answer or an explicit "none":
+AskUserQuestion, five inputs (the tool caps at four questions per call — split 3+2). Record each answer or an explicit "none":
 
 1. **Working branch** — `git checkout <branch>`; if missing, create it from the base branch.
-2. **Store + environments** for `shopify.theme.toml` — store handle (`*.myshopify.com`); per-environment theme IDs only if the user wants them (offer `shopify theme list --store <handle>`). Recommend store-only — rationale + spec: REFERENCE.md §shopify.theme.toml.
-3. **ClickUp project details** — pasted text or a file path. Optional.
-4. **Meeting transcript** — pasted text or a file path. Optional.
+2. **Prefix** — a short, unique namespace for everything built for this client (e.g. `acme`). Suggest a default derived from the client/project name; the user can override. Scope: every new theme artifact from this point forward — section/snippet filenames (`sections/{prefix}-x.liquid`), custom-element tags (`<{prefix}-x>` — conveniently supplies the hyphen custom elements require), CSS classes/custom properties (`.{prefix}-x__part`, `--{prefix}-gap`), schema block/setting IDs, JS module/function names. Recorded with before/after examples in AGENTS.md 🧩 (spec: REFERENCE.md §AGENTS.md).
+3. **Store + environments** for `shopify.theme.toml` — store handle (`*.myshopify.com`); per-environment theme IDs only if the user wants them (offer `shopify theme list --store <handle>`). Recommend store-only — rationale + spec: REFERENCE.md §shopify.theme.toml.
+4. **ClickUp project details** — pasted text or a file path. Optional.
+5. **Meeting transcript** — pasted text or a file path. Optional.
 
-Done when: branch checked out, answers 1–4 recorded.
+Done when: branch checked out, answers 1–5 recorded.
 
 ## Step 2 — Deep scan (read-only)
 
@@ -45,8 +46,9 @@ No writes of any kind in this step. Cover:
 - **Verdict: STANDARD or CUSTOM.** STANDARD = `assets/ config/ layout/ locales/ sections/ snippets/ templates/` (+ optional `blocks/`) at the repo root, no build pipeline in front. CUSTOM = source dirs, compile step, framework, generated output, nesting. State the verdict with evidence; the docs describe the ACTUAL structure.
 - Conventions: section/snippet naming, CSS approach, JS patterns, schema style, app footprint (Klaviyo, Judge.me, subscriptions…).
 - Dev loop: the exact sync command; watcher detection (`pgrep` pattern); every known failure mode (these become the `error → cause → fix` rows).
+- **Reuse inventory (REQUIRED — runs on every onboarding, never dropped under time or scope pressure):** catalog every existing reusable building block into the COMPONENTS.md row schema (REFERENCE.md §COMPONENTS.md). Five categories, named exactly as REFERENCE.md's headings: Custom web components · JavaScript · Functions (= reusable Liquid utility snippets/filters) · Flows (add-to-cart, quick-view, facets) · Patterns (drawer, sticky header, sold-out state). One row per item, minor items included — a run without this inventory is an incomplete run.
 
-Done when: verdict + evidence stated; tripwires, conventions, dev-loop facts, and failure modes recorded.
+Done when: verdict + evidence stated; tripwires, conventions, dev-loop facts, failure modes, and the full reuse inventory recorded.
 
 ## Step 3 — Plan gate
 
@@ -61,15 +63,16 @@ Write per [REFERENCE.md](REFERENCE.md), shaped like [EXAMPLES.md](EXAMPLES.md):
 | AGENTS.md | canonical rules — the lean entry doc |
 | CLAUDE.md | `ln -s AGENTS.md CLAUDE.md` (fallback: REFERENCE.md §CLAUDE.md) |
 | ARCHITECTURE.md | the map: tree, deviations, build/deploy flow |
+| COMPONENTS.md | reuse inventory: five category tables + the check-first rule |
 | COMMANDS.md | command table + `error → cause → fix` table |
 | REVAMP-TODO.md | task rows + open-questions table |
 | shopify.theme.toml | spec: REFERENCE.md §shopify.theme.toml |
 
 Then:
-- Append the five doc names (AGENTS, CLAUDE, ARCHITECTURE, COMMANDS, REVAMP-TODO) to `.git/info/exclude` — agency-internal, never in the client repo.
+- Append the six doc names (AGENTS, CLAUDE, ARCHITECTURE, COMPONENTS, COMMANDS, REVAMP-TODO) to `.git/info/exclude` — agency-internal, never in the client repo.
 - Save three memories, cross-linked with `[[…]]`: `project` (client, scope, contacts, deadlines) · `feedback` (deploy-safety rules + tripwires) · `reference` (build-system cheatsheet).
 
-Done when: six outputs written, exclusions appended, three memories saved.
+Done when: seven outputs written, exclusions appended, three memories saved.
 
 ## Step 5 — Verify + contract lint
 
