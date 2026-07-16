@@ -36,7 +36,6 @@ Pixel-accurate theme building, app-widget styling & injection, and template cont
 
 **User-invoked**
 
-- **[shopify-add-section-or-preset-from-figma](./personal/shopify/shopify-add-section-or-preset-from-figma/SKILL.md)** — Add a section to a JSON template, or append a preset to a section's schema, from a Figma design — composed only from the theme's existing sections and blocks (no new `.liquid`).
 - **[shopify-copy-template-content](./personal/shopify/shopify-copy-template-content/SKILL.md)** — Copy sections or blocks from one template JSON into others at a chosen position, keeping the JSON valid and the source untouched.
 - **[shopify-inject-app-into-liquid](./personal/shopify/shopify-inject-app-into-liquid/SKILL.md)** — Make a third-party app's widget render inside a container you own, instead of wherever the app drops it by default.
 
@@ -44,10 +43,10 @@ Pixel-accurate theme building, app-widget styling & injection, and template cont
 
 - **[client-theme-onboarding](./personal/shopify/client-theme-onboarding/SKILL.md)** — Generate AI-facing docs for a client theme repo: deep-scan, then write the agent doc pack (AGENTS.md + CLAUDE.md symlink / ARCHITECTURE.md / COMPONENTS.md reuse inventory / COMMANDS.md / REVAMP-TODO.md + `shopify.theme.toml`) — imperative, grounded, token-lean, for agents, not humans; everything new namespaced under a per-client prefix.
 - **[figma-shopify-builder](./personal/shopify/figma-shopify-builder/SKILL.md)** — Build pixel-accurate theme sections or blocks from Figma — every value traced to the design, never invented.
+- **[figma-shopify-composer](./personal/shopify/figma-shopify-composer/SKILL.md)** — Recreate a Figma design by composing the theme's existing sections, blocks, and settings — template JSON only, no new code, proven pixel-accurate against the frames.
 - **[rebuy-widget-customization](./personal/shopify/rebuy-widget-customization/SKILL.md)** — Replace a Rebuy widget's markup with custom Vue 2 templates while Rebuy's engine, discounts, and subscriptions keep running underneath.
 - **[shopify-app-restyle](./personal/shopify/shopify-app-restyle/SKILL.md)** — Restyle a third-party app's widget to match a Figma design using `!important`-scoped theme CSS overrides, proven pixel-accurate against the Figma frames.
 - **[shopify-migrate-page-to-new-theme](./personal/shopify/shopify-migrate-page-to-new-theme/SKILL.md)** — Audit a page on an old theme and produce a spec doc + handoff prompt to recreate it on a new theme — content verbatim, restyled to the new theme's design system.
-- **[shopify-update-content-from-figma](./personal/shopify/shopify-update-content-from-figma/SKILL.md)** — Replace the text/copy (and matching icons) of existing section instances in a template to match Figma frames — values only, no restructuring.
 
 ### Engineering
 
@@ -71,7 +70,7 @@ Skills are organised as `<bucket>/<domain>/<skill>/`, where the domain is `globa
 ├── engineering/
 │   └── global/gc/                # git commit helper             (published)
 ├── personal/
-│   └── shopify/                  # 9 Shopify theme & app skills  (published)
+│   └── shopify/                  # 8 Shopify theme & app skills  (published)
 ├── productivity/                 # empty — for future skills
 ├── misc/                         # empty — for future skills
 ├── in-progress/                  # empty — for future drafts

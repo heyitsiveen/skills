@@ -8,12 +8,11 @@
       "skills": [
         "client-theme-onboarding",
         "figma-shopify-builder",
-        "shopify-add-section-or-preset-from-figma",
+        "figma-shopify-composer",
         "shopify-app-restyle",
         "shopify-copy-template-content",
         "shopify-inject-app-into-liquid",
         "shopify-migrate-page-to-new-theme",
-        "shopify-update-content-from-figma",
         "rebuy-widget-customization"
       ]
     },
