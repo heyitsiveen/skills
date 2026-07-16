@@ -9,6 +9,8 @@ Every doc this skill writes is consumed by agents (Claude Code, LLM tools), not 
 
 Assume zero prior knowledge of the theme and nothing about its structure. Four gates, strictly in order: **interview → deep scan → plan approval → write**; each gate opens only with the user's input or approval.
 
+Delegation boundary: Step 2 fans out to parallel Explore subagents, Step 5 lints with one fresh subagent. Steps 1, 3, 4 never delegate — subagents cannot ask the user anything, and generation needs every recorded fact in one context.
+
 ## Doc Contract — every generated doc passes all 8
 
 1. **Imperative + unambiguous** — exact commands, paths, IDs, values. Banned: "run the appropriate command", "as needed", marketing/tutorial prose.
@@ -34,21 +36,26 @@ AskUserQuestion, five inputs (the tool caps at four questions per call — split
 
 Done when: branch checked out, answers 1–5 recorded.
 
-## Step 2 — Deep scan (read-only)
+## Step 2 — Deep scan (read-only; 3 Explore subagents in parallel)
 
-No writes of any kind in this step. Cover:
+No writes of any kind in this step. Launch all agents in ONE message so they run in parallel; collect every report before Step 3. A subagent sees nothing of this conversation and Explore skips CLAUDE.md — each prompt carries its full ask plus three standing demands: every fact cited as `path:line` · actual commands/paths/IDs, never paraphrases · final message = the complete report.
 
-- Directory tree; every config file; `package.json` scripts; build tooling; linting; CI; existing docs; `.shopifyignore`; existing `shopify.theme.toml` / CLAUDE.md / AGENTS.md.
-- **Tripwires** — record each as `action → consequence → rule`:
+- **Agent A — survey + tripwire candidates:** directory tree; every config file; `package.json` scripts; build tooling; linting; CI workflows (which branch pushes deploy, and to where); committed secrets (`.npmrc`, `.env` — paths only, never values); sync exclusions (the build tool's ignore files); existing docs / `.shopifyignore` / `shopify.theme.toml` / CLAUDE.md / AGENTS.md; conventions — section/snippet naming, CSS approach, JS patterns, schema style, app footprint (Klaviyo, Judge.me, subscriptions…); dev loop — the exact sync command, watcher detection (`pgrep` pattern), every known failure mode (these become the `error → cause → fix` rows).
+- **Agent B — reuse inventory, JS side:** every `customElements.define` registration (→ Custom web components) · reusable scripts/utils not tied to one component (→ JavaScript) · event/fetch interaction sequences (→ Flows).
+- **Agent C — reuse inventory, Liquid/CSS side:** parameterized utility snippets/filters (→ Functions) · repeated section/CSS structures (→ Patterns) · multi-step markup sequences, e.g. product form → cart (→ Flows).
+- B and C prompts include the absolute path of this skill's REFERENCE.md and the row schema `name | file path(s) | what it does | reuse keywords`; require one row per item, per §COMPONENTS.md.
+- Small repo (quick `ls` first: fewer than ~40 files across sections/, snippets/, JS source): skip the fan-out, scan inline — identical coverage, same demands.
+
+Merge in the main thread — subagent reports are leads, not sources:
+
+- **Tripwires** — record each as `action → consequence → rule`, only after re-reading the cited `path:line` yourself; also glob the CI workflow dir directly. A tripwire missed or invented by a scan agent is the one failure this run cannot absorb; recording one unread is a Contract #2 violation.
   - CI workflows: which branch pushes deploy, and to where. A push that auto-deploys the live storefront is the repo's most important fact.
   - Committed secrets (`.npmrc`, `.env`): flag for rotation; the values never enter the docs.
   - Sync exclusions (the build tool's ignore files): paths that never auto-sync get a manual-move workflow in the docs.
 - **Verdict: STANDARD or CUSTOM.** STANDARD = `assets/ config/ layout/ locales/ sections/ snippets/ templates/` (+ optional `blocks/`) at the repo root, no build pipeline in front. CUSTOM = source dirs, compile step, framework, generated output, nesting. State the verdict with evidence; the docs describe the ACTUAL structure.
-- Conventions: section/snippet naming, CSS approach, JS patterns, schema style, app footprint (Klaviyo, Judge.me, subscriptions…).
-- Dev loop: the exact sync command; watcher detection (`pgrep` pattern); every known failure mode (these become the `error → cause → fix` rows).
-- **Reuse inventory (REQUIRED — runs on every onboarding, never dropped under time or scope pressure):** catalog every existing reusable building block into the COMPONENTS.md row schema (REFERENCE.md §COMPONENTS.md). Five categories, named exactly as REFERENCE.md's headings: Custom web components · JavaScript · Functions (= reusable Liquid utility snippets/filters) · Flows (add-to-cart, quick-view, facets) · Patterns (drawer, sticky header, sold-out state). One row per item, minor items included — a run without this inventory is an incomplete run.
+- **Reuse inventory (REQUIRED — runs on every onboarding, never dropped under time or scope pressure):** merge B + C rows into the COMPONENTS.md row schema (REFERENCE.md §COMPONENTS.md). Five categories, named exactly as REFERENCE.md's headings: Custom web components · JavaScript · Functions (= reusable Liquid utility snippets/filters) · Flows (add-to-cart, quick-view, facets) · Patterns (drawer, sticky header, sold-out state). Flows and Patterns arrive split across B and C — merge by feature. One row per item, minor items included — a run without this inventory is an incomplete run.
 
-Done when: verdict + evidence stated; tripwires, conventions, dev-loop facts, failure modes, and the full reuse inventory recorded.
+Done when: verdict + evidence stated; every tripwire re-verified at its cited line; conventions, dev-loop facts, failure modes, and the full merged reuse inventory recorded.
 
 ## Step 3 — Plan gate
 
@@ -74,8 +81,9 @@ Then:
 
 Done when: seven outputs written, exclusions appended, three memories saved.
 
-## Step 5 — Verify + contract lint
+## Step 5 — Verify + contract lint (fresh eyes)
 
-1. Lint every generated doc against the Doc Contract, all 8 items per doc. Fix violations before reporting.
-2. Confirm every cross-doc pointer resolves; `readlink CLAUDE.md` prints `AGENTS.md`.
-3. Report: branch · files written · STANDARD/CUSTOM verdict · open questions grouped by source (ClickUp gaps, transcript ambiguities, scan unknowns) — the same list as REVAMP-TODO.md's table.
+1. Lint every generated doc against the Doc Contract, all 8 items per doc, via ONE fresh general-purpose subagent — the writer under-reports its own violations. Its prompt carries: the 8 contract items verbatim, the absolute paths of every generated doc plus this skill's REFERENCE.md (heading contracts + line budgets), and the return shape `doc | contract # | line | violation | fix`. Regenerating a single doc → lint inline instead.
+2. Fix every returned violation before reporting; heading/budget disputes resolve in REFERENCE.md's favor.
+3. Confirm every cross-doc pointer resolves; `readlink CLAUDE.md` prints `AGENTS.md`.
+4. Report: branch · files written · STANDARD/CUSTOM verdict · violations found → fixed · open questions grouped by source (ClickUp gaps, transcript ambiguities, scan unknowns) — the same list as REVAMP-TODO.md's table.

@@ -1,157 +1,105 @@
 ---
 name: shopify-app-restyle
-description: Restyle a third-party Shopify app's block or widget to match a Figma design using theme-only CSS overrides — every declaration `!important`, scoped to the app's container, nothing app-served touched, proven pixel-accurate by side-by-side capture at desktop + mobile widths. Use when the user wants to restyle, override, or customize an installed app's app block / app widget / storefront UI to a Figma frame, or mentions pixel-accurate app-block CSS overrides.
+description: Restyle a third-party Shopify app's block/widget to match a Figma design — theme-only CSS overrides, every declaration !important and scoped under the app's container, proven by measured pixel diff. Use when the user wants to restyle, override, or customize an installed app's widget/app block to match Figma frames, or says "pixel-accurate"/"pixel-perfect" about an app widget. For theme-owned sections/blocks built from Figma, use figma-shopify-builder instead.
 ---
 
 # Shopify App Restyle
 
-Make a third-party app's storefront widget match a Figma design without owning its
-markup. You cannot edit the app's HTML or its files — you can only **outrun its CSS**
-from the theme. An **override** is the unit of work: one CSS declaration that carries
-`!important` and is scoped under the app's container. That pairing is non-negotiable —
-app CSS loads async, so load order can't be trusted; `!important` + scope is what wins.
+Restyle a third-party app's storefront widget to its Figma frames without touching a single app file: everything ships as theme-owned overrides — every declaration `!important`, every selector **scoped** under the app's container so nothing **leaks** into the page. Pixel-accuracy is **measured**, never eyeballed: the run ends at a numeric gate (PASS) or an honest CAP, and the machine is left as found except one deliberate leftover, the visual-check folder.
 
-This workflow is **gate-free**: once inputs are complete, run all four phases without
-pausing for approval. Stop only for (a) a missing input, (b) genuine ambiguity, or
-(c) the live publish swap (`environment-mismatch.md` step 8). The plan and diffs you
-emit are an audit trail, not checkpoints.
+## Inputs — ask for whichever are missing before starting
 
-Tools: **Figma MCP** (read the design), **Shopify dev MCP** (verify Liquid/schema, not
-guess), **browser MCP / Chrome DevTools MCP / Playwright MCP** (inspect + capture).
+1. Figma desktop link (with node-id) and 2. Figma mobile link (with node-id).
+3. App name, exactly as installed (e.g. "Easify Options") — locates its app-block entry in the template and its container/classes/stylesheets fast during inspection.
+4. Target template (e.g. `templates/product.json`).
+5. Placement: which section hosts the app block, and where it sits in that section's `block_order` (before/after which block, by customizer label or type) — used both to locate the widget and to verify/fix its position.
+6. Page or product URL to inspect — optional; ask only if the widget's rendering is product-specific and the target is ambiguous.
 
-## Inputs — gather before starting; ask for any missing
+## The gate — what pixel-accurate means
 
-1. **Figma desktop link** (with node-id) — required.
-2. **Figma mobile link** (with node-id) — required.
-3. **App name**, exactly as installed (e.g. "Easify Options") — required. Locates its
-   app-block entry in the template and its container/classes fast.
-4. **Target template** (e.g. `templates/product.json`) — required.
-5. **Placement** — which section hosts the app block, and where it sits in that
-   section's `block_order` (before/after which block, by customizer label or type) —
-   required. Used to locate the widget and to verify/fix its position.
-6. **Page/product URL to inspect** — optional; ask only if the widget's rendering is
-   product-specific and the target is ambiguous.
+A measured result, all three:
+
+1. Every checked computed style matches its Figma value.
+2. Image diff ratio against the Figma screenshot ≤ 1%, anti-aliasing ignored.
+3. Residual diff pixels are confirmed *from the diff image* to be text-rasterization noise (Figma and Chromium rasterize fonts differently; a literal 0% is unreachable). Layout, color, or spacing differences are never "noise".
+
+Side-by-side eyeballing is for diagnosis only, never for passing.
+
+## Browser tiers
+
+**Primary: the Claude Code Desktop Browser pane** (session in the desktop app with Browser enabled) — drive it directly: screenshots, DOM/computed-style inspection, clicking, form filling. Local dev servers started via `.claude/launch.json` need no site approval; preview/live store URLs are external sites and trigger a one-time permission card (Allow once / Always allow); enable "Persist sessions" when the storefront is password-protected so the cookie survives restarts.
+
+**Capture-exactness check:** the measured diff needs captures at the exact Figma frame widths and scale, identical pixel dimensions, clipped to the widget container. Confirm the pane's screenshots can honor that; if not, the pane still does inspection/interaction/diagnosis and the MEASURED captures fall to the first fallback that can: connected browser MCP (Chrome DevTools MCP / Playwright MCP) → installed Chrome → temporary Playwright via npx.
+
+## Visual-check folder
+
+`visual-check/<widget-name>/` at the ROOT of the theme repo, `<widget-name>` kebab-cased from the app/widget:
+
+- `images/figma-desktop.png`, `images/figma-mobile.png` — references, written once at verification start.
+- `images/result-*`, `images/diff-*` (per breakpoint, plus per verified state) — OVERWRITTEN after EVERY verification iteration, so the folder always shows the latest attempt across trial and error.
+- `assets/images/` + `assets/svg/` — every asset in the Figma frames, exported via the Figma MCP: 4x-scale PNG for all assets into `assets/images/`, vectors additionally as SVG into `assets/svg/`, filenames kebab-cased from Figma layer names — upload-ready for the theme editor / app admin.
+
+Not theme code: it must be gitignored (confirm the entry exists; plan the edit if missing — the Shopify CLI ignores non-theme root directories, so it is never pushed). Retained at the end; the user reviews it, uploads assets, and manages or deletes it themselves.
 
 ## Phase 1 — Research (read-only, no writes)
 
-- **Figma.** Pull both frames via the Figma MCP (design context + screenshot per
-  node-id). Extract exact typography, colors, spacing, sizes, radii, and **frame widths
-  (these are the capture widths in Phase 4)**; the desktop/mobile deltas; and every
-  widget **state** the frames show (selected option, open dropdown, error, …).
-- **Tooling.** Detect (non-mutating): Shopify CLI + `shopify.theme.toml` →
-  `shopify theme dev`; else a preview/live store URL. **There is no static-render
-  fallback** — app-block markup exists only on a real store render, so a local Liquid
-  engine cannot produce it. Capture side: browser MCP → installed Chrome → temporary
-  Playwright via npx.
-- **Inspect the live widget** (locate it by the app name). Extract the container's full
-  outerHTML, every matched CSS rule with its stylesheet origin, and inline styles. Any
-  **JS-injected inline `!important`** goes on the **not-CSS-fixable list** — a theme
-  stylesheet cannot beat it. Pick **stable hooks** to target: the app's container
-  class/ID, its classes and data-attributes — never generated IDs or `nth-child`
-  chains, which break on app updates or option edits. Take baseline screenshots at the
-  Figma frame widths; save all snapshots to this build's subfolder inside the
-  repo-root `visual-check/` folder (gitignored — see **Retain**).
-  - **Wrong state?** If the widget renders in a different state on dev vs live
-    (e.g. sold out on one, in stock on the other) — STOP and follow
-    `environment-mismatch.md`. A comparison against the wrong state is not evidence.
-- **Read the theme.** In the target template, locate the app-block entry and the
-  placement anchor in `block_order` (ask if ambiguous; **stop and ask if the app block
-  is absent** from the template). Learn how the theme loads custom CSS — mirror that
-  convention. Note global typography/color variables; map Figma values to them only
-  where they **genuinely match**, else use exact Figma values.
+- **Figma**: pull design context + screenshot for both node-ids via the Figma MCP. Extract exact typography (incl. letter-spacing), colors, spacing, sizes, radii, frame widths, desktop/mobile differences, and every widget state visible in the frames (selected option, open dropdown, error…). These values are both the override targets AND the expected values for the computed-style assertions. Note each screenshot's scale (1x/2x) and pixel dimensions — captures must match them exactly for the diff. Inventory every exportable asset (name, raster/vector).
+- **Tooling** (non-mutating checks only): Browser pane availability + the capture-exactness check (per Browser tiers). Render: Shopify CLI + `shopify.theme.toml` → `shopify theme dev` (in the desktop app, define it in `.claude/launch.json` so the pane manages the server); otherwise a preview/live store URL. There is NO static-render fallback — app-block markup only exists on a real store render; a local Liquid engine cannot produce it. Diff tool: Node/npx for `npx pixelmatch` / `npx odiff-bin`. Check `.gitignore` for a `visual-check/` entry.
+- **Live widget** (pane when available, otherwise the fallback browser; locate it by app name): extract the full outerHTML of the widget container, all matched CSS rules with their stylesheet origins, and inline styles. Flag JS-injected inline `!important` styles — a theme stylesheet cannot beat those; they go on the not-CSS-fixable list. Identify stable selectors: the app's container class/ID, its classes and data-attributes — generated IDs and `nth-child` chains break when the app updates or the merchant edits options. Baseline screenshots at the Figma frame widths; save all snapshots to a temp directory outside the theme repo.
+- **Wrong-state widget**: whenever the dev preview disagrees with the live site (e.g. sold out on `shopify theme dev`, in stock on the published theme — which changes how the widget renders), stop inspecting and run [environment-mismatch.md](environment-mismatch.md), stopping at the first step that fixes it. Nothing inspected or captured from a wrong-state widget counts.
+- **Theme**: in the target template, locate the app block entry and the placement anchor in `block_order` (ask if ambiguous; stop and ask if the app block is absent). Learn how the theme loads custom CSS and mirror those conventions. Map Figma values to global typography/color variables only where they genuinely match; otherwise exact Figma values.
+- **Difference list**: element by element, per state → (a) CSS-fixable and (b) NOT fixable by CSS — markup/structure differences, text/labels configured in the app admin, app-served images/icons, JS-set inline `!important`. Where a (b)-item is an app-served image/icon, note its Figma export lands in the visual-check `assets/` folders for app-admin upload.
 
-**Done when:** a difference list exists — element by element, per state — split into
-(a) CSS-fixable and (b) **not-CSS-fixable** (markup/structure, admin-configured text,
-app-served images/icons, JS-set inline `!important`).
+Done when: every Figma value is written down against its scoped selector or its (b)-item, and the browser/render/diff tiers are decided.
 
-## Phase 2 — Plan (write it out, then proceed — gate-free)
+## Phase 2 — Plan (write it out, then proceed — no approval pause)
 
-Emit, in the transcript:
+An audit trail in the transcript, not a checkpoint:
 
-- **Override stylesheet** filename (e.g. `assets/<app-handle>-overrides.css`) and load
-  point, per the theme's CSS convention.
-- **Override table:** element → scoped selector → property: current value → target
-  value (exact Figma value or mapped theme variable) → media query if breakpoint-only.
-- **Not-CSS-fixable list**, each item with its remedy (app admin setting / accept
-  as-is). Reported, never gated — never attempt DOM hacks — and carried to the final
-  output.
-- **`block_order` diff** to move the app block to the input-5 placement, or a note that
-  it's already positioned correctly.
-- **Verification approach:** render + capture tier, capture widths, states to verify,
-  and every temporary install with its method (npx / project-local / venv).
+- Override stylesheet filename (e.g. `assets/<app-handle>-overrides.css`) + load point per theme conventions — app CSS can load async, so `!important` is relied on rather than load order.
+- The override table: element → scoped selector → property: current value → target value (exact Figma value or mapped theme variable) → media query if breakpoint-specific.
+- The not-CSS-fixable list, each item with its remedy (app admin setting / accept as-is / upload the exported asset). Reported, not gated: fix everything CSS can fix and carry this list to the final output. Never DOM hacks.
+- The `block_order` diff to reach the input-5 placement — or confirmation it's already right.
+- Git hygiene: confirmation `visual-check/` is gitignored, or the `.gitignore` diff adding it.
+- The asset-export list: every inventoried asset → 4x PNG into `visual-check/<widget-name>/assets/images/` (vectors additionally as SVG into `assets/svg/`), kebab-case names.
+- Verification approach: browser tier with the capture-exactness result (pane or which fallback takes the measured captures), render path, whether `.claude/launch.json` is created/updated (a planned file if so), capture widths and scale, widget states to verify, key elements for computed-style assertions, diff tool + pass threshold (default ≤ 1%, AA ignored), iteration cap (default 8 per breakpoint, plateau exit after 2 without improvement), and the exact temporary installs with method (npx / project-local / venv) — listed installs proceed without approval; the cleanup ledger guarantees removal.
+
+The only reasons to stop: a missing input, genuine ambiguity, or the live publish swap (protocol step 8).
 
 ## Phase 3 — Implement
 
-- Create the override stylesheet from the table: every declaration an **override**
-  (`!important`, scoped under the app container — see Rules); mapped theme variables
-  where planned, exact Figma values otherwise; media queries per the plan.
-- Add the include at the planned load point. Apply the `block_order` edit if planned.
-  Show diffs inline when editing existing files.
-- Touch only planned files. **Never** modify app-served files or assets.
+- The override stylesheet per plan: every declaration carries `!important`; every selector scoped under the app's container so nothing leaks into the rest of the page; mapped theme variables where planned, exact Figma values otherwise; media queries per the planned breakpoint strategy.
+- The stylesheet include at the planned load point; the `block_order` edit if planned; the `.gitignore` edit if planned. Diffs inline when editing existing files (audit trail, not a checkpoint).
+- Export the Figma assets per plan into `assets/images/` + `assets/svg/` via the Figma MCP.
+- Touch only planned files. App-served files and assets are NEVER modified.
+- Verify Liquid/schema syntax via the Shopify dev MCP instead of guessing.
 
-**Done when:** stylesheet created, include added, placement applied, and no
-unplanned file touched.
+## Phase 4 — Verify
 
-## Phase 4 — Verify — pixel-accuracy is proven, never assumed
+Static first: the template still parses as valid JSON (if edited); `shopify theme check` on changed files if available; fix errors.
 
-- **Static.** Template still parses as valid JSON (if edited); run `shopify theme check`
-  on changed files if available; fix errors.
-- **Render.** `shopify theme dev` if available, else the preview/live URL. If neither is
-  possible, stop and report exactly what's missing — never skip visual verification
-  silently. If a **wrong state** reappears here, run `environment-mismatch.md` before
-  comparing.
-- **Capture.** Browser MCP / Chrome DevTools MCP / installed Chrome first; else
-  temporary Playwright via npx (`npx playwright screenshot`; `npx playwright install
-  chromium` if no system browser — the download goes on the **cleanup ledger**).
-- Capture desktop + mobile at the Figma frame widths. Drive the browser into **every
-  state** the frames show before capturing it.
-- Compare each capture side-by-side with its Figma frame: typography, spacing, colors,
-  alignment, sizing, layout order. Optional image diff via npx (`pixelmatch`/`odiff`).
-- Spot-check surrounding page elements — confirm no override **leaked** outside the
-  widget.
+Then visual — the gate is numeric, never assumed, never skipped silently:
 
-**Done when:** at **both** breakpoints, across **every** state the frames show, no
-visible difference remains and nothing leaked. Fix → hard-refresh → re-capture until
-then; intermediate captures are disposable.
+- At start, write `images/figma-desktop.png` / `images/figma-mobile.png` into the visual-check folder.
+- **Render**: `shopify theme dev` when available (pane manages it via `.claude/launch.json`); otherwise the preview/live store URL. Neither possible → stop and report exactly what's missing. A state mismatch reappearing here → [environment-mismatch.md](environment-mismatch.md) before continuing.
+- **Capture**: pane screenshots if the capture-exactness check passed; otherwise connected browser MCP or installed Chrome; otherwise `npx playwright screenshot` (with `npx playwright install chromium` if no system browser — the download goes on the ledger). The pane stays the interaction/inspection surface regardless.
+- **Hygiene before every capture**: exact Figma frame widths at the Figma screenshot's scale (identical pixel dimensions — diff tools require same-size inputs); clip to the widget container, not the full page; animations/transitions disabled; wait for `document.fonts.ready` + network idle; reproduce each Figma widget state by interacting in the browser before capturing it.
+- **Loop, per breakpoint and state, in this order**:
+  1. Computed styles first: getComputedStyle on the key elements vs the Figma values (font-family/size/weight, line-height, letter-spacing, color, background, padding, margin, gap, border-radius). Fix every mismatch before looking at pixels.
+  2. Pixel-diff gate: `npx pixelmatch` / `npx odiff-bin` vs the Figma screenshot; record the ratio and save the diff image every iteration.
+  3. Live tracking, every iteration, no exceptions: immediately overwrite `images/result-<breakpoint>[-<state>].png` and `images/diff-<breakpoint>[-<state>].png`.
+  4. Diagnose from the DIFF IMAGE — it localizes the mismatch; map it to a cause, fix, hard-refresh, re-capture, back to 1.
+  5. Leak check: surrounding page elements unaffected by the overrides.
+- **Exit**: PASS when the gate holds at both breakpoints and all verified states. CAP after 8 iterations per breakpoint or 2 consecutive without diff-ratio improvement → report the final ratio, diff image, and suspected remaining cause; never thrash, never silently lower the threshold. Scope note: fidelity is proven at the two captured widths only.
 
-### Cleanup — leave the machine as found, with one exception
+**Cleanup**: ledger every temporary install (name, method, location; prefer npx over `npm i -g`, project-local/venv over global). On PASS or CAP: uninstall project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, delete the temp directory. The pane is a built-in — nothing to remove; `.claude/launch.json`, if created, is project config and stays. RETAIN `visual-check/<widget-name>/` in full, untracked via `.gitignore`. Nothing from the task gets committed: temporary tooling removed, machine left as found — the visual-check folder is the one deliberate leftover.
 
-Ledger every temporary install (name, method, location). On pass: uninstall
-project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers,
-and delete temp renders, snapshots, and intermediate captures.
-
-**Retain** only the final comparison set: Figma references + final result captures
-(desktop + mobile, plus finals of any extra states), self-explanatory names
-(`figma-desktop.png` / `result-desktop.png`), in this build's subfolder inside
-the root `visual-check/` folder (e.g. `visual-check/<app-handle>/`). Add
-`visual-check/` to the theme's `.gitignore` (one entry covers every build's
-subfolder — create `.gitignore` if absent) so the set lives in the repo yet is
-never committed.
-The user reviews it, then deletes it — it is the one deliberate leftover.
-
-### Final output (no other prose)
-
-- Files created/changed.
-- The not-CSS-fixable list (if any).
-- The cleanup ledger, each install with removal confirmation — or "nothing installed".
-- Absolute paths of the retained comparison images.
-- Which `environment-mismatch.md` step resolved any state mismatch (and, if step 8 ran,
-  confirmation the original theme is live again).
+**Final output** (no explanatory prose): files created/changed · final diff ratio per breakpoint/state with PASS/CAP · the not-CSS-fixable list · the tooling ledger with removal confirmation (or "nothing installed") · `visual-check/<widget-name>/` path + one-line inventory (references, result/diff images, asset counts per format) + gitignore confirmation · which protocol step resolved any environment mismatch (for step 8, confirmation the original theme is live again).
 
 ## Rules
 
-- **Every override is `!important` and scoped** to the app's container — so nothing
-  leaks out and the theme wins against async app CSS.
-- **Stable hooks only** — the app's classes and data-attributes; never generated IDs or
-  brittle `nth-child` chains.
-- **Never touch app-served files or assets.** Read every theme file before editing;
-  show diffs when editing existing files.
-- **Gate-free.** No approval pauses once inputs are complete; stop only for a missing
-  input, genuine ambiguity, or the live publish swap.
-- **The live publish swap is last resort** and never runs without explicit user
-  confirmation.
-- Verify Liquid/schema via the **Shopify dev MCP**, don't guess.
-- `npx` over `npm i -g`; project-local or venv over global.
+- Read every file before editing it.
+- Never pause for approval once inputs are complete — the only stops: a missing input, genuine ambiguity, or the live publish swap (which never runs without the user's explicit go-ahead).
 
 ## Usage
 

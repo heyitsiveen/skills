@@ -1,52 +1,12 @@
-# Environment-mismatch protocol
+# Environment mismatch — dev preview disagrees with live
 
-Fires when the app widget renders in a **different state** on `shopify theme dev`
-than on the published/live store — the classic case: a product is sold out on dev
-but in stock on live (or the reverse), and the widget renders differently per state.
+The dev preview and the published site render the widget differently (e.g. the product shows sold out on `shopify theme dev` but in stock on the live theme), so the widget is in the wrong state — and nothing inspected or captured from a wrong-state widget counts. Diagnose in this order; stop at the first step that fixes it, and note that step in the final output.
 
-A comparison against the **wrong state** is not evidence. Never inspect or verify
-until dev and live agree on the state the Figma frames depict.
-
-Diagnose in order; **stop at the first step that resolves it.** Cheap and local
-first, customer-facing last. Note which step fixed it — it goes in the final output.
-
-1. **Cache.** Hard-refresh; incognito, or DevTools with cache disabled. Compare live
-   vs dev in the same browser, same machine, same moment.
-
-2. **Theme code + app embeds.** Diff how the dev/repo theme vs the live theme computes
-   availability (`variant.available`, `product.available`, `inventory_quantity`,
-   preorder / selling-plan handling). Then compare app-embed activation in each
-   theme's `settings_data.json` — app embeds are **per-theme**, so an inventory or
-   preorder app enabled on live but not on dev will flip the state. Match the dev
-   theme's embeds to live.
-
-3. **Market / geo / IP.** Set the **same country** via the storefront country selector
-   on both live and dev, then re-compare. No selector? Compare live from the current
-   IP vs a VPN in the store's primary market — if live from the current IP *also*
-   shows the wrong state, the cause is Markets/inventory config, not a dev-tool bug.
-   Check `shopify theme dev --help` on the installed CLI for market/country flags;
-   update the CLI if outdated.
-
-4. **Data (admin / merchant).** Verify: inventory per location; "continue selling when
-   out of stock"; whether the product is in the browsed market's catalog (Markets);
-   whether any stocked location ships to that country; sales-channel availability. Ask
-   the merchant if you can't reach admin.
-
-5. **Bypass the localhost proxy.** `shopify theme push --unpublished`, then inspect via
-   that theme's real-domain preview link — real geolocation, cookies, and session, with
-   the live theme untouched.
-
-6. **Sidestep.** If the widget renders identically on another in-stock product, inspect
-   and verify on that product instead — **confirm with the user first.**
-
-7. **Research the exact symptom.** Shopify docs via the Shopify dev MCP; Shopify
-   community forums; `Shopify/cli` GitHub issues for known `theme dev`
-   availability/market-context bugs in the installed CLI version.
-
-8. **LAST RESORT — live publish swap.** Requires the user's **explicit go-ahead** (the
-   workflow is otherwise gate-free, but this changes what customers see). Record the
-   current live theme's name and ID → publish the repo/draft theme → perform the
-   inspection/captures **immediately** → re-publish the original theme (re-publishing
-   the previous live theme is how the draft becomes "unpublished" again). Afterward,
-   **verify the original theme is live again.** Prefer a low-traffic window; keep the
-   swap as short as possible.
+1. **Rule out cache**: hard-refresh, incognito / DevTools with cache disabled, and compare live vs dev in the same browser, same machine, same moment. (The Browser pane uses a clean profile separate from the personal browser — a useful cross-check against personal-browser cache/cookies.)
+2. **Rule out theme-code and app-embed differences**: diff how the repo theme vs the live theme computes availability (`variant.available`, `product.available`, `inventory_quantity` logic, preorder/selling-plan handling), and compare app-embed activation between the two themes' `settings_data.json` — app embeds are per-theme, so an inventory/preorder app enabled on live but not on the dev theme can flip the sold-out state. Match the dev theme's embeds to live.
+3. **Rule out market/geo/IP context**: set the SAME country via the storefront country selector on both live and dev, then re-compare. If the theme has no selector, compare live from the current IP vs a VPN in the store's primary market — if live from the current IP also shows sold out, the cause is Markets/inventory configuration, not a dev-tool bug. Check `shopify theme dev --help` on the installed CLI version for market/country context flags, and update the CLI if outdated.
+4. **Verify the data in admin** (or ask the merchant): inventory per location, "continue selling when out of stock", whether the product is included in the market being browsed (Markets catalogs), whether any stocked location ships to that country, and sales-channel availability.
+5. **Bypass the localhost proxy**: `shopify theme push --unpublished` and inspect via that theme's real-domain preview link — normal geolocation, cookies, and session handling, with the live theme untouched. (In the Browser pane this preview link is an external site: expect the one-time permission card.)
+6. **Sidestep**: if the widget renders identically on another in-stock product, inspect and verify on that product instead (confirm with the user first).
+7. **Research the exact symptom**: Shopify docs via the Shopify dev MCP, Shopify community forums, and Shopify/cli GitHub issues for known `theme dev` availability/market-context bugs in the installed CLI version.
+8. **LAST RESORT — live publish swap** (requires the user's explicit go-ahead, even though this workflow is otherwise gate-free, because it changes what customers see): record the current live theme's name and ID, publish the repo/draft theme, perform the inspection/captures immediately, then re-publish the original theme — that is how the draft is "unpublished"; re-publishing the previous live theme restores it. Verify afterward that the original theme is live again. Prefer a low-traffic window and keep the swap window as short as possible.
