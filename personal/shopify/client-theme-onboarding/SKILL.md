@@ -40,7 +40,7 @@ Done when: branch checked out, answers 1–5 recorded.
 
 No writes of any kind in this step. Launch all agents in ONE message so they run in parallel; collect every report before Step 3. A subagent sees nothing of this conversation and Explore skips CLAUDE.md — each prompt carries its full ask plus three standing demands: every fact cited as `path:line` · actual commands/paths/IDs, never paraphrases · final message = the complete report.
 
-- **Agent A — survey + tripwire candidates:** directory tree; every config file; `package.json` scripts; build tooling; linting; CI workflows (which branch pushes deploy, and to where); committed secrets (`.npmrc`, `.env` — paths only, never values); sync exclusions (the build tool's ignore files); existing docs / `.shopifyignore` / `shopify.theme.toml` / CLAUDE.md / AGENTS.md; conventions — section/snippet naming, CSS approach, JS patterns, schema style, app footprint (Klaviyo, Judge.me, subscriptions…); dev loop — the exact sync command, watcher detection (`pgrep` pattern), every known failure mode (these become the `error → cause → fix` rows).
+- **Agent A — survey + tripwire candidates:** directory tree; every config file; `package.json` scripts; build tooling; linting; CI workflows (which branch pushes deploy, and to where); committed secrets (`.npmrc`, `.env` — paths only, never values); sync exclusions (the build tool's ignore files); existing docs / `.agent/` knowledge docs (`theme-capabilities.md`, `app-widget-*.md`) / `.shopifyignore` / `shopify.theme.toml` / CLAUDE.md / AGENTS.md; conventions — section/snippet naming, CSS approach, JS patterns, schema style, app footprint (Klaviyo, Judge.me, subscriptions…); dev loop — the exact sync command, watcher detection (`pgrep` pattern), every known failure mode (these become the `error → cause → fix` rows).
 - **Agent B — reuse inventory, JS side:** every `customElements.define` registration (→ Custom web components) · reusable scripts/utils not tied to one component (→ JavaScript) · event/fetch interaction sequences (→ Flows).
 - **Agent C — reuse inventory, Liquid/CSS side:** parameterized utility snippets/filters (→ Functions) · repeated section/CSS structures (→ Patterns) · multi-step markup sequences, e.g. product form → cart (→ Flows).
 - B and C prompts include the absolute path of this skill's REFERENCE.md and the row schema `name | file path(s) | what it does | reuse keywords`; require one row per item, per §COMPONENTS.md.
@@ -67,16 +67,16 @@ Write per [REFERENCE.md](REFERENCE.md), shaped like [EXAMPLES.md](EXAMPLES.md):
 
 | output | note |
 |---|---|
-| AGENTS.md | canonical rules — the lean entry doc |
-| CLAUDE.md | `ln -s AGENTS.md CLAUDE.md` (fallback: REFERENCE.md §CLAUDE.md) |
-| ARCHITECTURE.md | the map: tree, deviations, build/deploy flow |
-| COMPONENTS.md | reuse inventory: five category tables + the check-first rule |
-| COMMANDS.md | command table + `error → cause → fix` table |
-| REVAMP-TODO.md | task rows + open-questions table |
-| shopify.theme.toml | spec: REFERENCE.md §shopify.theme.toml |
+| AGENTS.md | repo root — agents auto-load it there; canonical rules, the lean entry doc |
+| CLAUDE.md | repo root — `ln -s AGENTS.md CLAUDE.md` (fallback: REFERENCE.md §CLAUDE.md) |
+| .agent/client-theme-onboarding/ARCHITECTURE.md | the map: tree, deviations, build/deploy flow |
+| .agent/client-theme-onboarding/COMPONENTS.md | reuse inventory: five category tables + the check-first rule |
+| .agent/client-theme-onboarding/COMMANDS.md | command table + `error → cause → fix` table |
+| .agent/client-theme-onboarding/REVAMP-TODO.md | task rows + open-questions table |
+| shopify.theme.toml | repo root — the Shopify CLI reads it there; spec: REFERENCE.md §shopify.theme.toml |
 
 Then:
-- Append the six doc names (AGENTS, CLAUDE, ARCHITECTURE, COMPONENTS, COMMANDS, REVAMP-TODO) to `.git/info/exclude` — agency-internal, never in the client repo.
+- Append `AGENTS.md`, `CLAUDE.md`, and `.agent/` to `.git/info/exclude` — agency-internal, never in the client repo (the `.agent/` line also covers the build skills' knowledge docs and visual-check outputs).
 - Save three memories, cross-linked with `[[…]]`: `project` (client, scope, contacts, deadlines) · `feedback` (deploy-safety rules + tripwires) · `reference` (build-system cheatsheet).
 
 Done when: seven outputs written, exclusions appended, three memories saved.

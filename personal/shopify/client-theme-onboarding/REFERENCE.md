@@ -15,7 +15,7 @@ Applies on top of the Doc Contract (SKILL.md). `<angle-brackets>` = fill from a 
 # Project Rules — <Client> Theme (<Agency> revamp)
 
 > <STANDARD|CUSTOM> · <build system, or "no build pipeline">.
-> Map: **ARCHITECTURE.md** · Reuse: **COMPONENTS.md** · Tasks: **REVAMP-TODO.md** · Commands: **COMMANDS.md**.
+> Depth docs in `.agent/client-theme-onboarding/`: Map **ARCHITECTURE.md** · Reuse **COMPONENTS.md** · Tasks **REVAMP-TODO.md** · Commands **COMMANDS.md**.
 
 ## 🚫 Git & deploy safety (non-negotiable)
 | action | consequence | rule |
@@ -24,7 +24,7 @@ Applies on top of the Doc Contract (SKILL.md). `<angle-brackets>` = fill from a 
 | <one row per CI/secret/sync tripwire from the scan> | | |
 - Work ONLY on `<working branch>`. Commit only when explicitly asked<; commit convention if enforced, e.g. Angular Conventional Commits (commitlint)>.
 - Never edit or publish the client's live/published theme.
-- These six docs are in `.git/info/exclude` — never commit them.
+- `AGENTS.md`, `CLAUDE.md`, and `.agent/` are in `.git/info/exclude` — never commit them.
 - <Committed secret: `<file>` — treat as secret, rotation flagged; value not reproduced here.>
 
 ## 🎨 Tech stack (always)
@@ -44,7 +44,15 @@ Applies on top of the Doc Contract (SKILL.md). `<angle-brackets>` = fill from a 
 ## 🧩 Code conventions
 - <naming · CSS approach · JS pattern · schema style — one line each, with one example path from the repo>
 - Everything new is namespaced `{prefix}-`: ✅ `sections/{prefix}-testimonial-carousel.liquid` ❌ `sections/testimonial-carousel.liquid` · ✅ `<{prefix}-carousel>` ❌ `<theme-carousel>` · ✅ `.{prefix}-carousel__track`, `--{prefix}-gap` ❌ `.carousel__track`, `--gap` — same for schema block/setting IDs and JS module/function names.
-- Before writing new code: search COMPONENTS.md by reuse keyword — match → reuse or extend it; no match → build new under `{prefix}-`.
+- Before writing new code: search `.agent/client-theme-onboarding/COMPONENTS.md` by reuse keyword — match → reuse or extend it; no match → build new under `{prefix}-`.
+
+## 📚 Knowledge docs (check before any theme scan)
+| doc | consult when |
+|---|---|
+| `.agent/theme-capabilities.md` | before scanning sections/blocks/settings schemas — the capability catalog |
+| `.agent/shopify-app-restyle/app-widget-<handle>.md` | before inspecting that app's widget DOM |
+- Docs appear once a build skill first scans. Read the doc, run its header freshness check, rescan only what is missing or stale, then update the doc. "refresh …" from the user forces a full rescan.
+- Every figma-shopify-*/shopify-app-restyle artifact lands under `.agent/<skill-name>/`; shared docs sit at `.agent/` root.
 
 ## 📐 Working style
 - Smallest diff that works; read before editing; check in before major changes; ask when multiple valid approaches exist.

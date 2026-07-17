@@ -5,7 +5,7 @@ description: Build pixel-accurate Shopify sections or blocks from Figma designs.
 
 # Figma → Shopify Builder
 
-Build a theme section or block from two Figma frames and prove it pixel-accurate by measurement. Four phases — research (read-only), plan (stop for approval), implement, verify (numeric gate) — then cleanup that leaves the machine as found. Nothing is created or modified before plan approval; the one deliberate leftover is the visual-check folder.
+Build a theme section or block from two Figma frames and prove it pixel-accurate by measurement. Four phases — research (read-only on the theme), plan (stop for approval), implement, verify (numeric gate) — then cleanup that leaves the machine as found. Nothing is created or modified before plan approval except knowledge docs under `.agent/` (§Knowledge docs); the deliberate leftovers are the visual-check folder and the knowledge docs.
 
 ## Inputs
 
@@ -50,14 +50,14 @@ Prefer the named custom agents `figma-extractor`, `theme-scanner`, and `visual-v
 
 **Capability gate** (at tooling detection): confirm the Agent tool is available and that the Figma MCP / browser tools reach subagents (subagents inherit internal + MCP tools by default; the Browser pane's preview tools may be main-session-only). Any role whose tools don't reach a subagent runs in the main conversation instead.
 
-**Handoff protocol:** subagents can't see the conversation and can't ask the user questions — every delegation prompt carries its exact inputs (node-ids, file paths, capture specs, the expected-values file path); every worker writes FULL findings to a report file in the temp working directory and returns a short summary; ambiguities come back as OPEN QUESTIONS for the main agent to put to the user. The repeated-items inventory is figma-extractor output, but the json-vs-metaobject ask always happens in the main conversation. The temp working directory is created per run (use the session scratchpad when available) and is deleted at cleanup.
+**Handoff protocol:** subagents can't see the conversation and can't ask the user questions — every delegation prompt carries its exact inputs (node-ids, file paths, capture specs, the expected-values file path); every worker writes FULL findings to a report file in the temp working directory (the theme-scanner writes the canonical knowledge doc instead — §Knowledge docs) and returns a short summary; ambiguities come back as OPEN QUESTIONS for the main agent to put to the user. The repeated-items inventory is figma-extractor output, but the json-vs-metaobject ask always happens in the main conversation. The temp working directory is created per run (use the session scratchpad when available) and is deleted at cleanup.
 
 **Never delegated:** planning, user approvals, all implementation edits, the json-vs-metaobject ask, the metafield-data stop-and-hand-over, and the diagnosis/fix half of the verification loop.
 
 | Role | Phase | Report |
 |---|---|---|
 | figma-extractor | 1, parallel | `figma-spec.md` |
-| theme-scanner (read-only) | 1, parallel | `theme-capabilities.md` |
+| theme-scanner (read-only on the theme; runs only when `.agent/theme-capabilities.md` misses this run's sections) | 1, parallel | `.agent/theme-capabilities.md` (canonical) |
 | visual-verifier (never edits theme files) | 4, one call per iteration | `verify-report-<n>.md` |
 
 ### figma-extractor prompt
@@ -91,12 +91,13 @@ the open questions.
 
 ```
 You are scanning a Shopify theme to ground a new {section|block} build.
-READ-ONLY: do not create, edit, or delete any file.
+READ-ONLY on the theme: your only write is the knowledge doc named below.
 
 Theme repo: {repo-path}
 Target template: {template-path}
 Requested placement: {placement}
 Data source: {theme settings | metafields — owner type + namespace.key(s)}
+Mode: {FULL — create/fill sections {list} | INCREMENTAL — refresh only {list}}
 
 Report on:
 1. Global typography/color settings: what config/settings_schema.json exposes
@@ -106,14 +107,19 @@ Report on:
    scoping, class naming, breakpoints.
 3. [metafields source] Sections that already read metafields/metaobjects and
    their exact access patterns.
-4. The target template: the placement anchor in `order` (or the host section's
-   `block_order`) for "{placement}" — OPEN QUESTION if ambiguous.
+4. PER-RUN — return in your summary, never in the doc: the target template's
+   placement anchor in `order` (or the host section's `block_order`) for
+   "{placement}" — OPEN QUESTION if ambiguous.
 5. [block build] Theme block architecture: `blocks/` dir vs blocks defined in
    host section schemas.
-6. .gitignore: does a `visual-check/` entry exist?
+6. PER-RUN (same): does .git/info/exclude carry a `.agent/` line?
 
-Write the FULL findings to {temp-dir}/theme-capabilities.md with OPEN QUESTIONS
-at the end. Return only a 3–5 line summary plus the open questions.
+Write your findings into .agent/theme-capabilities.md — create it opening with
+this header if absent, otherwise update only your sections plus the header:
+{knowledge-doc header, filled at dispatch — §Knowledge docs}
+Doc sections: 1 → §Globals · 2 → §Conventions · 3 → §Metafield patterns ·
+5 → §Block architecture. Return only a 3–5 line summary, the per-run
+findings (4, 6), and the open questions.
 ```
 
 ### visual-verifier prompt
@@ -127,7 +133,8 @@ Iteration: {n} — breakpoint {desktop|mobile}, width {w}px, scale {s}, expected
 capture dimensions {W}x{H}px
 Render at: {dev-server-url | static-html-path}
 Clip to container: {selector}
-Figma reference: visual-check/{name}/images/figma-{breakpoint}.png
+Figma reference: .agent/figma-shopify-builder/visual-check/{name}/images/
+figma-{breakpoint}.png
 Expected values: {temp-dir}/figma-spec.md
 Key elements to assert: {list from the approved plan}
 Diff tool: {npx pixelmatch … | npx odiff-bin …} (anti-aliasing ignored)
@@ -142,33 +149,70 @@ Diff tool: {npx pixelmatch … | npx odiff-bin …} (anti-aliasing ignored)
    property, expected, actual.
 3. Pixel diff: run the diff tool vs the reference; record the diff ratio; save
    the diff image.
-4. Overwrite visual-check/{name}/images/result-{breakpoint}.png and
-   diff-{breakpoint}.png with THIS iteration's capture and diff.
+4. Overwrite .agent/figma-shopify-builder/visual-check/{name}/images/
+   result-{breakpoint}.png and diff-{breakpoint}.png with THIS iteration's
+   capture and diff.
 
 Write the FULL report to {temp-dir}/verify-report-{n}.md: mismatch table, diff
 ratio, largest diff regions and where they sit. Return only the diff ratio,
 mismatch count, and one line on the biggest offender.
 ```
 
+## Knowledge docs — scan once, reuse
+
+`.agent/` at the theme repo root holds every durable artifact this skill suite produces: shared knowledge docs at its root, per-skill outputs under `.agent/<skill-name>/`. Knowledge docs are written for an AI reader — tables, exact identifiers (filenames, setting ids, types, defaults), rules and constraints, zero filler prose — and are the one exception to "nothing before approval": a scan writes its doc immediately, so the knowledge survives even an abandoned run.
+
+The canonical doc — **`.agent/theme-capabilities.md`**, fixed sections: §Globals · §Section catalog · §Theme blocks · §Inheritance · §Conventions · §Block architecture · §Metafield patterns · §CSS load. This skill needs §Globals + §Conventions always, §Metafield patterns for a metafields source, §Block architecture for a block build — and fills what it scans; figma-shopify-composer fills the full catalog; the header's `coverage:` line names what is populated. Consulted when present: `.agent/client-theme-onboarding/COMPONENTS.md` — the reuse inventory; search it by reuse keyword before writing new code (match → reuse or extend, per its header rule).
+
+Every knowledge doc opens with this header:
+
+```
+---
+generated: <YYYY-MM-DD>
+skill: <writing skill> (<subagent role>)
+theme: <theme name>
+git: <branch> @ <short SHA>
+scanned: sections/ (<n> files) · blocks/ (<n>) · config/settings_schema.json
+coverage: full | <populated sections>
+refresh: user says "refresh theme capabilities" → full rescan
+---
+```
+
+**Read before the theme scan (main agent, Phase 1):**
+
+1. Read `.agent/theme-capabilities.md` when it exists.
+2. Freshness check: the doc's file lists and `scanned:` counts vs the current `sections/`/`blocks/` listings, its header git line vs the current branch + short SHA. This run's needed sections present and fresh → skip the scan; read the placement anchor and `.git/info/exclude` inline, done. Missing or stale sections → theme-scanner fills just those.
+3. The scanner writes/updates the doc BEFORE planning continues.
+4. An explicit user refresh ("refresh theme capabilities" or similar) always wins: full rescan, doc rewritten.
+
+**Root pointer:** the repo's root `AGENTS.md`/`CLAUDE.md` names this convention so future sessions find the docs before rescanning. Missing → append it (or create a minimal `CLAUDE.md` holding just this block, excluded like everything else) as a planned edit:
+
+```
+## 📚 Knowledge docs (check before any theme scan)
+Skill outputs + knowledge docs live under `.agent/` — shared docs at its root,
+per-skill outputs in `.agent/<skill-name>/`. Read `.agent/theme-capabilities.md`
+before any theme scan; freshness check + refresh instruction in its header.
+```
+
 ## The visual-check folder
 
-`visual-check/<section-or-block-name>/` at the ROOT of the theme repo, kebab-cased from the section/block name (e.g. `visual-check/hero/`):
+`.agent/figma-shopify-builder/visual-check/<section-or-block-name>/` in the theme repo, kebab-cased from the section/block name (e.g. `.agent/figma-shopify-builder/visual-check/hero/`):
 
 - `images/figma-desktop.png`, `images/figma-mobile.png` — references, written once at verification start.
 - `images/result-desktop.png`, `images/result-mobile.png`, `images/diff-desktop.png`, `images/diff-mobile.png` — overwritten after EVERY verification iteration, so the folder always shows the latest attempt and progress stays trackable across trial and error.
 - `assets/images/` + `assets/svg/` — every asset in the Figma frames (images, icons, illustrations, logos) exported via the Figma MCP: 4x-scale PNG for all assets into `assets/images/`, vectors additionally as SVG into `assets/svg/`, filenames kebab-cased from Figma layer names. Upload-ready for Shopify: assigned to `image_picker` settings (theme-settings source) or uploaded as Files and referenced from metafield/metaobject values (metafields source).
 
-The folder is not theme code: it must be gitignored (confirm the entry exists; add it as a planned edit if not — the Shopify CLI ignores non-theme root directories, so it is never pushed). It is retained at the end: the user reviews it, uploads assets, and manages or deletes it themselves.
+The folder is not theme code: `.agent/` stays out of git via a `.git/info/exclude` line (confirm the `.agent/` line exists; append it as a planned edit if not — a local, never-committed file, and the Shopify CLI ignores non-theme root directories, so it is never pushed). It is retained at the end: the user reviews it, uploads assets, and manages or deletes it themselves.
 
-## Phase 1 — Research (read-only)
+## Phase 1 — Research (read-only on the theme)
 
-Run the two delegations in parallel, plus tooling detection. No file is created or modified.
+Run the two delegations in parallel, plus tooling detection. No theme file is created or modified; the one write is the knowledge doc (§Knowledge docs).
 
 - **Figma extraction** → figma-extractor: both frames via the Figma MCP; exact-values table (implementation targets AND expected values for verification); screenshot scale + pixel dimensions; desktop/mobile differences; repeated-items inventory; asset inventory. Report: `figma-spec.md`.
-- **Theme reads** → theme-scanner: globals inventory (`config/settings_schema.json`, CSS-variable output in `layout/theme.liquid` or base CSS); conventions from 2–3 similar sections/blocks; [metafields] existing access patterns; template placement anchor (OPEN QUESTION if ambiguous); `.gitignore` check. Report: `theme-capabilities.md`. Where globals exist the plan maps each Figma value to them; where they don't, Figma values apply directly — unmapped values get listed, never silently decided.
+- **Theme reads** — knowledge-doc check first (§Knowledge docs): this run's needed sections fresh → read them, then the placement anchor and `.git/info/exclude` inline, done. Otherwise → theme-scanner: globals inventory (`config/settings_schema.json`, CSS-variable output in `layout/theme.liquid` or base CSS); conventions from 2–3 similar sections/blocks; [metafields] existing access patterns; per-run, the template placement anchor (OPEN QUESTION if ambiguous) and the exclude check. Writes its sections into `.agent/theme-capabilities.md`. Where globals exist the plan maps each Figma value to them; where they don't, Figma values apply directly — unmapped values get listed, never silently decided.
 - **Tooling detection** (main agent, non-mutating checks only): Browser pane availability first, then fallbacks per Browser tiers; run the capture-exactness check; the Agent tool and which tools reach subagents (fix the delegation map); Shopify CLI + `shopify.theme.toml` (desktop app: `shopify theme dev` defined in `.claude/launch.json` so the pane manages the server); Python for the static-approximation fallback; Node/npx for the pixel-diff tool (`npx pixelmatch` / `npx odiff-bin`). Record the render tier, capture tier, and any temporary installs required.
 
-**Done when:** both reports exist, every OPEN QUESTION has been put to the user and answered — including the json-vs-metaobject ask when the source is metafields and the design repeats — and the tooling record names render tier, capture tier, delegation map, and required temp installs.
+**Done when:** `figma-spec.md` exists and `.agent/theme-capabilities.md` carries this run's needed sections with a fresh header, every OPEN QUESTION has been put to the user and answered — including the json-vs-metaobject ask when the source is metafields and the design repeats — and the tooling record names render tier, capture tier, delegation map, and required temp installs.
 
 ## Phase 2 — Plan (stop for approval)
 
@@ -181,8 +225,8 @@ The plan states:
 - **Data-source mapping** (metafields only): each Figma content element → the metafield that fills it, with owner type and resolution. For repeated items, the chosen type in FULL — json: namespace.key, owner type, exact item schema (every key: type + the Figma element it fills), malformed-item handling; metaobject: definition type, every field key (type + the Figma element it fills), access path (`list.metaobject_reference` vs `shop.metaobjects`), entry-ordering mechanism. Plus sample values matching the Figma copy, written ready to create in admin, and which fields connect via dynamic sources.
 - **Typography/color mapping**: table to theme globals, or hardcode note; unmapped values flagged.
 - **Breakpoints**: responsive strategy.
-- **Git hygiene**: confirmation `visual-check/` is gitignored, or the `.gitignore` diff adding it.
-- **Asset-export list**: every inventoried asset → 4x PNG into `visual-check/<name>/assets/images/`, vectors additionally as SVG into `assets/svg/`, kebab-case names from Figma layers; separately, any code-referenced assets that also go into the theme's `assets/`.
+- **Git hygiene**: confirmation `.git/info/exclude` carries the `.agent/` line, or the append adding it.
+- **Asset-export list**: every inventoried asset → 4x PNG into `.agent/figma-shopify-builder/visual-check/<name>/assets/images/`, vectors additionally as SVG into `assets/svg/`, kebab-case names from Figma layers; separately, any code-referenced assets that also go into the theme's `assets/`.
 - **Template diff**: the exact JSON diff (new key in `sections` + `order` position, or block entry + `block_order` position).
 - **Delegation map**: which roles ran/will run delegated vs main, and the report paths produced so far.
 - **Verification approach**: browser tier (with the capture-exactness result), render tier, whether `.claude/launch.json` will be created/updated (a planned file if so), capture widths and scale, key elements for computed-style assertions, pixel-diff tool + pass threshold (default: diff ratio ≤ 1%, anti-aliasing ignored), iteration cap (default: 8 per breakpoint, plateau exit after 2 iterations without improvement), and the exact temporary-install list with method (npx / project-local / venv) and removal confirmation.
@@ -196,8 +240,8 @@ Touch only planned files; no delegated edits.
 - Create the section/block file per the plan: mapped globals where they exist, exact Figma values otherwise; both breakpoints exact.
 - Metafields source: the Liquid reads the approved metafields — iterating `metafield.value` for json (validating and skipping malformed items), or the metaobject entries' fields per the approved access path and ordering — with exact access syntax verified via the Shopify dev MCP, dynamic sources connected where the editor supports them, and a graceful empty state when data is absent.
 - Edit the template JSON exactly as approved, showing the diff again before writing.
-- Apply the `.gitignore` edit if planned.
-- Export the Figma assets per the approved list via the Figma MCP: all assets into `visual-check/<name>/assets/images/` and `assets/svg/`, code-referenced ones also into the theme's `assets/`.
+- Append the `.agent/` line to `.git/info/exclude` if planned.
+- Export the Figma assets per the approved list via the Figma MCP: all assets into `.agent/figma-shopify-builder/visual-check/<name>/assets/images/` and `assets/svg/`, code-referenced ones also into the theme's `assets/`.
 
 **Done when:** every planned file exists as approved and nothing else changed.
 
@@ -223,9 +267,9 @@ Touch only planned files; no delegated edits.
 
 If no render or capture path exists even with temporary installs: stop and report exactly what's missing.
 
-**Cleanup:** the ledger lists every temporary install (name, method, location). Once verification passes or caps: uninstall project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, and delete the temp working directory (including subagent reports). The Browser pane is a built-in — nothing to uninstall; `.claude/launch.json`, if created per the plan, is project config and stays. RETAIN `visual-check/<name>/` at the repo root in full — references, live-updated result/diff images, exported assets — untracked via `.gitignore`. The user reviews the comparisons before committing, uses the assets per the data source (theme-editor `image_picker` assignment, or Files upload referenced from metafield/metaobject values), and manages the folder themselves. Nothing lands in git except the planned theme files.
+**Cleanup:** the ledger lists every temporary install (name, method, location). Once verification passes or caps: uninstall project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, and delete the temp working directory (including subagent reports). The Browser pane is a built-in — nothing to uninstall; `.claude/launch.json`, if created per the plan, is project config and stays. RETAIN `.agent/` in full — `theme-capabilities.md` for the next run, plus `.agent/figma-shopify-builder/visual-check/<name>/` (references, live-updated result/diff images, exported assets) — untracked via `.git/info/exclude`. The user reviews the comparisons before committing, uses the assets per the data source (theme-editor `image_picker` assignment, or Files upload referenced from metafield/metaobject values), and manages the folder themselves. Nothing lands in git except the planned theme files.
 
-**Final output (no explanatory prose):** files created/changed; [metafields] the final definition spec + sample values as created/confirmed, plus empty-state confirmation; final diff ratio per breakpoint with pass/cap status; the delegation map; the tooling ledger with removal confirmation (or "nothing installed"); the path `visual-check/<name>/` with a one-line inventory (references, result/diff images, asset counts per format) and gitignore confirmation.
+**Final output (no explanatory prose):** files created/changed; [metafields] the final definition spec + sample values as created/confirmed, plus empty-state confirmation; final diff ratio per breakpoint with pass/cap status; the delegation map; the tooling ledger with removal confirmation (or "nothing installed"); knowledge-doc status — `.agent/theme-capabilities.md` reused (fresh) / updated / created; the path `.agent/figma-shopify-builder/visual-check/<name>/` with a one-line inventory (references, result/diff images, asset counts per format) and exclusion confirmation.
 
 ## Rules
 
@@ -236,10 +280,11 @@ If no render or capture path exists even with temporary installs: stop and repor
 - The Browser pane leads when available; fallbacks apply only when it's absent or fails the capture-exactness check.
 - The pixel-diff gate is mandatory: passing is numeric, and the threshold never drops silently.
 - Result/diff images are overwritten every iteration — the folder always shows the latest attempt.
-- `visual-check/` lives at the repo root, is always gitignored, and is never committed.
+- `.agent/` lives at the repo root, is always excluded via `.git/info/exclude`, and is never committed.
+- Knowledge docs first: read `.agent/theme-capabilities.md` and freshness-check it before any theme scan; a scan that runs writes the doc back before the task continues. An explicit user refresh always wins.
 - Verify Liquid/schema syntax — including metafield and metaobject access — via the Shopify dev MCP instead of guessing.
 - Prefer `npx` over `npm i -g`; project-local or venv installs over global ones.
-- Leave the machine as it was found — the retained visual-check folder is the one deliberate leftover, kept for review and asset uploads.
+- Leave the machine as it was found — the retained `.agent/` tree (knowledge docs + visual-check) is the one deliberate leftover, kept for the next run, review, and asset uploads.
 
 ## Usage
 
