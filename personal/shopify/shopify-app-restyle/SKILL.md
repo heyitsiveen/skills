@@ -44,14 +44,14 @@ Prefer the named custom agents `figma-extractor`, `widget-inspector`, and `visua
 
 **Capability gate** (at tooling detection): confirm the Agent tool is available and that the Figma MCP / browser tools reach subagents (subagents inherit internal + MCP tools by default; the Browser pane's preview tools may be main-session-only). Any role whose tools don't reach a subagent runs in the main conversation instead.
 
-**Handoff protocol:** subagents can't see the conversation and can't ask the user questions — every delegation prompt carries its exact inputs (node-ids, selectors, file paths, capture specs); every worker writes FULL findings to a report file in the temp working directory (the widget-inspector writes the knowledge docs plus a per-run report — §Knowledge docs) and returns a short summary; ambiguities come back as OPEN QUESTIONS for the main agent to put to the user. The temp working directory is created per run (use the session scratchpad when available) and is deleted at cleanup.
+**Handoff protocol:** subagents can't see the conversation and can't ask the user questions — every delegation prompt carries its exact inputs (node-ids, selectors, file paths, capture specs); every worker writes FULL findings to a report file in the temp working directory (the widget-inspector writes the app-widget doc plus a per-run report — §Knowledge docs) and returns a short summary; ambiguities come back as OPEN QUESTIONS for the main agent to put to the user. The temp working directory is created per run (use the session scratchpad when available) and is deleted at cleanup.
 
 **Never delegated:** planning, user approvals, all implementation edits, the environment-mismatch steps that need the user (6 and 8), and the diagnosis/fix half of the verification loop.
 
 | Role | Phase | Report |
 |---|---|---|
 | figma-extractor | 1, parallel | `figma-spec.md` |
-| widget-inspector (read-only on the theme; skips re-derivation when the knowledge docs are fresh) | 1, parallel | knowledge docs (§Knowledge docs) + per-run `theme-widget-report.md` |
+| widget-inspector (read-only on the theme; skips re-derivation when the knowledge docs are fresh) | 1, parallel | `app-widget-<app-handle>.md` (§Knowledge docs) + per-run `theme-widget-report.md` |
 | visual-verifier (never edits theme files) | 4, one call per iteration | `verify-report-<n>.md` |
 
 ### figma-extractor prompt
@@ -100,7 +100,8 @@ Knowledge docs: .agent/shopify-app-restyle/app-widget-{app-handle}.md and
 freshness in the live DOM before trusting: compare the live container
 outerHTML against the doc's snapshot — equal → reuse its selectors/rules and
 skip re-deriving 1–3; different or absent → do 1–3 in full and rewrite the
-doc. Same for THEME-CAPABILITIES §Globals/§CSS load via items 6–7.
+doc. THEME-CAPABILITIES, when attached, already answers 6–7 (§CSS load,
+§Globals) — read it there; absent → derive 6–7 per-run.
 
 In the browser, find the widget the app renders (search the DOM for the app's
 name, handle, or vendor prefix in classes, ids, and data-attributes), then:
@@ -124,12 +125,13 @@ Theme reads:
    per-run; the main agent decides any mapping to Figma values.
 
 Write the widget findings (1–3) to .agent/shopify-app-restyle/
-app-widget-{app-handle}.md and the theme findings (6–7) into
-.agent/THEME-CAPABILITIES.md §CSS load / §Globals — each opening with its
-header: {knowledge-doc headers, filled at dispatch — §Knowledge docs}; skip
-whatever the freshness check proved current. Write the per-run findings (4–5)
-to {temp-dir}/theme-widget-report.md with OPEN QUESTIONS at the end. Return
-only a 3–5 line summary plus the open questions.
+app-widget-{app-handle}.md, opening with its header:
+{knowledge-doc header, filled at dispatch — §Knowledge docs}; skip it when
+the freshness check proved the doc current. Write the per-run findings
+(4–5, plus 6–7 when derived here) to {temp-dir}/theme-widget-report.md with
+OPEN QUESTIONS at the end — the capability catalog .agent/THEME-CAPABILITIES.md
+is produced only by figma-shopify-composer or client-theme-onboarding, never
+here. Return only a 3–5 line summary plus the open questions.
 ```
 
 ### visual-verifier prompt
@@ -182,19 +184,18 @@ offender.
 This skill's docs:
 
 - **`.agent/shopify-app-restyle/app-widget-<app-handle>.md`** — one per app, `<app-handle>` kebab-cased from the installed app name: the widget container's outerHTML snapshot, stable override selectors, matched CSS rules with origins (app-served vs theme), and the JS-injected inline-`!important` list. Freshness is a live check: compare the current container outerHTML against the stored snapshot — equal → trust the doc; different → full re-inspection, doc rewritten (app updates are the staleness source).
-- **`.agent/THEME-CAPABILITIES.md`** — shared with figma-shopify-composer, figma-shopify-builder, and client-theme-onboarding (composer and onboarding produce the full catalog); this skill reads/fills §Globals (variable names and wiring — current values resolve live) and §CSS load (how the theme loads custom CSS). The header's `coverage:` line names populated sections.
+- **`.agent/THEME-CAPABILITIES.md`** — read-only here: produced whole — identically — by figma-shopify-composer or client-theme-onboarding, only when absent (or explicitly refreshed). This skill reads §Globals (variable names and wiring — current values resolve live) and §CSS load (how the theme loads custom CSS); absent → the widget-inspector derives those two per-run into its report.
 
 Every knowledge doc opens with this header (an app-widget doc's `scanned:` records the inspected URL + container selector):
 
 ```
 ---
 generated: <YYYY-MM-DD>
-skill: <writing skill> (<subagent role>)
+skill: <producing skill> (<agent role>)
 theme: <theme name>
 git: <branch> @ <short SHA>
 scanned: <dirs + file counts | URL + container selector>
-coverage: full | <populated sections>
-refresh: user says "refresh app widget" / "refresh theme capabilities" → full rescan
+refresh: user says "refresh app widget" → regenerate
 ---
 ```
 
@@ -222,15 +223,15 @@ The folder is not theme code: `.agent/` stays out of git via a `.git/info/exclud
 
 ## Phase 1 — Research (read-only on the theme)
 
-Run the two delegations in parallel, plus tooling detection. No theme file is created or modified; the only writes are the knowledge docs (§Knowledge docs).
+Run the two delegations in parallel, plus tooling detection. No theme file is created or modified; the one canonical write is the app-widget doc (§Knowledge docs).
 
 - **Figma extraction** → figma-extractor: both frames via the Figma MCP; exact-values table (the override targets AND the expected values for verification's computed-style assertions); desktop/mobile differences; every visible widget state; screenshot scale + pixel dimensions; asset inventory. Report: `figma-spec.md`.
-- **Widget inspection + theme reads** → widget-inspector (in main if browser tools don't reach subagents), knowledge docs read first and passed in (§Knowledge docs): locate the widget by app name; verify doc freshness against the live container outerHTML; container outerHTML; matched rules with origins; JS-injected inline `!important` styles flagged; stable selectors; baseline screenshots at the Figma frame widths (read the widths via a cheap Figma `get_metadata` call at dispatch); per-run, the app-block entry + placement anchor in the target template; the theme's custom-CSS conventions; global typography/color variables. Writes/updates the knowledge docs; per-run report: `theme-widget-report.md`.
+- **Widget inspection + theme reads** → widget-inspector (in main if browser tools don't reach subagents), knowledge docs read first and passed in (§Knowledge docs): locate the widget by app name; verify doc freshness against the live container outerHTML; container outerHTML; matched rules with origins; JS-injected inline `!important` styles flagged; stable selectors; baseline screenshots at the Figma frame widths (read the widths via a cheap Figma `get_metadata` call at dispatch); per-run, the app-block entry + placement anchor in the target template; the theme's custom-CSS conventions and global typography/color variables (from `.agent/THEME-CAPABILITIES.md` when present, derived per-run otherwise). Writes/updates the app-widget doc; per-run report: `theme-widget-report.md`.
 - **Tooling detection** (main agent, non-mutating checks only): Browser pane availability first, then fallbacks per Browser tiers; run the capture-exactness check; the Agent tool and which tools reach subagents (fix the delegation map). Render path: Shopify CLI + `shopify.theme.toml` → `shopify theme dev` (desktop app: defined in `.claude/launch.json` so the pane manages the server); otherwise a preview/live store URL. A real store render is required — app-block markup only exists there, so a local Liquid engine cannot produce it and there is NO static fallback. Diff tool: Node/npx for `npx pixelmatch` / `npx odiff-bin`. Check `.git/info/exclude` for a `.agent/` line.
 - **Wrong-state check**: the dev preview must agree with the live site on everything that changes how the widget renders — availability (in stock vs sold out), widget presence, options shown. On any disagreement, pause measurement and work [environment-mismatch.md](environment-mismatch.md) to the first step that fixes it; a wrong-state widget is never inspected or verified against.
 - **Difference list** (main agent, from `figma-spec.md`, the knowledge docs, and `theme-widget-report.md`), element by element and per state, split into (a) CSS-fixable and (b) not fixable by CSS — markup/structure differences, text and labels configured in the app admin, app-served images/icons, JS-set inline `!important` styles. Where a not-CSS-fixable item is an app-served image/icon, note that its Figma export will be in the visual-check `assets/` folders for app-admin upload.
 
-**Done when:** both reports exist and the knowledge docs are current (fresh headers); every OPEN QUESTION has been put to the user and answered; the tooling record names browser tier, capture source (exactness result), render path, diff tool, delegation map, temp dir, and the exclude status; any dev/live disagreement is resolved (note the step); and the difference list places every Figma-vs-live difference in exactly one of the two lists.
+**Done when:** both reports exist and the app-widget doc is current (fresh header); every OPEN QUESTION has been put to the user and answered; the tooling record names browser tier, capture source (exactness result), render path, diff tool, delegation map, temp dir, and the exclude status; any dev/live disagreement is resolved (note the step); and the difference list places every Figma-vs-live difference in exactly one of the two lists.
 
 ## Phase 2 — Plan (write it out, then continue)
 
@@ -277,7 +278,7 @@ Touch only planned files; no delegated edits; app-served files and assets stay u
 
 **Cleanup:** the ledger lists every temporary install (name, method, location). Once verification passes or caps: uninstall project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, and delete the temp working directory (including subagent reports). The Browser pane is a built-in — nothing to uninstall; `.claude/launch.json`, if created per the plan, is project config and stays. RETAIN `.agent/` in full — the knowledge docs for the next run, plus `.agent/shopify-app-restyle/visual-check/<widget-name>/` (references, live-updated result/diff images, exported assets) — untracked via `.git/info/exclude`. The user reviews it, uploads assets via the theme editor / app admin, and manages the folder themselves. Nothing from the task gets committed.
 
-**Final output (no explanatory prose):** files created/changed; final diff ratio per breakpoint/state with pass/cap status; the not-CSS-fixable list (if any); the delegation map; the tooling ledger with removal confirmation (or "nothing installed"); knowledge-doc status — `app-widget-<app-handle>.md` and `THEME-CAPABILITIES.md` each reused (fresh) / updated / created; the path `.agent/shopify-app-restyle/visual-check/<widget-name>/` with a one-line inventory (references, result/diff images, asset counts per format) and exclusion confirmation; which environment-mismatch step resolved any dev/live disagreement — and after step 8, confirmation the original theme is live again.
+**Final output (no explanatory prose):** files created/changed; final diff ratio per breakpoint/state with pass/cap status; the not-CSS-fixable list (if any); the delegation map; the tooling ledger with removal confirmation (or "nothing installed"); knowledge-doc status — `app-widget-<app-handle>.md` reused (fresh) / updated / created; `THEME-CAPABILITIES.md` read (fresh) / absent (globals + CSS-load derived per-run); the path `.agent/shopify-app-restyle/visual-check/<widget-name>/` with a one-line inventory (references, result/diff images, asset counts per format) and exclusion confirmation; which environment-mismatch step resolved any dev/live disagreement — and after step 8, confirmation the original theme is live again.
 
 ## Rules
 
@@ -288,7 +289,7 @@ Touch only planned files; no delegated edits; app-served files and assets stay u
 - The pixel-diff gate is mandatory: passing is numeric, eyeballing only diagnoses, and the threshold never drops silently.
 - Result/diff images are overwritten every iteration — the folder always shows the latest attempt.
 - `.agent/` lives at the repo root, is always excluded via `.git/info/exclude`, and is never committed.
-- Knowledge docs first: read `.agent/shopify-app-restyle/app-widget-<app-handle>.md` and `.agent/THEME-CAPABILITIES.md`, freshness-checked, before any widget inspection or theme scan; an inspection that runs writes the docs back before the task continues. An explicit user refresh always wins.
+- Knowledge docs first: read `.agent/shopify-app-restyle/app-widget-<app-handle>.md` and `.agent/THEME-CAPABILITIES.md`, freshness-checked, before any widget inspection or theme scan; an inspection that runs writes the app-widget doc back before the task continues. An explicit user refresh always wins.
 - Every override declaration carries `!important` and sits scoped under the app's container; selectors target the app's stable classes/data-attributes — never generated IDs or `nth-child` chains.
 - Overrides only: app-served files and assets are never modified, and DOM hacks are never attempted — not-CSS-fixable items get reported with a remedy instead.
 - Verify Liquid/schema syntax via the Shopify dev MCP instead of guessing.
