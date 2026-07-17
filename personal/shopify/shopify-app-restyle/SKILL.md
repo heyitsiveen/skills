@@ -129,9 +129,8 @@ app-widget-{app-handle}.md, opening with its header:
 {knowledge-doc header, filled at dispatch — §Knowledge docs}; skip it when
 the freshness check proved the doc current. Write the per-run findings
 (4–5, plus 6–7 when derived here) to {temp-dir}/theme-widget-report.md with
-OPEN QUESTIONS at the end — the capability catalog .agent/THEME-CAPABILITIES.md
-is produced only by figma-shopify-composer or client-theme-onboarding, never
-here. Return only a 3–5 line summary plus the open questions.
+OPEN QUESTIONS at the end — .agent/THEME-CAPABILITIES.md is read-only for
+this skill. Return only a 3–5 line summary plus the open questions.
 ```
 
 ### visual-verifier prompt
@@ -184,7 +183,7 @@ offender.
 This skill's docs:
 
 - **`.agent/shopify-app-restyle/app-widget-<app-handle>.md`** — one per app, `<app-handle>` kebab-cased from the installed app name: the widget container's outerHTML snapshot, stable override selectors, matched CSS rules with origins (app-served vs theme), and the JS-injected inline-`!important` list. Freshness is a live check: compare the current container outerHTML against the stored snapshot — equal → trust the doc; different → full re-inspection, doc rewritten (app updates are the staleness source).
-- **`.agent/THEME-CAPABILITIES.md`** — read-only here: produced whole — identically — by figma-shopify-composer or client-theme-onboarding, only when absent (or explicitly refreshed). This skill reads §Globals (variable names and wiring — current values resolve live) and §CSS load (how the theme loads custom CSS); absent → the widget-inspector derives those two per-run into its report.
+- **`.agent/THEME-CAPABILITIES.md`** — read-only here; its shape is fixed, so it reads the same no matter which skill produced it. This skill reads §Globals (variable names and wiring — current values resolve live) and §CSS load (how the theme loads custom CSS); absent → the widget-inspector derives those two per-run into its report.
 
 Every knowledge doc opens with this header (an app-widget doc's `scanned:` records the inspected URL + container selector):
 

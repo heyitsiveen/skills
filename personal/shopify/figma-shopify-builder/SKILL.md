@@ -116,21 +116,20 @@ Report on:
 5. [block build] Theme block architecture: `blocks/` dir vs blocks defined in
    host section schemas.
 6. PER-RUN (same): does .git/info/exclude carry a `.agent/` line?
-7. [when COMPONENTS.md is absent] The FULL reuse inventory — identical to
-   what client-theme-onboarding produces: every customElements.define
-   registration (→ Custom web components); reusable JS utils not tied to
-   one component (→ JavaScript); parameterized Liquid utility
-   snippets/filters (→ Functions); multi-step flows, e.g. add-to-cart,
-   quick-view (→ Flows); recurring structural patterns, e.g. drawer, sticky
-   header (→ Patterns). One row per item, minor items included — a thin row
-   beats an omission: name | file path(s) | what it does | reuse keywords.
+7. [when COMPONENTS.md is absent] The FULL reuse inventory: every
+   customElements.define registration (→ Custom web components); reusable
+   JS utils not tied to one component (→ JavaScript); parameterized Liquid
+   utility snippets/filters (→ Functions); multi-step flows, e.g.
+   add-to-cart, quick-view (→ Flows); recurring structural patterns, e.g.
+   drawer, sticky header (→ Patterns). One row per item, minor items
+   included — a thin row beats an omission:
+   name | file path(s) | what it does | reuse keywords.
 
 Write item 7 to .agent/COMPONENTS.md — five category tables in the order
 above, opening with this header:
 {knowledge-doc header, filled at dispatch — §Knowledge docs}
-Write items 1/2/3/5 to {temp-dir}/theme-scan.md — per-run theme facts; the
-capability catalog .agent/THEME-CAPABILITIES.md is produced only by
-figma-shopify-composer or client-theme-onboarding, never here. Return only a
+Write items 1/2/3/5 to {temp-dir}/theme-scan.md — per-run theme facts;
+.agent/THEME-CAPABILITIES.md is read-only for this skill. Return only a
 3–5 line summary, the per-run findings (4, 6), and the open questions.
 ```
 
@@ -176,8 +175,8 @@ mismatch count, and one line on the biggest offender.
 
 This skill's docs:
 
-- **`.agent/THEME-CAPABILITIES.md`** — read-only here. Fixed sections: §Globals · §Section catalog · §Theme blocks · §Inheritance · §Conventions · §Block architecture · §Metafield patterns · §CSS load; this skill reads §Globals + §Conventions always, §Metafield patterns for a metafields source, §Block architecture for a block build. Produced whole — identically — by figma-shopify-composer or client-theme-onboarding, only when absent (or explicitly refreshed). Absent during this run → the theme-scanner gathers the needed facts per-run into `{temp-dir}/theme-scan.md` and the final output recommends generating the catalog.
-- **`.agent/COMPONENTS.md`** — the reuse inventory: five category tables (Custom web components · JavaScript · Functions · Flows · Patterns), row schema `name | file path(s) | what it does | reuse keywords`. Produced whole — identically — by client-theme-onboarding or this skill, only when absent: no doc → this skill's theme-scanner produces the FULL inventory (item 7). Search it by reuse keyword before writing new code — match → reuse or extend. After verification passes, append a row for the built section/block (and any new custom element) so the inventory stays current.
+- **`.agent/THEME-CAPABILITIES.md`** — read-only here; its shape is fixed, so it reads the same no matter which skill produced it. Fixed sections: §Globals · §Section catalog · §Theme blocks · §Inheritance · §Conventions · §Block architecture · §Metafield patterns · §CSS load; this skill reads §Globals + §Conventions always, §Metafield patterns for a metafields source, §Block architecture for a block build. Absent during this run → the theme-scanner gathers the needed facts per-run into `{temp-dir}/theme-scan.md`.
+- **`.agent/COMPONENTS.md`** — the reuse inventory: five category tables (Custom web components · JavaScript · Functions · Flows · Patterns), row schema `name | file path(s) | what it does | reuse keywords`. Produced only when absent — no doc → this skill's theme-scanner produces the FULL inventory (item 7); present → read it (identical shape whichever skill produced it). Search it by reuse keyword before writing new code — match → reuse or extend. After verification passes, append a row for the built section/block (and any new custom element) so the inventory stays current.
 
 Every knowledge doc opens with this header — identical fields no matter which skill produced the doc (COMPONENTS.md's refresh phrase is "refresh components"; THEME-CAPABILITIES.md's is "refresh theme capabilities"):
 
@@ -195,7 +194,7 @@ refresh: user says "refresh <components | theme capabilities>" → regenerate
 **Read before the theme scan (main agent, Phase 1):**
 
 1. Read `.agent/THEME-CAPABILITIES.md` and `.agent/COMPONENTS.md` when they exist.
-2. Freshness check: each doc's file lists and `scanned:` counts vs the current `sections/`/`blocks/`/JS-source listings, its header git line vs the current branch + short SHA. Both present and fresh → skip the scan; read the placement anchor and `.git/info/exclude` inline, done. `.agent/COMPONENTS.md` absent → the scanner produces it in full; `.agent/THEME-CAPABILITIES.md` absent or stale → the scanner gathers this run's theme facts per-run instead (the catalog itself is composer's/onboarding's to produce).
+2. Freshness check: each doc's file lists and `scanned:` counts vs the current `sections/`/`blocks/`/JS-source listings, its header git line vs the current branch + short SHA. Both present and fresh → skip the scan; read the placement anchor and `.git/info/exclude` inline, done. `.agent/COMPONENTS.md` absent → the scanner produces it in full; `.agent/THEME-CAPABILITIES.md` absent or stale → the scanner gathers this run's theme facts per-run instead (the catalog is read-only for this skill).
 3. The scanner writes `.agent/COMPONENTS.md` BEFORE planning continues.
 4. An explicit user refresh ("refresh components" or similar) always wins: the scanner regenerates the doc.
 
@@ -284,7 +283,7 @@ If no render or capture path exists even with temporary installs: stop and repor
 
 **Cleanup:** the ledger lists every temporary install (name, method, location). Once verification passes or caps: append the built section/block (and any new custom element) as a row to `.agent/COMPONENTS.md`; uninstall project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, and delete the temp working directory (including subagent reports). The Browser pane is a built-in — nothing to uninstall; `.claude/launch.json`, if created per the plan, is project config and stays. RETAIN `.agent/` in full — the knowledge docs for the next run, plus `.agent/figma-shopify-builder/visual-check/<name>/` (references, live-updated result/diff images, exported assets) — untracked via `.git/info/exclude`. The user reviews the comparisons before committing, uses the assets per the data source (theme-editor `image_picker` assignment, or Files upload referenced from metafield/metaobject values), and manages the folder themselves. Nothing lands in git except the planned theme files.
 
-**Final output (no explanatory prose):** files created/changed; [metafields] the final definition spec + sample values as created/confirmed, plus empty-state confirmation; final diff ratio per breakpoint with pass/cap status; the delegation map; the tooling ledger with removal confirmation (or "nothing installed"); knowledge-doc status — `.agent/THEME-CAPABILITIES.md` read (fresh) / absent (per-run facts used — generate it via figma-shopify-composer or client-theme-onboarding), `.agent/COMPONENTS.md` reused / produced this run, plus the appended row for the new build; the path `.agent/figma-shopify-builder/visual-check/<name>/` with a one-line inventory (references, result/diff images, asset counts per format) and exclusion confirmation.
+**Final output (no explanatory prose):** files created/changed; [metafields] the final definition spec + sample values as created/confirmed, plus empty-state confirmation; final diff ratio per breakpoint with pass/cap status; the delegation map; the tooling ledger with removal confirmation (or "nothing installed"); knowledge-doc status — `.agent/THEME-CAPABILITIES.md` read (fresh) / absent (per-run facts used), `.agent/COMPONENTS.md` reused / produced this run, plus the appended row for the new build; the path `.agent/figma-shopify-builder/visual-check/<name>/` with a one-line inventory (references, result/diff images, asset counts per format) and exclusion confirmation.
 
 ## Rules
 

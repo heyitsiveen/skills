@@ -51,8 +51,8 @@ Applies on top of the Doc Contract (SKILL.md). `<angle-brackets>` = fill from a 
 |---|---|
 | `.agent/THEME-CAPABILITIES.md` | before scanning sections/blocks/settings schemas — the capability catalog |
 | `.agent/shopify-app-restyle/app-widget-<handle>.md` | before inspecting that app's widget DOM |
-- A missing doc is produced by the first producing skill that runs (COMPONENTS.md: client-theme-onboarding or figma-shopify-builder · THEME-CAPABILITIES.md: client-theme-onboarding or figma-shopify-composer — identical output either way). Read the doc, run its header freshness check, rescan only what is missing or stale. "refresh …" from the user forces a regenerate.
-- Every figma-shopify-*/shopify-app-restyle artifact lands under `.agent/<skill-name>/`; shared docs sit at `.agent/` root.
+- A missing doc is produced — identically, whichever skill produces it — by the first skill that needs it. Read the doc, run its header freshness check, rescan only what is missing or stale. "refresh …" from the user forces a regenerate.
+- Every skill's own artifacts land under `.agent/<skill-name>/`; shared docs sit at `.agent/` root.
 
 ## 📐 Working style
 - Smallest diff that works; read before editing; check in before major changes; ask when multiple valid approaches exist.
@@ -84,7 +84,7 @@ Required sections, exact order:
 
 ## COMPONENTS.md — reuse inventory (REQUIRED on every run)
 
-Lives at `.agent/COMPONENTS.md` — a shared knowledge doc: opens with the knowledge-doc header (template: §THEME-CAPABILITIES.md; this doc's refresh phrase is "refresh components"). Produced only when absent (or explicitly refreshed), identically by this skill or figma-shopify-builder — whichever first runs on a repo without it; builder also appends a row per verified build. One canonical doc, never forked.
+Lives at `.agent/COMPONENTS.md` — a shared knowledge doc: opens with the knowledge-doc header (template: §THEME-CAPABILITIES.md; this doc's refresh phrase is "refresh components"). Produced only when absent (or explicitly refreshed); the shape is fixed, identical whichever skill produces it, and skills that build new components append rows to keep it current. One canonical doc, never forked.
 
 The doc that stops rebuilds: build/composition tasks search it before writing anything new. The header carries that rule so every later session obeys it without re-asking:
 
@@ -108,7 +108,7 @@ The doc that stops rebuilds: build/composition tasks search it before writing an
 
 Lives at `.agent/THEME-CAPABILITIES.md`. Produced only when absent or stale (Step 2 Agent D check; a fresh existing doc is reused). Content = Agent D's report, exact identifiers only — section filenames, setting ids, types, options/ranges, defaults, inheritance targets — tables over prose; schema only, never `settings_data.json` current values. Fixed `##` sections, exact order: **Globals · Section catalog · Theme blocks · Inheritance · Conventions · Block architecture · Metafield patterns · CSS load**.
 
-Produced identically by figma-shopify-composer when it runs first; figma-shopify-builder and shopify-app-restyle read it. Both shared docs open with the knowledge-doc header — identical fields no matter which skill produces the doc:
+The shape is fixed — identical whichever skill produces it — so consumer skills read it and never fork it. Both shared docs open with the knowledge-doc header, identical fields no matter which skill produces the doc:
 
 ```
 ---
