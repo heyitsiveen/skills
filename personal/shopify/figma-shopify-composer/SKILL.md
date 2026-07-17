@@ -132,13 +132,20 @@ options/ranges, defaults:
 4. Inheritance trace: for every color/typography/radius/border setting on a
    section or block, whether it INHERITS from a global (color scheme, CSS
    variable) or takes a raw per-instance value.
-5. Usage conventions: skim other templates/*.json for realistic settings
-   combinations for the cataloged sections.
-6. PER-RUN — return in your summary, never in the doc: the target template's
+5. Conventions: usage conventions from other templates/*.json (realistic
+   settings combinations for the cataloged sections) plus authoring
+   conventions from 2–3 representative sections — schema style, CSS
+   scoping, class naming, breakpoints.
+6. Block architecture: blocks/ directory vs blocks defined inside host
+   section schemas.
+7. Metafield patterns: sections that already read metafields/metaobjects
+   and their exact access patterns.
+8. CSS load: how the theme loads custom CSS — asset naming, include point.
+9. PER-RUN — return in your summary, never in the doc: the target template's
    placement anchor for "{placement}" in `order` (or the host section
    instance and its `block_order` for a block composition) — OPEN QUESTION
    if ambiguous.
-7. PER-RUN (same): does .git/info/exclude carry a `.agent/` line?
+10. PER-RUN (same): does .git/info/exclude carry a `.agent/` line?
 
 Write the catalog to .agent/THEME-CAPABILITIES.md, opening with this header:
 {knowledge-doc header, filled at dispatch — §Knowledge docs}
@@ -146,7 +153,7 @@ FULL mode covers every doc section; INCREMENTAL mode updates
 only the listed entries plus the header. Sharded runs write
 {temp-dir}/THEME-CAPABILITIES-{n}.md instead — the main agent merges them
 into the canonical doc. Return only a 3–5 line summary, the per-run
-findings (6–7), and the open questions.
+findings (9–10), and the open questions.
 ```
 
 ### visual-verifier prompt
@@ -243,7 +250,7 @@ The folder is not theme code: `.agent/` stays out of git via a `.git/info/exclud
 Run 1a and 1b in parallel, then match in main. No theme file is created or modified; the one write is the knowledge doc (§Knowledge docs).
 
 - **1a. Figma requirements** → figma-extractor: both frames via the Figma MCP; exact-values table (the settings-configuration targets AND the expected values for verification's computed-style assertions); per-breakpoint layout structure and desktop/mobile differences; screenshot scale + pixel dimensions; asset inventory; the distilled REQUIREMENTS LIST. Report: `figma-spec.md`.
-- **1b. Capability inventory** — knowledge-doc check first (§Knowledge docs): present and fresh → read it, then the placement anchor and `.git/info/exclude` inline, done. Otherwise → theme-scanner (FULL or INCREMENTAL): global design tokens (schema) and their CSS-variable outputs; every section's settings/blocks/presets with responsive settings flagged; theme blocks; the inheritance trace (global-connected vs raw per-instance) for every color/typography/radius/border setting; usage conventions from other templates; per-run, the target-template placement anchor (OPEN QUESTION if ambiguous) and the exclude check. Writes `.agent/THEME-CAPABILITIES.md`, sharded across 2–3 scanners on very large themes and merged by the main agent. Current global values: read live from `config/settings_data.json` in main.
+- **1b. Capability inventory** — knowledge-doc check first (§Knowledge docs): present and fresh → read it, then the placement anchor and `.git/info/exclude` inline, done. Otherwise → theme-scanner (FULL or INCREMENTAL): global design tokens (schema) and their CSS-variable outputs; every section's settings/blocks/presets with responsive settings flagged; theme blocks; the inheritance trace (global-connected vs raw per-instance) for every color/typography/radius/border setting; usage + authoring conventions; block architecture; metafield access patterns; custom-CSS load conventions; per-run, the target-template placement anchor (OPEN QUESTION if ambiguous) and the exclude check. Writes `.agent/THEME-CAPABILITIES.md`, sharded across 2–3 scanners on very large themes and merged by the main agent. Current global values: read live from `config/settings_data.json` in main.
 - **1c. Match requirements to capabilities** (main agent, from `figma-spec.md` + `.agent/THEME-CAPABILITIES.md`): for every requirement, the existing capability that achieves it — which section type (or stack of section instances), which block types, which settings and values, per breakpoint. Where a style value should come from a global, check whether the CURRENT global value already equals the Figma value — if it doesn't, that is a decision point, never a silent change. Anything with no existing capability is a GAP: record the closest achievable approximation and its visible cost, and whether an existing per-instance custom CSS/Liquid setting (an existing setting, so within the constraint) could close it.
 - **1d. Tooling detection** (main agent, non-mutating checks only): Browser pane availability first, then fallbacks per Browser tiers; run the capture-exactness check; the Agent tool and which tools reach subagents (fix the delegation map). Render path: Shopify CLI + `shopify.theme.toml` → `shopify theme dev` (desktop app: defined in `.claude/launch.json` so the pane manages the server); otherwise a preview/live store URL. There is NO static-render fallback — composed existing sections depend on the full theme runtime (snippets, global settings, theme CSS/JS), which a local Liquid engine cannot reproduce. Diff tool: Node/npx for `npx pixelmatch` / `npx odiff-bin`. Record the tiers and any temporary installs required.
 - **1e. Ask**: put anything still ambiguous — including OPEN QUESTIONS from the reports — to the user as concise questions before planning.
