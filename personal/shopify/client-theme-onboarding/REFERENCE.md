@@ -108,7 +108,7 @@ The doc that stops rebuilds: build/composition tasks search it before writing an
 
 Lives at `.agent/THEME-CAPABILITIES.md`. Produced only when absent or stale (Step 2 Agent D check; a fresh existing doc is reused). Content = Agent D's report, exact identifiers only — section filenames, setting ids, types, options/ranges, defaults, inheritance targets — tables over prose; schema only, never `settings_data.json` current values. Fixed `##` sections, exact order: **Globals · Section catalog · Theme blocks · Inheritance · Conventions · Block architecture · Metafield patterns · CSS load**.
 
-The shape is fixed — identical whichever skill produces it — so consumer skills read it and never fork it. Both shared docs open with the knowledge-doc header, identical fields no matter which skill produces the doc:
+The shape is fixed — identical whichever skill produces it — so consumer skills read it and never fork it. Skills that add sections, blocks, or settings append the affected entries and refresh the header after their run, keeping the doc current. Both shared docs open with the knowledge-doc header, identical fields no matter which skill produces the doc:
 
 ```
 ---
