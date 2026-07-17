@@ -36,7 +36,7 @@ Skills under `deprecated/` must appear in **none** of the three. Whenever you ad
 
 ## Figma→Shopify suite — client-repo output convention
 
-The four skills `figma-shopify-composer`, `figma-shopify-builder`, `shopify-app-restyle`, and `client-theme-onboarding` (all `personal/shopify/`) write every artifact inside a client theme repo under `.agent/`: shared knowledge docs at its root (`theme-capabilities.md`), per-skill outputs in `.agent/<skill-name>/` (onboarding depth docs, `app-widget-<handle>.md`, `visual-check/`). `AGENTS.md`, its `CLAUDE.md` symlink, and `shopify.theme.toml` stay at the client repo root; everything is kept out of git via `.git/info/exclude`. When editing these skills, keep every path on this convention and the four skills in agreement.
+The four skills `figma-shopify-composer`, `figma-shopify-builder`, `shopify-app-restyle`, and `client-theme-onboarding` (all `personal/shopify/`) write every artifact inside a client theme repo under `.agent/`: shared multi-producer knowledge docs at its root (`THEME-CAPABILITIES.md` — composer/onboarding full, builder/restyle subsets; `COMPONENTS.md` — onboarding full, builder lean seed), per-skill outputs in `.agent/<skill-name>/` (onboarding depth docs, `app-widget-<handle>.md`, `visual-check/`). `AGENTS.md`, its `CLAUDE.md` symlink, and `shopify.theme.toml` stay at the client repo root; everything is kept out of git via `.git/info/exclude`. When editing these skills, keep every path on this convention and the four skills in agreement.
 
 ## Distribution
 

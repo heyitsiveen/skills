@@ -96,11 +96,11 @@ Target template: {template-path}
 Requested placement: {placement}
 Capture widths: desktop {w}px / mobile {w}px (the Figma frame widths)
 Knowledge docs: .agent/shopify-app-restyle/app-widget-{app-handle}.md and
-.agent/theme-capabilities.md {— current contents attached | absent}. Verify
+.agent/THEME-CAPABILITIES.md {— current contents attached | absent}. Verify
 freshness in the live DOM before trusting: compare the live container
 outerHTML against the doc's snapshot — equal → reuse its selectors/rules and
 skip re-deriving 1–3; different or absent → do 1–3 in full and rewrite the
-doc. Same for theme-capabilities §Globals/§CSS load via items 6–7.
+doc. Same for THEME-CAPABILITIES §Globals/§CSS load via items 6–7.
 
 In the browser, find the widget the app renders (search the DOM for the app's
 name, handle, or vendor prefix in classes, ids, and data-attributes), then:
@@ -125,7 +125,7 @@ Theme reads:
 
 Write the widget findings (1–3) to .agent/shopify-app-restyle/
 app-widget-{app-handle}.md and the theme findings (6–7) into
-.agent/theme-capabilities.md §CSS load / §Globals — each opening with its
+.agent/THEME-CAPABILITIES.md §CSS load / §Globals — each opening with its
 header: {knowledge-doc headers, filled at dispatch — §Knowledge docs}; skip
 whatever the freshness check proved current. Write the per-run findings (4–5)
 to {temp-dir}/theme-widget-report.md with OPEN QUESTIONS at the end. Return
@@ -182,7 +182,7 @@ offender.
 This skill's docs:
 
 - **`.agent/shopify-app-restyle/app-widget-<app-handle>.md`** — one per app, `<app-handle>` kebab-cased from the installed app name: the widget container's outerHTML snapshot, stable override selectors, matched CSS rules with origins (app-served vs theme), and the JS-injected inline-`!important` list. Freshness is a live check: compare the current container outerHTML against the stored snapshot — equal → trust the doc; different → full re-inspection, doc rewritten (app updates are the staleness source).
-- **`.agent/theme-capabilities.md`** — shared with figma-shopify-composer and figma-shopify-builder; this skill reads/fills §Globals (variable names and wiring — current values resolve live) and §CSS load (how the theme loads custom CSS). The header's `coverage:` line names populated sections.
+- **`.agent/THEME-CAPABILITIES.md`** — shared with figma-shopify-composer, figma-shopify-builder, and client-theme-onboarding (composer and onboarding produce the full catalog); this skill reads/fills §Globals (variable names and wiring — current values resolve live) and §CSS load (how the theme loads custom CSS). The header's `coverage:` line names populated sections.
 
 Every knowledge doc opens with this header (an app-widget doc's `scanned:` records the inspected URL + container selector):
 
@@ -205,8 +205,9 @@ refresh: user says "refresh app widget" / "refresh theme capabilities" → full 
 ```
 ## 📚 Knowledge docs (check before any theme scan)
 Skill outputs + knowledge docs live under `.agent/` — shared docs at its root,
-per-skill outputs in `.agent/<skill-name>/`. Read `.agent/theme-capabilities.md`
-before any theme scan; freshness check + refresh instruction in its header.
+per-skill outputs in `.agent/<skill-name>/`. Read `.agent/THEME-CAPABILITIES.md`
+before any theme scan and search `.agent/COMPONENTS.md` before writing new
+code; freshness checks + refresh instructions in their headers.
 ```
 
 ## The visual-check folder
@@ -276,7 +277,7 @@ Touch only planned files; no delegated edits; app-served files and assets stay u
 
 **Cleanup:** the ledger lists every temporary install (name, method, location). Once verification passes or caps: uninstall project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, and delete the temp working directory (including subagent reports). The Browser pane is a built-in — nothing to uninstall; `.claude/launch.json`, if created per the plan, is project config and stays. RETAIN `.agent/` in full — the knowledge docs for the next run, plus `.agent/shopify-app-restyle/visual-check/<widget-name>/` (references, live-updated result/diff images, exported assets) — untracked via `.git/info/exclude`. The user reviews it, uploads assets via the theme editor / app admin, and manages the folder themselves. Nothing from the task gets committed.
 
-**Final output (no explanatory prose):** files created/changed; final diff ratio per breakpoint/state with pass/cap status; the not-CSS-fixable list (if any); the delegation map; the tooling ledger with removal confirmation (or "nothing installed"); knowledge-doc status — `app-widget-<app-handle>.md` and `theme-capabilities.md` each reused (fresh) / updated / created; the path `.agent/shopify-app-restyle/visual-check/<widget-name>/` with a one-line inventory (references, result/diff images, asset counts per format) and exclusion confirmation; which environment-mismatch step resolved any dev/live disagreement — and after step 8, confirmation the original theme is live again.
+**Final output (no explanatory prose):** files created/changed; final diff ratio per breakpoint/state with pass/cap status; the not-CSS-fixable list (if any); the delegation map; the tooling ledger with removal confirmation (or "nothing installed"); knowledge-doc status — `app-widget-<app-handle>.md` and `THEME-CAPABILITIES.md` each reused (fresh) / updated / created; the path `.agent/shopify-app-restyle/visual-check/<widget-name>/` with a one-line inventory (references, result/diff images, asset counts per format) and exclusion confirmation; which environment-mismatch step resolved any dev/live disagreement — and after step 8, confirmation the original theme is live again.
 
 ## Rules
 
@@ -287,7 +288,7 @@ Touch only planned files; no delegated edits; app-served files and assets stay u
 - The pixel-diff gate is mandatory: passing is numeric, eyeballing only diagnoses, and the threshold never drops silently.
 - Result/diff images are overwritten every iteration — the folder always shows the latest attempt.
 - `.agent/` lives at the repo root, is always excluded via `.git/info/exclude`, and is never committed.
-- Knowledge docs first: read `.agent/shopify-app-restyle/app-widget-<app-handle>.md` and `.agent/theme-capabilities.md`, freshness-checked, before any widget inspection or theme scan; an inspection that runs writes the docs back before the task continues. An explicit user refresh always wins.
+- Knowledge docs first: read `.agent/shopify-app-restyle/app-widget-<app-handle>.md` and `.agent/THEME-CAPABILITIES.md`, freshness-checked, before any widget inspection or theme scan; an inspection that runs writes the docs back before the task continues. An explicit user refresh always wins.
 - Every override declaration carries `!important` and sits scoped under the app's container; selectors target the app's stable classes/data-attributes — never generated IDs or `nth-child` chains.
 - Overrides only: app-served files and assets are never modified, and DOM hacks are never attempted — not-CSS-fixable items get reported with a remedy instead.
 - Verify Liquid/schema syntax via the Shopify dev MCP instead of guessing.

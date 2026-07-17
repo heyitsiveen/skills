@@ -1,6 +1,6 @@
 ---
 name: client-theme-onboarding
-description: Generate AI-facing docs for a client Shopify theme repo — deep-scan the theme, then write the agent doc pack (AGENTS.md + CLAUDE.md symlink, ARCHITECTURE.md, COMPONENTS.md reuse inventory, COMMANDS.md, REVAMP-TODO.md, shopify.theme.toml) in imperative, grounded, token-lean form for Claude Code/LLM agents, not humans. Use when the user asks to onboard a client theme, write docs for the agent, create a CLAUDE.md / AGENTS.md / AI-readable reference for a theme repo, or regenerate one of the pack docs.
+description: Generate AI-facing docs for a client Shopify theme repo — deep-scan the theme, then write the agent doc pack (AGENTS.md + CLAUDE.md symlink, ARCHITECTURE.md, COMPONENTS.md reuse inventory, THEME-CAPABILITIES.md capability catalog, COMMANDS.md, REVAMP-TODO.md, shopify.theme.toml) in imperative, grounded, token-lean form for Claude Code/LLM agents, not humans. Use when the user asks to onboard a client theme, write docs for the agent, create a CLAUDE.md / AGENTS.md / AI-readable reference for a theme repo, or regenerate one of the pack docs.
 ---
 
 # Client Theme Onboarding — AI-facing docs
@@ -20,7 +20,7 @@ Delegation boundary: Step 2 fans out to parallel Explore subagents, Step 5 lints
 5. **Scannable** — fixed heading contract per doc (REFERENCE.md); an agent greps a heading and lands on the answer.
 6. **Example-driven** — ✅ correct / ❌ wrong pairs for every rule with a common wrong path.
 7. **Failure-explicit** — `error → cause → fix` tables for every failure the scan or the user surfaced.
-8. **Progressive disclosure** — AGENTS.md is the lean entry; depth lives in ARCHITECTURE.md / COMPONENTS.md / COMMANDS.md / REVAMP-TODO.md, loaded on demand.
+8. **Progressive disclosure** — AGENTS.md is the lean entry; depth lives in ARCHITECTURE.md / COMPONENTS.md / THEME-CAPABILITIES.md / COMMANDS.md / REVAMP-TODO.md, loaded on demand.
 
 The contract binds this skill's own files too.
 
@@ -36,14 +36,15 @@ AskUserQuestion, five inputs (the tool caps at four questions per call — split
 
 Done when: branch checked out, answers 1–5 recorded.
 
-## Step 2 — Deep scan (read-only; 3 Explore subagents in parallel)
+## Step 2 — Deep scan (read-only; up to 4 Explore subagents in parallel)
 
 No writes of any kind in this step. Launch all agents in ONE message so they run in parallel; collect every report before Step 3. A subagent sees nothing of this conversation and Explore skips CLAUDE.md — each prompt carries its full ask plus three standing demands: every fact cited as `path:line` · actual commands/paths/IDs, never paraphrases · final message = the complete report.
 
-- **Agent A — survey + tripwire candidates:** directory tree; every config file; `package.json` scripts; build tooling; linting; CI workflows (which branch pushes deploy, and to where); committed secrets (`.npmrc`, `.env` — paths only, never values); sync exclusions (the build tool's ignore files); existing docs / `.agent/` knowledge docs (`theme-capabilities.md`, `app-widget-*.md`) / `.shopifyignore` / `shopify.theme.toml` / CLAUDE.md / AGENTS.md; conventions — section/snippet naming, CSS approach, JS patterns, schema style, app footprint (Klaviyo, Judge.me, subscriptions…); dev loop — the exact sync command, watcher detection (`pgrep` pattern), every known failure mode (these become the `error → cause → fix` rows).
+- **Agent A — survey + tripwire candidates:** directory tree; every config file; `package.json` scripts; build tooling; linting; CI workflows (which branch pushes deploy, and to where); committed secrets (`.npmrc`, `.env` — paths only, never values); sync exclusions (the build tool's ignore files); existing docs / `.agent/` knowledge docs (`THEME-CAPABILITIES.md`, `COMPONENTS.md`, `app-widget-*.md`) / `.shopifyignore` / `shopify.theme.toml` / CLAUDE.md / AGENTS.md; conventions — section/snippet naming, CSS approach, JS patterns, schema style, app footprint (Klaviyo, Judge.me, subscriptions…); dev loop — the exact sync command, watcher detection (`pgrep` pattern), every known failure mode (these become the `error → cause → fix` rows).
 - **Agent B — reuse inventory, JS side:** every `customElements.define` registration (→ Custom web components) · reusable scripts/utils not tied to one component (→ JavaScript) · event/fetch interaction sequences (→ Flows).
 - **Agent C — reuse inventory, Liquid/CSS side:** parameterized utility snippets/filters (→ Functions) · repeated section/CSS structures (→ Patterns) · multi-step markup sequences, e.g. product form → cart (→ Flows).
-- B and C prompts include the absolute path of this skill's REFERENCE.md and the row schema `name | file path(s) | what it does | reuse keywords`; require one row per item, per §COMPONENTS.md.
+- **Agent D — capability catalog** (knowledge-doc check first: skip D entirely when `.agent/THEME-CAPABILITIES.md` is fresh at `coverage: full` — its file lists + `scanned:` counts vs disk, header git line vs current branch/short SHA): global design tokens in `config/settings_schema.json` — ids, types, labels, options/ranges, defaults; schema only, `settings_data.json` current values are merchant-volatile and never recorded — and where globals become CSS variables · every section in `sections/`: display name, full settings list, block types with their settings, presets, responsive settings flagged, per-instance custom CSS/Liquid settings flagged · theme blocks in `blocks/`, same detail · inheritance trace per color/typography/radius/border setting (global-connected vs raw) · usage conventions from `templates/*.json`.
+- B, C, and D prompts include the absolute path of this skill's REFERENCE.md; B and C carry the row schema `name | file path(s) | what it does | reuse keywords` (one row per item, per §COMPONENTS.md); D carries the eight section names (§THEME-CAPABILITIES.md).
 - Small repo (quick `ls` first: fewer than ~40 files across sections/, snippets/, JS source): skip the fan-out, scan inline — identical coverage, same demands.
 
 Merge in the main thread — subagent reports are leads, not sources:
@@ -54,8 +55,9 @@ Merge in the main thread — subagent reports are leads, not sources:
   - Sync exclusions (the build tool's ignore files): paths that never auto-sync get a manual-move workflow in the docs.
 - **Verdict: STANDARD or CUSTOM.** STANDARD = `assets/ config/ layout/ locales/ sections/ snippets/ templates/` (+ optional `blocks/`) at the repo root, no build pipeline in front. CUSTOM = source dirs, compile step, framework, generated output, nesting. State the verdict with evidence; the docs describe the ACTUAL structure.
 - **Reuse inventory (REQUIRED — runs on every onboarding, never dropped under time or scope pressure):** merge B + C rows into the COMPONENTS.md row schema (REFERENCE.md §COMPONENTS.md). Five categories, named exactly as REFERENCE.md's headings: Custom web components · JavaScript · Functions (= reusable Liquid utility snippets/filters) · Flows (add-to-cart, quick-view, facets) · Patterns (drawer, sticky header, sold-out state). Flows and Patterns arrive split across B and C — merge by feature. One row per item, minor items included — a run without this inventory is an incomplete run.
+- **Capability catalog (when Agent D ran):** D's report becomes `.agent/THEME-CAPABILITIES.md` — the same shared doc the build skills produce and read (spec: REFERENCE.md §THEME-CAPABILITIES.md); an existing partial doc is upgraded to `coverage: full`, never forked.
 
-Done when: verdict + evidence stated; every tripwire re-verified at its cited line; conventions, dev-loop facts, failure modes, and the full merged reuse inventory recorded.
+Done when: verdict + evidence stated; every tripwire re-verified at its cited line; conventions, dev-loop facts, failure modes, the full merged reuse inventory, and the capability catalog (or the fresh-doc reuse decision) recorded.
 
 ## Step 3 — Plan gate
 
@@ -70,7 +72,8 @@ Write per [REFERENCE.md](REFERENCE.md), shaped like [EXAMPLES.md](EXAMPLES.md):
 | AGENTS.md | repo root — agents auto-load it there; canonical rules, the lean entry doc |
 | CLAUDE.md | repo root — `ln -s AGENTS.md CLAUDE.md` (fallback: REFERENCE.md §CLAUDE.md) |
 | .agent/client-theme-onboarding/ARCHITECTURE.md | the map: tree, deviations, build/deploy flow |
-| .agent/client-theme-onboarding/COMPONENTS.md | reuse inventory: five category tables + the check-first rule |
+| .agent/COMPONENTS.md | reuse inventory (shared doc): five category tables + the check-first rule; knowledge-doc header at `coverage: full` — upgrades a builder-scan seed |
+| .agent/THEME-CAPABILITIES.md | capability catalog (shared doc) from Agent D: eight fixed §-sections, knowledge-doc header at `coverage: full` — skipped when reused fresh |
 | .agent/client-theme-onboarding/COMMANDS.md | command table + `error → cause → fix` table |
 | .agent/client-theme-onboarding/REVAMP-TODO.md | task rows + open-questions table |
 | shopify.theme.toml | repo root — the Shopify CLI reads it there; spec: REFERENCE.md §shopify.theme.toml |
@@ -79,7 +82,7 @@ Then:
 - Append `AGENTS.md`, `CLAUDE.md`, and `.agent/` to `.git/info/exclude` — agency-internal, never in the client repo (the `.agent/` line also covers the build skills' knowledge docs and visual-check outputs).
 - Save three memories, cross-linked with `[[…]]`: `project` (client, scope, contacts, deadlines) · `feedback` (deploy-safety rules + tripwires) · `reference` (build-system cheatsheet).
 
-Done when: seven outputs written, exclusions appended, three memories saved.
+Done when: eight outputs written (seven when THEME-CAPABILITIES.md was reused fresh), exclusions appended, three memories saved.
 
 ## Step 5 — Verify + contract lint (fresh eyes)
 

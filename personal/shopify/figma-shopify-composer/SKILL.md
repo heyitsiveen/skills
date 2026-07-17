@@ -60,7 +60,7 @@ Prefer the named custom agents `figma-extractor`, `theme-scanner`, and `visual-v
 | Role | Phase | Report |
 |---|---|---|
 | figma-extractor | 1a, parallel | `figma-spec.md` |
-| theme-scanner (read-only on the theme; runs only when `.agent/theme-capabilities.md` is absent or stale) | 1b, parallel — shard across 2–3 instances on very large themes | `.agent/theme-capabilities.md` (canonical; shards `{temp-dir}/theme-capabilities-<n>.md`, merged into it by the main agent) |
+| theme-scanner (read-only on the theme; runs only when `.agent/THEME-CAPABILITIES.md` is absent or stale) | 1b, parallel — shard across 2–3 instances on very large themes | `.agent/THEME-CAPABILITIES.md` (canonical; shards `{temp-dir}/THEME-CAPABILITIES-<n>.md`, merged into it by the main agent) |
 | visual-verifier (never edits theme files) | 4, one call per iteration | `verify-report-<n>.md` |
 
 ### figma-extractor prompt
@@ -140,13 +140,13 @@ options/ranges, defaults:
    if ambiguous.
 7. PER-RUN (same): does .git/info/exclude carry a `.agent/` line?
 
-Write the catalog to .agent/theme-capabilities.md, opening with this header:
+Write the catalog to .agent/THEME-CAPABILITIES.md, opening with this header:
 {knowledge-doc header, filled at dispatch — §Knowledge docs}
 FULL mode covers every doc section (coverage: full); INCREMENTAL mode updates
-only the listed entries plus the header. Sharded runs write {temp-dir}/
-theme-capabilities-{n}.md instead — the main agent merges them into the
-canonical doc. Return only a 3–5 line summary, the per-run findings (6–7),
-and the open questions.
+only the listed entries plus the header. Sharded runs write
+{temp-dir}/THEME-CAPABILITIES-{n}.md instead — the main agent merges them
+into the canonical doc. Return only a 3–5 line summary, the per-run
+findings (6–7), and the open questions.
 ```
 
 ### visual-verifier prompt
@@ -166,7 +166,7 @@ images/figma-{breakpoint}.png
 Approved mask list: {region → reason, from the approved plan} — apply exactly;
 never add or grow a mask
 Expected values: {temp-dir}/figma-spec.md
-Capability map for tagging: .agent/theme-capabilities.md + the approved
+Capability map for tagging: .agent/THEME-CAPABILITIES.md + the approved
 settings map
 Key elements to assert: {list from the approved plan}
 Diff tool: {npx pixelmatch … | npx odiff-bin …} (anti-aliasing ignored)
@@ -196,7 +196,7 @@ the biggest offender.
 
 `.agent/` at the theme repo root holds every durable artifact this skill suite produces: shared knowledge docs at its root, per-skill outputs under `.agent/<skill-name>/`. Knowledge docs are written for an AI reader — tables, exact identifiers (section filenames, setting ids, types, defaults), composition rules and constraints, zero filler prose — and are the one exception to "nothing before approval": a scan writes its doc immediately, so the knowledge survives even an abandoned run.
 
-This skill's canonical doc — **`.agent/theme-capabilities.md`**, fixed sections: §Globals · §Section catalog · §Theme blocks · §Inheritance · §Conventions · §Block architecture · §Metafield patterns · §CSS load. This skill's scanner produces full coverage; figma-shopify-builder and shopify-app-restyle fill the subsets their scans cover — the header's `coverage:` line names what is populated. Consulted when present: `.agent/client-theme-onboarding/COMPONENTS.md` (the reuse inventory — its Flows/Patterns rows map design requirements to candidate sections).
+This skill's canonical doc — **`.agent/THEME-CAPABILITIES.md`**, fixed sections: §Globals · §Section catalog · §Theme blocks · §Inheritance · §Conventions · §Block architecture · §Metafield patterns · §CSS load. This skill's scanner produces full coverage — client-theme-onboarding generates the same full catalog at onboarding time; figma-shopify-builder and shopify-app-restyle fill the subsets their scans cover — the header's `coverage:` line names what is populated. Consulted when present: `.agent/COMPONENTS.md` (the reuse inventory — its Flows/Patterns rows map design requirements to candidate sections).
 
 Every knowledge doc opens with this header:
 
@@ -214,7 +214,7 @@ refresh: user says "refresh theme capabilities" → full rescan
 
 **Read before any scan (main agent, at 1b):**
 
-1. Read `.agent/theme-capabilities.md` when it exists.
+1. Read `.agent/THEME-CAPABILITIES.md` when it exists.
 2. Freshness check: its §Section catalog and §Theme blocks file lists vs `ls sections/ blocks/`, its header git line vs the current branch + short SHA. Fresh at `coverage: full` → skip the scan; read the placement anchor and `.git/info/exclude` inline (two small reads) and 1b is done. A few new or changed files → INCREMENTAL scan of just those entries. Absent, below full coverage, or widely stale → FULL scan.
 3. The scanner writes/updates the doc BEFORE 1c matching continues.
 4. An explicit user refresh ("refresh theme capabilities" or similar) always wins: FULL rescan, doc rewritten.
@@ -224,8 +224,9 @@ refresh: user says "refresh theme capabilities" → full rescan
 ```
 ## 📚 Knowledge docs (check before any theme scan)
 Skill outputs + knowledge docs live under `.agent/` — shared docs at its root,
-per-skill outputs in `.agent/<skill-name>/`. Read `.agent/theme-capabilities.md`
-before any theme scan; freshness check + refresh instruction in its header.
+per-skill outputs in `.agent/<skill-name>/`. Read `.agent/THEME-CAPABILITIES.md`
+before any theme scan and search `.agent/COMPONENTS.md` before writing new
+code; freshness checks + refresh instructions in their headers.
 ```
 
 ## The visual-check folder
@@ -243,12 +244,12 @@ The folder is not theme code: `.agent/` stays out of git via a `.git/info/exclud
 Run 1a and 1b in parallel, then match in main. No theme file is created or modified; the one write is the knowledge doc (§Knowledge docs).
 
 - **1a. Figma requirements** → figma-extractor: both frames via the Figma MCP; exact-values table (the settings-configuration targets AND the expected values for verification's computed-style assertions); per-breakpoint layout structure and desktop/mobile differences; screenshot scale + pixel dimensions; asset inventory; the distilled REQUIREMENTS LIST. Report: `figma-spec.md`.
-- **1b. Capability inventory** — knowledge-doc check first (§Knowledge docs): fresh at full coverage → read it, then the placement anchor and `.git/info/exclude` inline, done. Otherwise → theme-scanner (FULL or INCREMENTAL): global design tokens (schema) and their CSS-variable outputs; every section's settings/blocks/presets with responsive settings flagged; theme blocks; the inheritance trace (global-connected vs raw per-instance) for every color/typography/radius/border setting; usage conventions from other templates; per-run, the target-template placement anchor (OPEN QUESTION if ambiguous) and the exclude check. Writes `.agent/theme-capabilities.md`, sharded across 2–3 scanners on very large themes and merged by the main agent. Current global values: read live from `config/settings_data.json` in main.
-- **1c. Match requirements to capabilities** (main agent, from `figma-spec.md` + `.agent/theme-capabilities.md`): for every requirement, the existing capability that achieves it — which section type (or stack of section instances), which block types, which settings and values, per breakpoint. Where a style value should come from a global, check whether the CURRENT global value already equals the Figma value — if it doesn't, that is a decision point, never a silent change. Anything with no existing capability is a GAP: record the closest achievable approximation and its visible cost, and whether an existing per-instance custom CSS/Liquid setting (an existing setting, so within the constraint) could close it.
+- **1b. Capability inventory** — knowledge-doc check first (§Knowledge docs): fresh at full coverage → read it, then the placement anchor and `.git/info/exclude` inline, done. Otherwise → theme-scanner (FULL or INCREMENTAL): global design tokens (schema) and their CSS-variable outputs; every section's settings/blocks/presets with responsive settings flagged; theme blocks; the inheritance trace (global-connected vs raw per-instance) for every color/typography/radius/border setting; usage conventions from other templates; per-run, the target-template placement anchor (OPEN QUESTION if ambiguous) and the exclude check. Writes `.agent/THEME-CAPABILITIES.md`, sharded across 2–3 scanners on very large themes and merged by the main agent. Current global values: read live from `config/settings_data.json` in main.
+- **1c. Match requirements to capabilities** (main agent, from `figma-spec.md` + `.agent/THEME-CAPABILITIES.md`): for every requirement, the existing capability that achieves it — which section type (or stack of section instances), which block types, which settings and values, per breakpoint. Where a style value should come from a global, check whether the CURRENT global value already equals the Figma value — if it doesn't, that is a decision point, never a silent change. Anything with no existing capability is a GAP: record the closest achievable approximation and its visible cost, and whether an existing per-instance custom CSS/Liquid setting (an existing setting, so within the constraint) could close it.
 - **1d. Tooling detection** (main agent, non-mutating checks only): Browser pane availability first, then fallbacks per Browser tiers; run the capture-exactness check; the Agent tool and which tools reach subagents (fix the delegation map). Render path: Shopify CLI + `shopify.theme.toml` → `shopify theme dev` (desktop app: defined in `.claude/launch.json` so the pane manages the server); otherwise a preview/live store URL. There is NO static-render fallback — composed existing sections depend on the full theme runtime (snippets, global settings, theme CSS/JS), which a local Liquid engine cannot reproduce. Diff tool: Node/npx for `npx pixelmatch` / `npx odiff-bin`. Record the tiers and any temporary installs required.
 - **1e. Ask**: put anything still ambiguous — including OPEN QUESTIONS from the reports — to the user as concise questions before planning.
 
-**Done when:** `figma-spec.md` exists and `.agent/theme-capabilities.md` is current (fresh header, full coverage); every requirement is matched to a capability or recorded as a gap; every OPEN QUESTION is answered; and the tooling record names browser tier, capture source (exactness result), render path, diff tool, delegation map, temp dir, and the exclude status.
+**Done when:** `figma-spec.md` exists and `.agent/THEME-CAPABILITIES.md` is current (fresh header, full coverage); every requirement is matched to a capability or recorded as a gap; every OPEN QUESTION is answered; and the tooling record names browser tier, capture source (exactness result), render path, diff tool, delegation map, temp dir, and the exclude status.
 
 ## Phase 2 — Plan (stop for approval)
 
@@ -297,9 +298,9 @@ Touch only planned files; no delegated edits.
 
 **Exit:** PASS when the pixel-accurate definition holds at both breakpoints — the gate passes on unmasked regions and every masked region is on the approved list. CAP after 8 iterations per breakpoint, or 2 consecutive iterations without diff-ratio improvement (the main agent tracks count and plateau across verifier reports) — then stop and report the final diff ratio, the diff image, the suspected remaining cause, and whether it is a settings issue or an undeclared capability gap. The threshold never drops and the mask list never grows silently. Note the report scope: fidelity is proven at the two captured widths only.
 
-**Cleanup:** the ledger lists every temporary install (name, method, location). Once verification passes or caps: uninstall project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, and delete the temp working directory (including subagent reports). The Browser pane is a built-in — nothing to uninstall; `.claude/launch.json`, if created per the plan, is project config and stays. RETAIN `.agent/` in full — `theme-capabilities.md` for the next run, plus `.agent/figma-shopify-composer/visual-check/<composition-name>/` (references, live-updated result/diff images, exported assets) — untracked via `.git/info/exclude`. The user reviews the comparisons before committing, uploads the assets through the theme editor and assigns them to the image settings, and manages the folder themselves. Nothing lands in git except the planned template/config edits.
+**Cleanup:** the ledger lists every temporary install (name, method, location). Once verification passes or caps: uninstall project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, and delete the temp working directory (including subagent reports). The Browser pane is a built-in — nothing to uninstall; `.claude/launch.json`, if created per the plan, is project config and stays. RETAIN `.agent/` in full — the knowledge docs for the next run, plus `.agent/figma-shopify-composer/visual-check/<composition-name>/` (references, live-updated result/diff images, exported assets) — untracked via `.git/info/exclude`. The user reviews the comparisons before committing, uploads the assets through the theme editor and assigns them to the image settings, and manages the folder themselves. Nothing lands in git except the planned template/config edits.
 
-**Final output (no explanatory prose):** files changed (expected: the template JSON; possibly `settings_data.json`, the `.git/info/exclude` append, `.claude/launch.json`) with confirmation that NO new theme files were created and NO schemas were edited; final diff ratio per breakpoint with pass/cap status; the masked-region list with each mask's approval reason; the fidelity outcome vs the forecast (EXACT / APPROXIMATE / undeclared gaps discovered); the delegation map; the tooling ledger with removal confirmation (or "nothing installed"); knowledge-doc status — `.agent/theme-capabilities.md` reused (fresh) / updated / created; the path `.agent/figma-shopify-composer/visual-check/<composition-name>/` with a one-line inventory (references, result/diff images, asset counts per format) and exclusion confirmation.
+**Final output (no explanatory prose):** files changed (expected: the template JSON; possibly `settings_data.json`, the `.git/info/exclude` append, `.claude/launch.json`) with confirmation that NO new theme files were created and NO schemas were edited; final diff ratio per breakpoint with pass/cap status; the masked-region list with each mask's approval reason; the fidelity outcome vs the forecast (EXACT / APPROXIMATE / undeclared gaps discovered); the delegation map; the tooling ledger with removal confirmation (or "nothing installed"); knowledge-doc status — `.agent/THEME-CAPABILITIES.md` reused (fresh) / updated / created; the path `.agent/figma-shopify-composer/visual-check/<composition-name>/` with a one-line inventory (references, result/diff images, asset counts per format) and exclusion confirmation.
 
 ## Rules
 
@@ -307,7 +308,7 @@ Touch only planned files; no delegated edits.
 - Ask instead of assuming.
 - Subagents research and measure; the main conversation decides, edits, and asks. A delegated worker never edits theme files; OPEN QUESTIONS come back through the main agent.
 - The template JSON (plus approved `settings_data.json` values) is the only build surface; `.git/info/exclude`, `.claude/launch.json`, and the `.agent/` tree are the only other writable paths, per the plan. Section/block/snippet/CSS/JS files stay read-only — no new theme files, no new settings, no schema edits.
-- Knowledge docs first: read `.agent/theme-capabilities.md` and freshness-check it before any theme scan; a scan that runs writes the doc back before the task continues. An explicit user refresh always wins.
+- Knowledge docs first: read `.agent/THEME-CAPABILITIES.md` and freshness-check it before any theme scan; a scan that runs writes the doc back before the task continues. An explicit user refresh always wins.
 - Never change a global setting VALUE silently — globals restyle the entire storefront; every global change is an explicit, individually-approved plan line.
 - A per-instance custom CSS/Liquid setting is used only when the theme already has it AND the plan flagged it.
 - Prefer global-connected settings over raw per-instance values when both can hit the Figma value.
