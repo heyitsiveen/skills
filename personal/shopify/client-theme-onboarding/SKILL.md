@@ -79,7 +79,7 @@ Write per [REFERENCE.md](REFERENCE.md), shaped like [EXAMPLES.md](EXAMPLES.md):
 | shopify.theme.toml | repo root — the Shopify CLI reads it there; spec: REFERENCE.md §shopify.theme.toml |
 
 Then:
-- Append `AGENTS.md`, `CLAUDE.md`, and `.agent/` to `.git/info/exclude` — agency-internal, never in the client repo (the `.agent/` line also covers the build skills' knowledge docs and visual-check outputs).
+- Append `AGENTS.md`, `CLAUDE.md`, and `.agent/` to `.git/info/exclude` — agency-internal, never in the client repo (the `.agent/` line also covers every skill's knowledge docs and visual-check outputs).
 - Save three memories, cross-linked with `[[…]]`: `project` (client, scope, contacts, deadlines) · `feedback` (deploy-safety rules + tripwires) · `reference` (build-system cheatsheet).
 
 Done when: all eight outputs present — the two shared docs reused when already fresh, written otherwise — exclusions appended, three memories saved.

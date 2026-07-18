@@ -121,8 +121,9 @@ Theme reads:
 6. How the theme loads custom CSS (asset naming, include point) — the
    conventions an override stylesheet must mirror.
 7. The theme's global typography/color variables — names and where they are
-   defined go in the doc; resolve their CURRENT values live and report them
-   per-run; the main agent decides any mapping to Figma values.
+   defined (from THEME-CAPABILITIES when attached, derived here otherwise);
+   resolve their CURRENT values live and report them per-run; the main agent
+   decides any mapping to Figma values.
 
 Write the widget findings (1–3) to .agent/shopify-app-restyle/
 app-widget-{app-handle}.md, opening with its header:
@@ -184,9 +185,9 @@ This skill's docs:
 
 - **`.agent/shopify-app-restyle/app-widget-<app-handle>.md`** — one per app, `<app-handle>` kebab-cased from the installed app name: the widget container's outerHTML snapshot, stable override selectors, matched CSS rules with origins (app-served vs theme), and the JS-injected inline-`!important` list. Freshness is a live check: compare the current container outerHTML against the stored snapshot — equal → trust the doc; different → full re-inspection, doc rewritten (app updates are the staleness source).
 - **`.agent/THEME-CAPABILITIES.md`** — read-only here; its shape is fixed, so it reads the same no matter which skill produced it. This skill reads §Globals (variable names and wiring — current values resolve live) and §CSS load (how the theme loads custom CSS); absent → the widget-inspector derives those two per-run into its report. This skill adds no sections, blocks, or settings, so it never updates this doc.
-- **`.agent/COMPONENTS.md`** — appended-to here: after verification passes and the doc exists, add one row for the override stylesheet — name · `assets/<app-handle>-overrides.css` + its include point · what it restyles · reuse keywords — so future runs find it instead of re-deriving. Doc absent → skip the append; a future full inventory scan discovers the stylesheet.
+- **`.agent/COMPONENTS.md`** — appended-to here: after verification passes and the doc exists, add one row for the override stylesheet — name · `assets/<app-handle>-overrides.css` + its include point · what it restyles · reuse keywords — and refresh its header fields (date, git line, counts), so future runs find it instead of re-deriving. Doc absent → skip the append; a future full inventory scan discovers the stylesheet.
 
-Every knowledge doc opens with this header (an app-widget doc's `scanned:` records the inspected URL + container selector):
+This skill's app-widget doc opens with this header (`scanned:` records the inspected URL + container selector; the shared docs carry the same fields with their own refresh phrases):
 
 ```
 ---
@@ -290,7 +291,7 @@ Touch only planned files; no delegated edits; app-served files and assets stay u
 - Result/diff images are overwritten every iteration — the folder always shows the latest attempt.
 - `.agent/` lives at the repo root, is always excluded via `.git/info/exclude`, and is never committed.
 - Knowledge docs first: read `.agent/shopify-app-restyle/app-widget-<app-handle>.md` and `.agent/THEME-CAPABILITIES.md`, freshness-checked, before any widget inspection or theme scan; an inspection that runs writes the app-widget doc back before the task continues. An explicit user refresh always wins.
-- Knowledge docs stay current: a passing restyle appends its override stylesheet as a `.agent/COMPONENTS.md` row (when the doc exists) before the final report.
+- Knowledge docs stay current: a passing restyle appends its override stylesheet as a `.agent/COMPONENTS.md` row and refreshes its header (when the doc exists) before the final report.
 - Every override declaration carries `!important` and sits scoped under the app's container; selectors target the app's stable classes/data-attributes — never generated IDs or `nth-child` chains.
 - Overrides only: app-served files and assets are never modified, and DOM hacks are never attempted — not-CSS-fixable items get reported with a remedy instead.
 - Verify Liquid/schema syntax via the Shopify dev MCP instead of guessing.

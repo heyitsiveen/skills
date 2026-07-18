@@ -203,7 +203,7 @@ the biggest offender.
 
 `.agent/` at the theme repo root holds every durable artifact this skill suite produces: shared knowledge docs at its root, per-skill outputs under `.agent/<skill-name>/`. Knowledge docs are written for an AI reader — tables, exact identifiers (section filenames, setting ids, types, defaults), composition rules and constraints, zero filler prose — and are the one exception to "nothing before approval": a scan writes its doc immediately, so the knowledge survives even an abandoned run.
 
-This skill's canonical doc — **`.agent/THEME-CAPABILITIES.md`**, fixed sections: §Globals · §Section catalog · §Theme blocks · §Inheritance · §Conventions · §Block architecture · §Metafield patterns · §CSS load. Produced whole by this skill's scanner, only when absent (or explicitly refreshed) — the shape is fixed, so a doc found present is simply read, whichever skill produced it. Consulted when present: `.agent/COMPONENTS.md` (the reuse inventory — its Flows/Patterns rows map design requirements to candidate sections).
+This skill's canonical doc — **`.agent/THEME-CAPABILITIES.md`**, fixed sections: §Globals · §Section catalog · §Theme blocks · §Inheritance · §Conventions · §Block architecture · §Metafield patterns · §CSS load. Produced whole by this skill's scanner when absent or widely stale — a few changed files → INCREMENTAL update; an explicit refresh always regenerates. The shape is fixed, so a doc found present and fresh is simply read, whichever skill produced it. Consulted when present: `.agent/COMPONENTS.md` (the reuse inventory — its Flows/Patterns rows map design requirements to candidate sections).
 
 Every knowledge doc opens with this header:
 

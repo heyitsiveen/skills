@@ -84,7 +84,7 @@ Required sections, exact order:
 
 ## COMPONENTS.md — reuse inventory (REQUIRED on every run)
 
-Lives at `.agent/COMPONENTS.md` — a shared knowledge doc: opens with the knowledge-doc header (template: §THEME-CAPABILITIES.md; this doc's refresh phrase is "refresh components"). Produced only when absent (or explicitly refreshed); the shape is fixed, identical whichever skill produces it, and skills that build new components append rows to keep it current. One canonical doc, never forked.
+Lives at `.agent/COMPONENTS.md` — a shared knowledge doc: opens with the knowledge-doc header (template: §THEME-CAPABILITIES.md; this doc's refresh phrase is "refresh components"). Produced only when absent or stale (an explicit refresh always regenerates); the shape is fixed, identical whichever skill produces it, and skills that build new components append rows and refresh the header to keep it current. One canonical doc, never forked.
 
 The doc that stops rebuilds: build/composition tasks search it before writing anything new. The header carries that rule so every later session obeys it without re-asking:
 
