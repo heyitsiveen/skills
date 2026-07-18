@@ -41,7 +41,7 @@ Pixel-accurate theme building, app-widget styling & injection, and template cont
 
 **Model-invoked**
 
-- **[client-theme-onboarding](./personal/shopify/client-theme-onboarding/SKILL.md)** — Generate AI-facing docs for a client theme repo: deep-scan, then write the agent doc pack (AGENTS.md + CLAUDE.md symlink / ARCHITECTURE.md / COMPONENTS.md reuse inventory / COMMANDS.md / REVAMP-TODO.md + `shopify.theme.toml`) — imperative, grounded, token-lean, for agents, not humans; everything new namespaced under a per-client prefix.
+- **[client-theme-onboarding](./personal/shopify/client-theme-onboarding/SKILL.md)** — Generate AI-facing docs for a client theme repo: deep-scan, then write the agent doc pack (AGENTS.md + CLAUDE.md symlink / ARCHITECTURE.md / COMPONENTS.md reuse inventory / THEME-CAPABILITIES.md capability catalog / COMMANDS.md / REVAMP-TODO.md + `shopify.theme.toml`) — imperative, grounded, token-lean, for agents, not humans; everything new namespaced under a per-client prefix.
 - **[figma-shopify-builder](./personal/shopify/figma-shopify-builder/SKILL.md)** — Build pixel-accurate theme sections or blocks from Figma — every value traced to the design, never invented.
 - **[figma-shopify-composer](./personal/shopify/figma-shopify-composer/SKILL.md)** — Recreate a Figma design by composing the theme's existing sections, blocks, and settings — template JSON only, no new code, proven pixel-accurate against the frames.
 - **[rebuy-widget-customization](./personal/shopify/rebuy-widget-customization/SKILL.md)** — Replace a Rebuy widget's markup with custom Vue 2 templates while Rebuy's engine, discounts, and subscriptions keep running underneath.

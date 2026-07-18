@@ -34,6 +34,10 @@ Skills under `deprecated/` must appear in **none** of the three. Whenever you ad
 
 `README.md` groups each category's entries under **User-invoked** / **Model-invoked** headings.
 
+## Figma→Shopify suite — client-repo output convention
+
+The four skills `figma-shopify-composer`, `figma-shopify-builder`, `shopify-app-restyle`, and `client-theme-onboarding` (all `personal/shopify/`) write every artifact inside a client theme repo under `.agent/`: shared knowledge docs at its root, each produced only when absent or stale and identically by any of its producers (`THEME-CAPABILITIES.md` — composer, builder, or onboarding; `COMPONENTS.md` — onboarding or builder), kept current by the skills that add theme artifacts (builder → both docs; restyle → a COMPONENTS.md row per override stylesheet), per-skill outputs in `.agent/<skill-name>/` (onboarding depth docs, `app-widget-<handle>.md`, `visual-check/`). `AGENTS.md`, its `CLAUDE.md` symlink, and `shopify.theme.toml` stay at the client repo root; everything is kept out of git via `.git/info/exclude`. When editing these skills, keep every path on this convention and the four skills in agreement.
+
 ## Distribution
 
 The repo root is a Claude Code **plugin marketplace** (`.claude-plugin/marketplace.json`). Each top-level bucket is published as its own plugin, `heyitsiveen-skills-<bucket>`, defined **inline** in the marketplace (`strict: false`, so there is no per-bucket `plugin.json`). Empty buckets are listed but stay hidden in `/plugin` Discover until they hold a skill. Install the marketplace, then the buckets you want:
