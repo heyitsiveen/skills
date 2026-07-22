@@ -69,7 +69,7 @@ Two prerequisites for Path A even when the app block exists:
 
 ## Required inputs
 
-Ask for any missing input via a single `AskUserQuestion` call before writing code:
+Ask the user for any missing input before writing code:
 
 1. **Which app, and which widget instance** — some apps key the widget to a configured
    entity (Bundler: a per-bundle `shortcode`). Confirm which instance must appear.

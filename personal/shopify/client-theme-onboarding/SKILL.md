@@ -26,7 +26,7 @@ The contract binds this skill's own files too.
 
 ## Step 1 — Interview
 
-AskUserQuestion, five inputs (the tool caps at four questions per call — split 3+2). Record each answer or an explicit "none":
+Ask the user for five inputs. Record each answer or an explicit "none":
 
 1. **Working branch** — `git checkout <branch>`; if missing, create it from the base branch.
 2. **Prefix** — a short, unique namespace for everything built for this client (e.g. `acme`). Suggest a default derived from the client/project name; the user can override. Scope: every new theme artifact from this point forward — section/snippet filenames (`sections/{prefix}-x.liquid`), custom-element tags (`<{prefix}-x>` — conveniently supplies the hyphen custom elements require), CSS classes/custom properties (`.{prefix}-x__part`, `--{prefix}-gap`), schema block/setting IDs, JS module/function names. Recorded with before/after examples in AGENTS.md 🧩 (spec: REFERENCE.md §AGENTS.md).

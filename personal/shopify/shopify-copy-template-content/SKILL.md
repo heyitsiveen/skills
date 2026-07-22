@@ -42,7 +42,7 @@ Field meanings:
 - `To` — one or more target files, comma-separated.
 - `To Position` — where to insert in each target. Same syntax as `From Position`.
 
-If a required input is missing, ask the user in one `AskUserQuestion` call before proceeding. Do not guess.
+If a required input is missing, ask the user for it before proceeding. Do not guess.
 
 ## The workflow
 
