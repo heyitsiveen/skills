@@ -158,7 +158,7 @@ Figma reference: .agent/figma-shopify-builder/visual-check/{name}/images/
 figma-{breakpoint}.png
 Expected values: {temp-dir}/figma-spec.md
 Key elements to assert: {list from the approved plan}
-Diff tool: {npx pixelmatch … | npx odiff-bin …} (anti-aliasing ignored)
+Diff tool: {pixelmatch … | odiff-bin …} (installed direct, else via npx; anti-aliasing ignored)
 
 1. Capture hygiene, then capture: viewport at the exact width and scale above;
    animations/transitions disabled; wait for document.fonts.ready + network
@@ -234,9 +234,9 @@ Run the two delegations in parallel, plus tooling detection. No theme file is cr
 
 - **Figma extraction** → figma-extractor: both frames via the Figma MCP; exact-values table (implementation targets AND expected values for verification); screenshot scale + pixel dimensions; desktop/mobile differences; repeated-items inventory; asset inventory. Report: `figma-spec.md`.
 - **Theme reads** — knowledge-doc check first (§Knowledge docs): both docs present and fresh → read them, then the placement anchor and `.git/info/exclude` inline, done. Otherwise → theme-scanner: the full capability catalog when `.agent/THEME-CAPABILITIES.md` is absent or widely stale (INCREMENTAL entries when a few files changed); the full reuse inventory when `.agent/COMPONENTS.md` is absent or stale; per-run, the template placement anchor (OPEN QUESTION if ambiguous) and the exclude check. Produces the missing docs. Where globals exist the plan maps each Figma value to them; where they don't, Figma values apply directly — unmapped values get listed, never silently decided.
-- **Tooling detection** (main agent, non-mutating checks only): Browser pane availability first, then fallbacks per Browser tiers; run the capture-exactness check; the Agent tool and which tools reach subagents (fix the delegation map); Shopify CLI + `shopify.theme.toml` (desktop app: `shopify theme dev` defined in `.claude/launch.json` so the pane manages the server); Python for the static-approximation fallback; Node/npx for the pixel-diff tool (`npx pixelmatch` / `npx odiff-bin`). Record the render tier, capture tier, and any temporary installs required.
+- **Tooling detection** (main agent, non-mutating checks only): Browser pane availability first, then fallbacks per Browser tiers; run the capture-exactness check; the Agent tool and which tools reach subagents (fix the delegation map); Shopify CLI + `shopify.theme.toml` (desktop app: `shopify theme dev` defined in `.claude/launch.json` so the pane manages the server); Python for the static-approximation fallback; pixel-diff tool: installed `pixelmatch`/`odiff` (PATH or project `node_modules/.bin`) invoked directly, else `npx pixelmatch` / `npx odiff-bin`. Record the render tier, capture tier, and any temporary installs required.
 
-**Done when:** `figma-spec.md` exists; `.agent/THEME-CAPABILITIES.md` and `.agent/COMPONENTS.md` exist and are current (produced this run if absent); every OPEN QUESTION has been put to the user and answered — including the json-vs-metaobject ask when the source is metafields and the design repeats — and the tooling record names render tier, capture tier, delegation map, and required temp installs.
+**Done when:** `figma-spec.md` exists; `.agent/THEME-CAPABILITIES.md` and `.agent/COMPONENTS.md` exist and are current (produced this run if absent); every OPEN QUESTION has been put to the user and answered — including the json-vs-metaobject ask when the source is metafields and the design repeats — and the tooling record names render tier, capture tier, diff tool, delegation map, and required temp installs.
 
 ## Phase 2 — Plan (stop for approval)
 
@@ -253,7 +253,7 @@ The plan states:
 - **Asset-export list**: every inventoried asset → 4x PNG into `.agent/figma-shopify-builder/visual-check/<name>/assets/images/`, vectors additionally as SVG into `assets/svg/`, kebab-case names from Figma layers; separately, any code-referenced assets that also go into the theme's `assets/`.
 - **Template diff**: the exact JSON diff (new key in `sections` + `order` position, or block entry + `block_order` position).
 - **Delegation map**: which roles ran/will run delegated vs main, and the report paths produced so far.
-- **Verification approach**: browser tier (with the capture-exactness result), render tier, whether `.claude/launch.json` will be created/updated (a planned file if so), capture widths and scale, key elements for computed-style assertions, pixel-diff tool + pass threshold (default: diff ratio ≤ 1%, anti-aliasing ignored), iteration cap (default: 8 per breakpoint, plateau exit after 2 iterations without improvement), and the exact temporary-install list with method (npx / project-local / venv) and removal confirmation.
+- **Verification approach**: browser tier (with the capture-exactness result), render tier, whether `.claude/launch.json` will be created/updated (a planned file if so), capture widths and scale, key elements for computed-style assertions, pixel-diff tool + pass threshold (default: diff ratio ≤ 1%, anti-aliasing ignored), iteration cap (default: 8 per breakpoint, plateau exit after 2 iterations without improvement), and the exact temporary-install list with method (on-demand runner / project-local / venv) and removal confirmation.
 
 **Done when:** the user has approved.
 
@@ -283,7 +283,7 @@ Touch only planned files; no delegated edits.
 **Loop, per breakpoint** — with delegation, steps 1–3 run as ONE visual-verifier call per iteration; the main agent reads `verify-report-<n>.md`, performs step 4, and launches the next round. Without delegation, the loop runs in main as written.
 
 1. **Computed styles first**: getComputedStyle on the key elements vs the Figma values (font-family/size/weight, line-height, letter-spacing, color, background, padding, margin, gap, border-radius). Fix every mismatch before looking at pixels.
-2. **Pixel-diff gate**: `npx pixelmatch` or `npx odiff-bin` vs the Figma screenshot; record the diff ratio and save the diff image — every iteration.
+2. **Pixel-diff gate**: the planned diff tool (installed direct, else npx) vs the Figma screenshot; record the diff ratio and save the diff image — every iteration.
 3. **Live tracking**: immediately overwrite `images/result-*.png` and `images/diff-*.png` in the visual-check folder with this iteration's capture and diff.
 4. **Diagnosis** (main agent): on failure, read the DIFF IMAGE / mismatch report to localize the mismatch and map it to a cause — metafields source: distinguish a code/style cause from a DATA cause; wrong or missing values get reported to the user with corrected sample values, not patched around in code. Fix, re-render, re-capture, repeat from step 1.
 
@@ -308,7 +308,7 @@ If no render or capture path exists even with temporary installs: stop and repor
 - Knowledge docs first: read `.agent/THEME-CAPABILITIES.md` and `.agent/COMPONENTS.md`, freshness-checked, before any theme scan; a missing or stale doc is produced or updated before the task continues. An explicit user refresh always wins.
 - Knowledge docs stay current: a passing build writes its new section/block into both docs (catalog entry + inventory row, headers refreshed) before the final report.
 - Verify Liquid/schema syntax — including metafield and metaobject access — via the Shopify dev MCP instead of guessing.
-- Prefer `npx` over `npm i -g`; project-local or venv installs over global ones.
+- CLI tools: check installed first (on PATH, project dep, or npm script) — installed → invoke directly (`shopify theme dev`, `npm run …`), no runner. Not installed → on-demand runner (`npx` / `pnpm dlx` / `bunx` / `pipx run`), never a global install. Runner impossible (persistent binary/venv needed) → project-local or venv, on the ledger.
 - Leave the machine as it was found — the retained `.agent/` tree (knowledge docs + visual-check) is the one deliberate leftover, kept for the next run, review, and asset uploads.
 
 ## Usage

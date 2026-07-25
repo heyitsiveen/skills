@@ -152,7 +152,7 @@ images/figma-{breakpoint}.png
 (per-state references where extracted: figma-{breakpoint}-{state}.png)
 Expected values: {temp-dir}/figma-spec.md
 Key elements to assert: {list from the plan}
-Diff tool: {npx pixelmatch … | npx odiff-bin …} (anti-aliasing ignored)
+Diff tool: {pixelmatch … | odiff-bin …} (installed direct, else via npx; anti-aliasing ignored)
 
 Per state:
 1. Capture hygiene, then capture: viewport at the exact width and scale above;
@@ -228,7 +228,7 @@ Run the two delegations in parallel, plus tooling detection. No theme file is cr
 
 - **Figma extraction** → figma-extractor: both frames via the Figma MCP; exact-values table (the override targets AND the expected values for verification's computed-style assertions); desktop/mobile differences; every visible widget state; screenshot scale + pixel dimensions; asset inventory. Report: `figma-spec.md`.
 - **Widget inspection + theme reads** → widget-inspector (in main if browser tools don't reach subagents), knowledge docs read first and passed in (§Knowledge docs): locate the widget by app name; verify doc freshness against the live container outerHTML; container outerHTML; matched rules with origins; JS-injected inline `!important` styles flagged; stable selectors; baseline screenshots at the Figma frame widths (read the widths via a cheap Figma `get_metadata` call at dispatch); per-run, the app-block entry + placement anchor in the target template; the theme's custom-CSS conventions and global typography/color variables (from `.agent/THEME-CAPABILITIES.md` when present, derived per-run otherwise). Writes/updates the app-widget doc; per-run report: `theme-widget-report.md`.
-- **Tooling detection** (main agent, non-mutating checks only): Browser pane availability first, then fallbacks per Browser tiers; run the capture-exactness check; the Agent tool and which tools reach subagents (fix the delegation map). Render path: Shopify CLI + `shopify.theme.toml` → `shopify theme dev` (desktop app: defined in `.claude/launch.json` so the pane manages the server); otherwise a preview/live store URL. A real store render is required — app-block markup only exists there, so a local Liquid engine cannot produce it and there is NO static fallback. Diff tool: Node/npx for `npx pixelmatch` / `npx odiff-bin`. Check `.git/info/exclude` for a `.agent/` line.
+- **Tooling detection** (main agent, non-mutating checks only): Browser pane availability first, then fallbacks per Browser tiers; run the capture-exactness check; the Agent tool and which tools reach subagents (fix the delegation map). Render path: Shopify CLI + `shopify.theme.toml` → `shopify theme dev` (desktop app: defined in `.claude/launch.json` so the pane manages the server); otherwise a preview/live store URL. A real store render is required — app-block markup only exists there, so a local Liquid engine cannot produce it and there is NO static fallback. Diff tool: installed `pixelmatch`/`odiff` (PATH or project `node_modules/.bin`) invoked directly, else `npx pixelmatch` / `npx odiff-bin`. Check `.git/info/exclude` for a `.agent/` line.
 - **Wrong-state check**: the dev preview must agree with the live site on everything that changes how the widget renders — availability (in stock vs sold out), widget presence, options shown. On any disagreement, pause measurement and work [environment-mismatch.md](environment-mismatch.md) to the first step that fixes it; a wrong-state widget is never inspected or verified against.
 - **Difference list** (main agent, from `figma-spec.md`, the knowledge docs, and `theme-widget-report.md`), element by element and per state, split into (a) CSS-fixable and (b) not fixable by CSS — markup/structure differences, text and labels configured in the app admin, app-served images/icons, JS-set inline `!important` styles. Where a not-CSS-fixable item is an app-served image/icon, note that its Figma export will be in the visual-check `assets/` folders for app-admin upload.
 
@@ -245,7 +245,7 @@ The plan is an audit trail in the transcript, not a checkpoint — write it in f
 - **Git hygiene**: confirmation `.git/info/exclude` carries the `.agent/` line, or the append adding it.
 - **Asset-export list**: every inventoried asset → 4x PNG into `.agent/shopify-app-restyle/visual-check/<widget-name>/assets/images/`, vectors additionally as SVG into `assets/svg/`, kebab-case names from Figma layers.
 - **Delegation map**: which roles ran/will run delegated vs main, and the report paths produced so far.
-- **Verification approach**: browser tier with the capture-exactness result (pane captures, or which fallback), render path, whether `.claude/launch.json` will be created/updated (a planned file if so), capture widths and scale, the widget states to verify, key elements for computed-style assertions, diff tool + pass threshold (default: ≤ 1%, anti-aliasing ignored), iteration cap (default: 8 per breakpoint, plateau exit after 2 iterations without improvement), and the exact temporary-install list with method (npx / project-local / venv) — listed installs proceed without approval; the cleanup ledger still guarantees their removal.
+- **Verification approach**: browser tier with the capture-exactness result (pane captures, or which fallback), render path, whether `.claude/launch.json` will be created/updated (a planned file if so), capture widths and scale, the widget states to verify, key elements for computed-style assertions, diff tool + pass threshold (default: ≤ 1%, anti-aliasing ignored), iteration cap (default: 8 per breakpoint, plateau exit after 2 iterations without improvement), and the exact temporary-install list with method (on-demand runner / project-local / venv) — listed installs proceed without approval; the cleanup ledger still guarantees their removal.
 
 ## Phase 3 — Implement (main agent only)
 
@@ -270,7 +270,7 @@ Touch only planned files; no delegated edits; app-served files and assets stay u
 **Loop, per breakpoint and state** — with delegation, steps 1–3 and 5 run as ONE visual-verifier call per iteration; the main agent reads `verify-report-<n>.md`, performs step 4, and launches the next round. Without delegation, the loop runs in main as written.
 
 1. **Computed styles first**: getComputedStyle on the key elements vs the Figma values (font-family/size/weight, line-height, letter-spacing, color, background, padding, margin, gap, border-radius). Fix every mismatch before looking at pixels.
-2. **Pixel-diff gate**: `npx pixelmatch` or `npx odiff-bin` vs the Figma screenshot; record the diff ratio and save the diff image — every iteration.
+2. **Pixel-diff gate**: the planned diff tool (installed direct, else npx) vs the Figma screenshot; record the diff ratio and save the diff image — every iteration.
 3. **Live tracking**: immediately overwrite `images/result-<breakpoint>[-<state>].png` and `images/diff-<breakpoint>[-<state>].png` in the visual-check folder with this iteration's capture and diff.
 4. **Diagnosis** (main agent): on failure, read the DIFF IMAGE / mismatch report to localize the mismatch, map it to a cause, fix, hard-refresh, re-capture, repeat from step 1.
 5. **Leak check**: the overrides affect nothing outside the widget container.
@@ -295,7 +295,7 @@ Touch only planned files; no delegated edits; app-served files and assets stay u
 - Every override declaration carries `!important` and sits scoped under the app's container; selectors target the app's stable classes/data-attributes — never generated IDs or `nth-child` chains.
 - Overrides only: app-served files and assets are never modified, and DOM hacks are never attempted — not-CSS-fixable items get reported with a remedy instead.
 - Verify Liquid/schema syntax via the Shopify dev MCP instead of guessing.
-- Prefer `npx` over `npm i -g`; project-local or venv installs over global ones.
+- CLI tools: check installed first (on PATH, project dep, or npm script) — installed → invoke directly (`shopify theme dev`, `npm run …`), no runner. Not installed → on-demand runner (`npx` / `pnpm dlx` / `bunx` / `pipx run`), never a global install. Runner impossible (persistent binary/venv needed) → project-local or venv, on the ledger.
 - Leave the machine as it was found — the retained `.agent/` tree (knowledge docs + visual-check) is the one deliberate leftover, kept for the next run, review, and asset uploads.
 
 ## Usage
