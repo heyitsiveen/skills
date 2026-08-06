@@ -24,7 +24,7 @@ Every skill must be listed in all three:
 2. **`skills.sh.json`** — grouping config for the [skills.sh](https://skills.sh) directory (lists skills by `name`).
 3. **`.claude-plugin/marketplace.json`** — each bucket is published as its own plugin (`heyitsiveen-skills-<bucket>`); that plugin's `skills` array holds one `./<domain>/<name>` path per skill (relative to the bucket's `source`).
 
-Whenever you add, rename, move, or retire a skill, update all three (and this file if a bucket or domain changes).
+Whenever you add, rename, move, or retire a skill, update all three (and this file if a bucket or domain changes), then run `./scripts/check.sh`.
 
 ## Invocation
 
@@ -39,20 +39,19 @@ The six skills `figma-shopify-composer`, `figma-shopify-builder`, `figma-shopify
 
 The three Figma-measuring skills — composer, builder, restyle — additionally share one visual-check convention: `visual-check/<name>/` holds only root-level `figma-desktop.png` / `figma-mobile.png`, `result-desktop.png` / `result-mobile.png`, and `diff-desktop.png` / `diff-mobile.png`; restyle may add an approved `-<state>` suffix to each class. No `clean-`, `section-`, or other render variants are generated. `assets/` remains flat for per-asset exports; assets ship as client-uploaded files rather than inline SVG; verification hardcodes them and proves the revert; each per-asset export is the design's crop, with the uncropped original kept beside it as `original-source-*`. Their `## Asset export` sections are byte-identical and change together. `## Asset delivery` and `## Hardcode-then-revert` diverge on purpose, because the three have different write surfaces — builder owns a section file, composer only template JSON, restyle only its override stylesheet — and where one cannot reach a destination it declares that rather than downgrading silently.
 
-The two knowledge-doc format specs — `references/theme-capabilities-format.md` and `references/components-format.md` — are byte-identical across the four producer skills: `client-theme-onboarding`, `figma-shopify-builder`, `figma-shopify-composer`, and `figma-shopify-globals`. They change together. Before committing a format-spec change, run this from the repo root; every comparison must exit 0:
-
-```sh
-for spec in theme-capabilities-format.md components-format.md; do
-  base="personal/shopify/client-theme-onboarding/references/$spec"
-  cmp -s "$base" "personal/shopify/figma-shopify-builder/references/$spec" &&
-    cmp -s "$base" "personal/shopify/figma-shopify-composer/references/$spec" &&
-    cmp -s "$base" "personal/shopify/figma-shopify-globals/references/$spec" || exit 1
-done
-```
-
-The duplication is deliberate.
+The two knowledge-doc format specs — `references/theme-capabilities-format.md` and `references/components-format.md` — are byte-identical across the four producer skills: `client-theme-onboarding`, `figma-shopify-builder`, `figma-shopify-composer`, and `figma-shopify-globals`. They change together. The duplication is deliberate.
 
 When editing these skills, keep every path on this convention and the six skills in agreement.
+
+## Checking the repo's invariants
+
+`scripts/check.sh` asserts this repo's cross-file rules — the two format specs' byte-identity across the four producers, `## Asset export`'s byte-identity across the three Figma-measuring skills, and every skill's presence in all three registries. Run it before committing any change to a shared file — it resolves the repo root itself, so the working directory does not matter:
+
+```sh
+./scripts/check.sh
+```
+
+It exits 0 when every rule holds, and otherwise names the offending path and exits non-zero.
 
 ## Distribution
 
@@ -67,3 +66,13 @@ The repo root is a Claude Code **plugin marketplace** (`.claude-plugin/marketpla
 It's also installable via skills.sh: `npx skills add heyitsiveen/skills`.
 
 Inspired by [mattpocock/skills](https://github.com/mattpocock/skills).
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as markdown files under `.scratch/<feature-slug>/` in this repo. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
