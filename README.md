@@ -1,0 +1,84 @@
+# Claude Code Skills
+
+[![skills.sh](https://skills.sh/b/heyitsiveen/skills)](https://skills.sh/heyitsiveen/skills)
+
+Agent Skills for Claude Code — mostly **Shopify** theme & app-integration workflows built from **Figma** designs, plus a clean git-commit helper. Packaged as Claude Code plugins (one per bucket) and installable via [skills.sh](https://skills.sh).
+
+## Install
+
+### As a Claude Code plugin
+
+Add the marketplace, then install whichever bucket-plugins you want:
+
+```sh
+/plugin marketplace add heyitsiveen/skills
+/plugin install heyitsiveen-skills-personal@heyitsiveen       # Shopify + Figma skills
+/plugin install heyitsiveen-skills-engineering@heyitsiveen    # git commit helper
+```
+
+The `misc` and `productivity` buckets are published too, but stay hidden in Discover until they contain a skill.
+
+### Via skills.sh (Claude Code, Cursor, Copilot, and more)
+
+```sh
+npx skills add heyitsiveen/skills
+```
+
+Install a single skill with `npx skills add heyitsiveen/skills --skill=<name>`.
+
+## Reference
+
+These split on who invokes them. **User-invoked** skills are run on demand — a slash command like `/gc`, or a skill built to be triggered directly (marked `user-invocable: true`), usually with a structured prompt. **Model-invoked** skills are ones the agent reaches for automatically when the task matches their description.
+
+### Shopify
+
+Pixel-accurate theme building, app-widget styling & injection, and template content operations — most driven by Figma designs.
+
+**User-invoked**
+
+- **[shopify-copy-template-content](./personal/shopify/shopify-copy-template-content/SKILL.md)** — Copy sections or blocks from one template JSON into others at a chosen position, keeping the JSON valid and the source untouched.
+- **[shopify-inject-app-into-liquid](./personal/shopify/shopify-inject-app-into-liquid/SKILL.md)** — Make a third-party app's widget render inside a container you own, instead of wherever the app drops it by default.
+
+**Model-invoked**
+
+- **[bugherd-qa-fixer](./personal/shopify/bugherd-qa-fixer/SKILL.md)** — Work a batch of BugHerd QA tasks on a client theme: fetch each task, reproduce the defect on the reported page at the reported viewport, fix it on the lowest rung that clears it, re-verify the same page at the same viewport, and hand back what a human still has to do.
+- **[client-theme-onboarding](./personal/shopify/client-theme-onboarding/SKILL.md)** — Generate AI-facing docs for a client theme repo: deep-scan, then write the agent doc pack (AGENTS.md + CLAUDE.md symlink / ARCHITECTURE.md / COMPONENTS.md reuse inventory / THEME-CAPABILITIES.md capability catalog / COMMANDS.md / REVAMP-TODO.md + `shopify.theme.toml`) — imperative, grounded, token-lean, for agents, not humans; everything new namespaced under a per-client prefix.
+- **[figma-shopify-builder](./personal/shopify/figma-shopify-builder/SKILL.md)** — Build pixel-accurate theme sections or blocks from Figma — every value traced to the design, never invented.
+- **[figma-shopify-composer](./personal/shopify/figma-shopify-composer/SKILL.md)** — Recreate a Figma design by composing the theme's existing sections, blocks, and settings — template JSON only, no new code, proven pixel-accurate against the frames.
+- **[figma-shopify-globals](./personal/shopify/figma-shopify-globals/SKILL.md)** — Sync observed full-site globals and derive approved interaction-state values from their base colours in a draft theme, with approval-gated evidence, contrast checks, and verification.
+- **[rebuy-widget-customization](./personal/shopify/rebuy-widget-customization/SKILL.md)** — Replace a Rebuy widget's markup with custom Vue 2 templates while Rebuy's engine, discounts, and subscriptions keep running underneath.
+- **[shopify-app-restyle](./personal/shopify/shopify-app-restyle/SKILL.md)** — Restyle a third-party app's widget to match a Figma design using `!important`-scoped theme CSS overrides, proven pixel-accurate against the Figma frames.
+- **[shopify-migrate-page-to-new-theme](./personal/shopify/shopify-migrate-page-to-new-theme/SKILL.md)** — Audit a page on an old theme and produce a spec doc + handoff prompt to recreate it on a new theme — content verbatim, restyled to the new theme's design system.
+
+### Engineering
+
+General dev tools, not Shopify-specific.
+
+**User-invoked**
+
+- **[gc](./engineering/global/gc/SKILL.md)** — Create one clean Conventional Commits-style commit from your current changes, with no AI attribution.
+
+## Repo layout
+
+Skills are organised as `<bucket>/<domain>/<skill>/`, where the domain is `global` (domain-agnostic) or a specific one like `shopify` or `nextjs`.
+
+```
+.                                 # git repo root (marketplace + plugin live here)
+├── README.md                     # this file — the skill catalogue
+├── skills.sh.json                # grouping config for skills.sh
+├── CLAUDE.md                     # repo conventions
+├── .claude-plugin/
+│   └── marketplace.json          # marketplace manifest — one plugin per bucket
+├── engineering/
+│   └── global/gc/                # git commit helper             (published)
+├── personal/
+│   └── shopify/                  # 10 Shopify theme & app skills  (published)
+├── productivity/                 # empty — for future skills
+└── misc/                         # empty — for future skills
+```
+
+See [`CLAUDE.md`](./CLAUDE.md) for the conventions (bucket/domain rules, the three registries to keep in sync, and invocation types).
+
+## Credits
+
+Structure and workflow inspired by [mattpocock/skills](https://github.com/mattpocock/skills).
