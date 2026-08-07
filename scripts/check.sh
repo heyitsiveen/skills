@@ -1,6 +1,15 @@
 #!/usr/bin/env bash
 #
-# Assert this repo's cross-file invariants.
+# Assert this repo's cross-file invariants:
+#
+#   1. the two knowledge-doc format specs are byte-identical across the four
+#      producer skills
+#   2. `## Asset export` is byte-identical across the three Figma-driven skills
+#   3. every skill is listed in all three registries
+#   4. the retired pixel-diff vocabulary appears in none of the three
+#      Figma-driven skills, nor in the README
+#   5. Phase 4's seven steps are present, in order, in each of the three
+#   6. each of the three specifies the design spec's producer header
 #
 # Run from anywhere; it resolves the repo root itself.
 #   ./scripts/check.sh
@@ -23,8 +32,43 @@ MARKETPLACE=.claude-plugin/marketplace.json
 # The four skills that produce the shared knowledge-doc format specs.
 PRODUCERS=(client-theme-onboarding figma-shopify-builder figma-shopify-composer figma-shopify-globals)
 
-# The three Figma-measuring skills, which share a `## Asset export` section.
+# The three Figma-driven skills, which share a `## Asset export` section and
+# the seven-step Phase 4.
 FIGMA_SKILLS=(figma-shopify-builder figma-shopify-composer shopify-app-restyle)
+
+# Terms the design-spec convention retired. None may reappear in the three
+# Figma-driven skills or in the README. Each is a POSIX ERE, deliberately wider
+# than the literal wording the tickets used: the hyphenated spellings are this
+# repo's own house style, so they are the likeliest form of a relapse, and the
+# diff-image names are generalised past the two breakpoints that existed.
+BANNED_TERMS=(
+  'diff-[a-z]+\.png'
+  'pixelmatch'
+  'odiff'
+  'visual[- ]verifier'
+  'pixel[- ]diff'
+  'never[- ]eyeballed'
+)
+
+# Phase 4's seven steps, in order, as `<pattern>::<name>`: the ERE that marks
+# the step, and the name a failure reports. One array, so the two cannot
+# desync; `::` is the delimiter because the EREs use `|` for alternation.
+PHASE4_STEPS=(
+  '^\*\*1\. Render\.\*\*::1. Render'
+  '^\*\*2\. Data check\*\*::2. Data check'
+  '^\*\*3\. Capture hygiene\*\*::3. Capture hygiene'
+  '^\*\*4\. `style-reporter`,::4. `style-reporter`'
+  '^\*\*5\. Correction round\*\*::5. Correction round'
+  '^\*\*6\. Style report(\.\*\*| —)::6. Style report'
+  '^\*\*7\. Cleanup\.\*\*::7. Cleanup'
+)
+
+# No eighth step: the shape is seven, and CLAUDE.md calls a fourth variation a
+# rule break. An added step would otherwise pass the in-order scan unnoticed.
+PHASE4_NO_EIGHTH='^\*\*8\.'
+
+# The one-line summary of the shape, which all three carry verbatim.
+PHASE4_CHAIN='render → data check → capture hygiene → `style-reporter` → correction round → style report → cleanup'
 
 FAILURES=0
 
@@ -68,17 +112,18 @@ check_format_specs() {
 }
 
 # ---------------------------------------------------------------------------
-# 2. `## Asset export` is byte-identical across the three Figma-measuring skills
+# 2. `## Asset export` is byte-identical across the three Figma-driven skills
 # ---------------------------------------------------------------------------
 
-# Print the `## Asset export …` section of a SKILL.md: from its heading up to
-# (not including) the next `## ` heading.
-extract_asset_export() {
-  awk '
-    /^## Asset export/ { inside = 1; print; next }
-    inside && /^## /   { exit }
-    inside             { print }
-  ' "$1"
+# extract_section <heading-regex> <file>
+# Print one `## …` section of a SKILL.md, heading included, up to (not
+# including) the next `## ` heading.
+extract_section() {
+  awk -v heading="$1" '
+    $0 ~ heading    { inside = 1; print; next }
+    inside && /^## / { exit }
+    inside           { print }
+  ' "$2"
 }
 
 check_asset_export() {
@@ -90,7 +135,7 @@ check_asset_export() {
   for skill in "${FIGMA_SKILLS[@]}"; do
     path="personal/shopify/$skill/SKILL.md"
     require_file "$path" || continue
-    extract_asset_export "$path" > "$tmp/$skill"
+    extract_section '^## Asset export' "$path" > "$tmp/$skill"
     if [ ! -s "$tmp/$skill" ]; then
       fail "$path has no '## Asset export' section"
       continue
@@ -101,7 +146,7 @@ check_asset_export() {
       continue
     fi
     compare_to_base "$base_label" "$base" "$path" "$tmp/$skill" \
-      "'## Asset export' must be byte-identical across the three Figma-measuring skills"
+      "'## Asset export' must be byte-identical across the three Figma-driven skills"
   done
 
   rm -rf "$tmp"
@@ -188,9 +233,108 @@ check_registries() {
              -not -path './.git/*' -not -path './.scratch/*' | sort)
 }
 
+# ---------------------------------------------------------------------------
+# 4. The retired pixel-diff vocabulary appears nowhere
+# ---------------------------------------------------------------------------
+
+check_banned_terms() {
+  local term target hits status line skill
+  local targets=("$README")
+
+  for skill in "${FIGMA_SKILLS[@]}"; do
+    targets+=("personal/shopify/$skill")
+  done
+
+  for target in "${targets[@]}"; do
+    if [ ! -e "$target" ]; then
+      fail "missing path: $target"
+      continue
+    fi
+    for term in "${BANNED_TERMS[@]}"; do
+      hits="$(grep -rnE -- "$term" "$target")"
+      status=$?
+      # 0 = matched, 1 = no match, anything else = grep itself failed. Without
+      # this the check would pass silently on a malformed pattern.
+      if [ "$status" -gt 1 ]; then
+        fail "cannot scan $target for the retired term '$term' (grep exited $status)"
+        continue
+      fi
+      [ "$status" -eq 0 ] || continue
+      while IFS= read -r line; do
+        fail "$target still uses the retired term '$term' — $line"
+      done <<< "$hits"
+    done
+  done
+}
+
+# ---------------------------------------------------------------------------
+# 5. Phase 4's seven steps are present, in order, in each Figma-driven skill
+# ---------------------------------------------------------------------------
+
+check_phase4_shape() {
+  local skill path section i total line
+
+  total=${#PHASE4_STEPS[@]}
+
+  for skill in "${FIGMA_SKILLS[@]}"; do
+    path="personal/shopify/$skill/SKILL.md"
+    require_file "$path" || continue
+
+    section="$(extract_section '^## Phase 4' "$path")"
+    if [ -z "$section" ]; then
+      fail "$path has no '## Phase 4' section"
+      continue
+    fi
+
+    i=0
+    while IFS= read -r line; do
+      [ "$i" -lt "$total" ] || break
+      if printf '%s\n' "$line" | grep -qE -- "${PHASE4_STEPS[$i]%%::*}"; then
+        i=$((i + 1))
+      fi
+    done <<< "$section"
+
+    if [ "$i" -lt "$total" ]; then
+      fail "$path: Phase 4 step '${PHASE4_STEPS[$i]##*::}' is missing or out of order (found $i of $total steps in sequence)"
+    fi
+
+    if printf '%s\n' "$section" | grep -qE -- "$PHASE4_NO_EIGHTH"; then
+      fail "$path: Phase 4 has an eighth step — the shared shape is seven"
+    fi
+
+    printf '%s\n' "$section" | grep -qF -- "$PHASE4_CHAIN" ||
+      fail "$path: Phase 4 does not state the seven-step chain verbatim ($PHASE4_CHAIN)"
+
+    grep -qF -- 'style-reporter' "$path" ||
+      fail "$path does not mention 'style-reporter'"
+  done
+}
+
+# ---------------------------------------------------------------------------
+# 6. Each Figma-driven skill specifies the design spec's producer header
+# ---------------------------------------------------------------------------
+
+check_producer_header() {
+  local skill path
+
+  for skill in "${FIGMA_SKILLS[@]}"; do
+    path="personal/shopify/$skill/SKILL.md"
+    require_file "$path" || continue
+
+    grep -qE "^[[:space:]]+producer: $skill — write surface:" "$path" ||
+      fail "$path does not specify the design spec's producer header (expected a line 'producer: $skill — write surface: …')"
+
+    grep -qF -- 'Open the document with this header line, verbatim' "$path" ||
+      fail "$path does not instruct the extractor to open the design spec with the producer header verbatim"
+  done
+}
+
 check_format_specs
 check_asset_export
 check_registries
+check_banned_terms
+check_phase4_shape
+check_producer_header
 
 if [ "$FAILURES" -ne 0 ]; then
   printf '\n%d check(s) failed.\n' "$FAILURES" >&2
