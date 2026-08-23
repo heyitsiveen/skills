@@ -28,7 +28,8 @@
         "./shopify/shopify-app-restyle",
         "./shopify/shopify-copy-template-content",
         "./shopify/shopify-inject-app-into-liquid",
-        "./shopify/shopify-migrate-page-to-new-theme"
+        "./shopify/shopify-migrate-page-to-new-theme",
+        "./shopify/shopify-page-replicate"
       ]
     },
     {

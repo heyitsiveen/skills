@@ -2,7 +2,7 @@
 #
 # Assert this repo's cross-file invariants:
 #
-#   1. the two knowledge-doc format specs are byte-identical across the four
+#   1. the two knowledge-doc format specs are byte-identical across the five
 #      producer skills
 #   2. `## Asset export` is byte-identical across the three Figma-driven skills
 #   3. every skill is listed in all three registries — `deprecated/` is a
@@ -31,8 +31,8 @@ README=README.md
 SKILLS_SH=skills.sh.json
 MARKETPLACE=.claude-plugin/marketplace.json
 
-# The four skills that produce the shared knowledge-doc format specs.
-PRODUCERS=(client-theme-onboarding figma-shopify-builder figma-shopify-composer figma-shopify-globals)
+# The five skills that produce the shared knowledge-doc format specs.
+PRODUCERS=(client-theme-onboarding figma-shopify-builder figma-shopify-composer figma-shopify-globals shopify-page-replicate)
 
 # The Figma-driven skills, whose `## Asset export` section is byte-identical.
 # Scoped to these alone: a skill that exports assets from somewhere other than
@@ -44,7 +44,7 @@ ASSET_EXPORT_SKILLS=(figma-shopify-builder figma-shopify-composer shopify-app-re
 # the design spec's producer header, and the retirement of the pixel-diff
 # vocabulary. A skill joins this set by sharing that shape, whether or not its
 # spec comes from Figma.
-SPEC_DRIVEN_SKILLS=(figma-shopify-builder figma-shopify-composer shopify-app-restyle)
+SPEC_DRIVEN_SKILLS=(figma-shopify-builder figma-shopify-composer shopify-app-restyle shopify-page-replicate)
 
 # Terms the design-spec convention retired. None may reappear in the
 # spec-driven skills or in the README. Each is a POSIX ERE, deliberately wider
@@ -116,7 +116,7 @@ check_format_specs() {
       other="personal/shopify/$skill/references/$spec"
       require_file "$other" || continue
       compare_to_base "$base" "$base" "$other" "$other" \
-        "references/$spec must be byte-identical across the four producers"
+        "references/$spec must be byte-identical across the five producers"
     done
   done
 }
