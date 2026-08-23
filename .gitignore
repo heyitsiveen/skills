@@ -4,3 +4,6 @@
 # Node / tooling (if added later)
 node_modules/
 *.log
+
+# Local issue tracker (see docs/agents/issue-tracker.md)
+.scratch/

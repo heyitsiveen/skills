@@ -16,6 +16,13 @@ Current buckets:
 - `personal/` — my main skills (e.g. `personal/shopify/…`)
 - `productivity/`, `misc/` — kept empty for future skills
 
+`deprecated/` is **not** a bucket. It holds a byte-identical snapshot of a skill
+as it stood before a rewrite, so the previous behaviour can be restored if the
+replacement misbehaves. It mirrors the same `<domain>/<skill-name>/` layout, is
+listed in none of the three registries, is published by no plugin, and is
+skipped by `scripts/check.sh`. Nothing reads a skill from it: to roll one back,
+copy the folder over its `<bucket>/<domain>/` counterpart.
+
 ## Three registries — keep them in sync
 
 Every skill must be listed in all three:
@@ -24,7 +31,7 @@ Every skill must be listed in all three:
 2. **`skills.sh.json`** — grouping config for the [skills.sh](https://skills.sh) directory (lists skills by `name`).
 3. **`.claude-plugin/marketplace.json`** — each bucket is published as its own plugin (`heyitsiveen-skills-<bucket>`); that plugin's `skills` array holds one `./<domain>/<name>` path per skill (relative to the bucket's `source`).
 
-Whenever you add, rename, move, or retire a skill, update all three (and this file if a bucket or domain changes).
+Whenever you add, rename, move, or retire a skill, update all three (and this file if a bucket or domain changes), then run `./scripts/check.sh`.
 
 ## Invocation
 
@@ -37,22 +44,21 @@ Whenever you add, rename, move, or retire a skill, update all three (and this fi
 
 The six skills `figma-shopify-composer`, `figma-shopify-builder`, `figma-shopify-globals`, `shopify-app-restyle`, `client-theme-onboarding`, and `bugherd-qa-fixer` (all `personal/shopify/`) write every artifact inside a client theme repo under `.agent/`: shared knowledge docs at its root, each produced only when absent or stale and identically by any of their producers (`THEME-CAPABILITIES.md` — globals, composer, builder, or onboarding; `COMPONENTS.md` — globals, composer, builder, or onboarding), kept current by the skills that add theme artifacts (globals → both docs plus the retained mapping table; builder → both docs; restyle → a COMPONENTS.md row per override stylesheet, plus an Animations row when the override adds reusable motion; bugherd-qa-fixer → dated append-only lines, and only where a doc already exists — it never creates one), per-skill outputs in `.agent/<skill-name>/` (globals mapping/evidence, onboarding depth docs, `app-widget-<handle>.md`, `visual-check/`, bugherd-qa-fixer's `remaining/` + `notes/` + `evidence/`). `AGENTS.md`, its `CLAUDE.md` symlink, and `shopify.theme.toml` stay at the client repo root; everything is kept out of git via `.git/info/exclude`.
 
-The three Figma-measuring skills — composer, builder, restyle — additionally share one visual-check convention: `visual-check/<name>/` holds only root-level `figma-desktop.png` / `figma-mobile.png`, `result-desktop.png` / `result-mobile.png`, and `diff-desktop.png` / `diff-mobile.png`; restyle may add an approved `-<state>` suffix to each class. No `clean-`, `section-`, or other render variants are generated. `assets/` remains flat for per-asset exports; assets ship as client-uploaded files rather than inline SVG; verification hardcodes them and proves the revert; each per-asset export is the design's crop, with the uncropped original kept beside it as `original-source-*`. Their `## Asset export` sections are byte-identical and change together. `## Asset delivery` and `## Hardcode-then-revert` diverge on purpose, because the three have different write surfaces — builder owns a section file, composer only template JSON, restyle only its override stylesheet — and where one cannot reach a destination it declares that rather than downgrading silently.
+The three Figma-driven skills — composer, builder, restyle — additionally share one visual-check convention: at `visual-check/<name>/` the root level holds only the design spec `figma-spec.md` and two image classes, `figma-desktop.png` / `figma-mobile.png` and `result-desktop.png` / `result-mobile.png`; restyle may add an approved `-<state>` suffix to each image class. No diff images are produced, and no `clean-`, `section-`, or other render variants are generated. They also share one seven-step Phase 4 — render → data check → capture hygiene → `style-reporter` → correction round → style report → cleanup — with exactly three permitted variations: builder's metafield/metaobject data check (step 2), composer's reconciliation of the style report against the fidelity forecast (step 6), and restyle's per-state axis (steps 3, 4 and 6 run per state as well as per breakpoint). A fourth variation is a rule break. The steps' presence and order are asserted by `scripts/check.sh`, which also refuses an eighth; that the three variations are the only ones is still enforced by reading the three Phase 4 sections, not by `cmp`. `figma-shopify-pixel-match` is a reserved, unbuilt name — do not create a skill under it. See `docs/adr/0001-design-spec-replaces-pixel-diff.md` for why. `assets/` remains flat for per-asset exports; assets ship as client-uploaded files rather than inline SVG; verification hardcodes them and proves the revert; each per-asset export is the design's crop, with the uncropped original kept beside it as `original-source-*`. Their `## Asset export` sections are byte-identical and change together. `## Asset delivery` and `## Hardcode-then-revert` diverge on purpose, because the three have different write surfaces — builder owns a section file, composer only template JSON, restyle only its override stylesheet — and where one cannot reach a destination it declares that rather than downgrading silently.
 
-The two knowledge-doc format specs — `references/theme-capabilities-format.md` and `references/components-format.md` — are byte-identical across the four producer skills: `client-theme-onboarding`, `figma-shopify-builder`, `figma-shopify-composer`, and `figma-shopify-globals`. They change together. Before committing a format-spec change, run this from the repo root; every comparison must exit 0:
-
-```sh
-for spec in theme-capabilities-format.md components-format.md; do
-  base="personal/shopify/client-theme-onboarding/references/$spec"
-  cmp -s "$base" "personal/shopify/figma-shopify-builder/references/$spec" &&
-    cmp -s "$base" "personal/shopify/figma-shopify-composer/references/$spec" &&
-    cmp -s "$base" "personal/shopify/figma-shopify-globals/references/$spec" || exit 1
-done
-```
-
-The duplication is deliberate.
+The two knowledge-doc format specs — `references/theme-capabilities-format.md` and `references/components-format.md` — are byte-identical across the four producer skills: `client-theme-onboarding`, `figma-shopify-builder`, `figma-shopify-composer`, and `figma-shopify-globals`. They change together. The duplication is deliberate.
 
 When editing these skills, keep every path on this convention and the six skills in agreement.
+
+## Checking the repo's invariants
+
+`scripts/check.sh` asserts this repo's cross-file rules — the two format specs' byte-identity across the four producers, `## Asset export`'s byte-identity across the three Figma-driven skills, every skill's presence in all three registries, the absence of the retired pixel-diff vocabulary from those three skills and the README, and the presence in each of them of Phase 4's seven steps in order, `style-reporter`, and the design spec's producer header. The script's own header comment is the authoritative list, and the retired terms are the `BANNED_TERMS` array inside it — extend those rather than restating them here. Run it before committing any change to a shared file — it resolves the repo root itself, so the working directory does not matter:
+
+```sh
+./scripts/check.sh
+```
+
+It exits 0 when every rule holds, and otherwise names the offending path and exits non-zero.
 
 ## Distribution
 
@@ -67,3 +73,13 @@ The repo root is a Claude Code **plugin marketplace** (`.claude-plugin/marketpla
 It's also installable via skills.sh: `npx skills add heyitsiveen/skills`.
 
 Inspired by [mattpocock/skills](https://github.com/mattpocock/skills).
+
+## Agent skills
+
+### Issue tracker
+
+Issues live as markdown files under `.scratch/<feature-slug>/` in this repo. See `docs/agents/issue-tracker.md`.
+
+### Domain docs
+
+Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.

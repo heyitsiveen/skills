@@ -1,11 +1,11 @@
 ---
 name: shopify-app-restyle
-description: Restyle a third-party Shopify app's block or widget to match a Figma design with scoped !important CSS overrides — the app's own code and assets are never touched. Use when the user wants an installed app's widget or app block (product options, reviews, bundles, gift wrap, …) restyled, overridden, or customized to Figma frames, or asks for pixel-accurate styling of app-injected UI. Fidelity is measured — computed styles plus pixel diff against the Figma frames — never eyeballed.
+description: Restyle a third-party Shopify app's block or widget to match a Figma design with scoped !important CSS overrides — the app's own code and assets are never touched. Use when the user wants an installed app's widget or app block (product options, reviews, bundles, gift wrap, …) restyled, overridden, or customized to Figma frames, or asks for pixel-accurate styling of app-injected UI. The overrides read from a design spec extracted from the Figma frames, report computed styles against it per breakpoint and per state, and save the rendered result for review.
 ---
 
 # Shopify App Restyle
 
-Restyle a third-party app's storefront widget to match two Figma frames without touching the app: scoped `!important` overrides in the theme, proven pixel-accurate by measurement. Four phases — research (read-only on the theme), plan (an audit trail, not a checkpoint), implement, verify (numeric gate) — then cleanup that leaves the machine as found. The run is **gate-free**: once the inputs are complete nothing pauses for approval; the only stops are a missing input, genuine ambiguity, or the live publish swap ([environment-mismatch](environment-mismatch.md) step 8, which never runs without the user's explicit go-ahead). The deliberate leftovers are the visual-check folder and the knowledge docs (§Knowledge docs).
+Restyle a third-party app's storefront widget to match two Figma frames without touching the app: scoped `!important` overrides in the theme, written from a design spec extracted from those frames. Four phases — research (read-only on the theme), plan (an audit trail, not a checkpoint), implement, render and report — then cleanup that leaves the machine as found. The run is **gate-free**: nothing pauses for approval, not even the plan; the only stops are a missing input, genuine ambiguity, or the live publish swap ([environment-mismatch](environment-mismatch.md) step 8, which never runs without the user's explicit go-ahead). The deliberate leftovers are the visual-check folder and the knowledge docs (§Knowledge docs).
 
 ## Inputs
 
@@ -18,41 +18,37 @@ Collect before starting; ask for any that are missing.
 5. **Placement** — which section hosts the app block and where it sits in that section's `block_order` (before/after which block, by customizer label or type). Locates the widget and verifies/fixes its position.
 6. **Page or product URL to inspect** — optional; ask only if the widget's rendering is product-specific and the target is ambiguous.
 
-## Pixel-accurate is a measured result
+## The design spec is the authority
 
-The restyle passes when, per breakpoint and per verified state:
+`figma-spec.md` — the **design spec** — is the single document the overrides read from. Every declaration in the override stylesheet traces to it: the exact-values table, the desktop/mobile differences, the layout intent, the stacking and overlap, the group rhythm, the widget states, and the asset inventory. It is extracted once, in Phase 1, quoted inline in the plan, and never re-derived mid-run; a value that is not in it is an OPEN QUESTION, not a judgement call.
 
-1. Every checked computed style matches its Figma value.
-2. The image diff ratio against the Figma screenshot is ≤ 1% with anti-aliasing ignored.
-3. Residual diff pixels are confirmed FROM THE DIFF IMAGE to be text-rasterization noise — Figma and Chromium rasterize fonts differently, so a literal 0% is unreachable. Layout, color, or spacing differences are never "noise".
+Pixel accuracy is still the goal. It is no longer a claim the skill makes on its own behalf: the run ends with a **style report** — computed styles against the design spec's values, per breakpoint AND per state — plus the rendered result saved to the visual-check folder next to the Figma references, one render per state, and the user judges the result by eye.
 
-Side-by-side eyeballing is for diagnosis only; passing is numeric.
+The per-state axis is this skill's own: an app widget changes appearance on interaction, and state-dependent styling is exactly where an override breaks, so Phase 4's capture hygiene, its `style-reporter` call, and its style report all run per state as well as per breakpoint.
 
 ## Browser tiers
 
-**Primary: the Claude Code Desktop Browser pane** (desktop app with Browser enabled). Claude drives it directly — screenshots, DOM/computed-style inspection, clicking, form filling — and manages the dev server via `.claude/launch.json` (local dev servers need no site approval). Preview/live store URLs are external sites: expect a one-time permission card (Allow once / Always allow). Enable "Persist sessions" when the storefront is password-protected so the cookie survives restarts.
-
-**Capture-exactness check:** the measured diff needs captures at the exact Figma frame widths and scale, with identical pixel dimensions, clipped to the widget container. Confirm the pane's screenshots can honor that; if not, the pane still does inspection, interaction, and diagnosis while the MEASURED captures fall to the first fallback that can.
+**Primary: the Claude Code Desktop Browser pane** (desktop app with Browser enabled). Claude drives it directly — screenshots, DOM/computed-style inspection, clicking, form filling — and manages the dev server via `.claude/launch.json` (local dev servers need no site approval). Preview/live store URLs are external sites: expect a one-time permission card (Allow once / Always allow). Enable "Persist sessions" when the storefront is password-protected so the cookie survives restarts. When available, it does the whole capture job — including the interactions that reproduce each state.
 
 **Fallbacks, in order:** connected browser MCP (Chrome DevTools MCP / Playwright MCP) → installed Chrome → temporary Playwright via npx.
 
 ## Delegation
 
-Bounded research and measurement go to subagents — isolated workers with their own context windows that return only a final report — so bulk Figma payloads, DOM dumps, and per-iteration screenshots stay out of the main conversation, and independent research runs in parallel. Delegation multiplies tokens: skip it for trivially small reads.
+Bounded research and measurement go to subagents — isolated workers with their own context windows that return only a final report — so bulk Figma payloads, DOM dumps, and the result screenshots stay out of the main conversation, and independent research runs in parallel. Delegation multiplies tokens: skip it for trivially small reads.
 
-Prefer the named custom agents `figma-extractor`, `widget-inspector`, and `visual-verifier` when installed in `~/.claude/agents/` or `.claude/agents/` — their definitions add tool-enforced restrictions (e.g. `disallowedTools: Write, Edit` on the verifier). Otherwise run the built-in general-purpose subagent with the embedded prompt below; in that fallback the no-theme-edits rule is instruction-enforced, so the prompt states it explicitly.
+Prefer the named custom agents `figma-extractor`, `widget-inspector`, and `style-reporter` when installed in `~/.claude/agents/` or `.claude/agents/` — their definitions add tool-enforced restrictions (e.g. `disallowedTools: Write, Edit` on the style reporter). Otherwise run the built-in general-purpose subagent with the embedded prompt below; in that fallback the no-theme-edits rule is instruction-enforced, so the prompt states it explicitly.
 
 **Capability gate** (at tooling detection): confirm the Agent tool is available and that the Figma MCP / browser tools reach subagents (subagents inherit internal + MCP tools by default; the Browser pane's preview tools may be main-session-only). Any role whose tools don't reach a subagent runs in the main conversation instead.
 
-**Handoff protocol:** subagents can't see the conversation and can't ask the user questions — every delegation prompt carries its exact inputs (node-ids, selectors, file paths, capture specs); every worker writes FULL findings to a report file in the temp working directory (the widget-inspector writes the app-widget doc plus a per-run report — §Knowledge docs) and returns a short summary; ambiguities come back as OPEN QUESTIONS for the main agent to put to the user. The temp working directory is created per run (use the session scratchpad when available) and is deleted at cleanup.
+**Handoff protocol:** subagents can't see the conversation and can't ask the user questions — every delegation prompt carries its exact inputs (node-ids, selectors, file paths, the design spec's path, capture specs); every worker writes FULL findings to a report file in the temp working directory (the widget-inspector writes the app-widget doc plus a per-run report — §Knowledge docs) and returns a short summary; ambiguities come back as OPEN QUESTIONS for the main agent to put to the user. The temp working directory is created per run (use the session scratchpad when available) and is deleted at cleanup.
 
-**Never delegated:** planning, user approvals, all implementation edits, the environment-mismatch steps that need the user (6 and 8), and the diagnosis/fix half of the verification loop.
+**Never delegated:** planning, user approvals, all implementation edits, the environment-mismatch steps that need the user (6 and 8), and the correction round that follows the style report.
 
 | Role | Phase | Report |
 |---|---|---|
-| figma-extractor | 1, parallel | `figma-spec.md` |
+| figma-extractor | 1, parallel | `figma-spec.md` — the design spec |
 | widget-inspector (read-only on the theme; skips re-derivation when the knowledge docs are fresh) | 1, parallel | `app-widget-<app-handle>.md` (§Knowledge docs) + per-run `theme-widget-report.md` |
-| visual-verifier (never edits theme files) | 4, one call per iteration | `verify-report-<n>.md` |
+| style-reporter (never edits theme files) | 4, once per breakpoint and state, plus the correction round's re-check | `style-report-<breakpoint>[-<state>].md` |
 
 ### figma-extractor prompt
 
@@ -64,22 +60,47 @@ Frames:
 - Desktop: {figma-desktop-link} (node-id {desktop-node-id})
 - Mobile: {figma-mobile-link} (node-id {mobile-node-id})
 
+This document is the DESIGN SPEC: the single authority the override stylesheet
+reads from. Nothing is re-derived from Figma later, so anything the restyle
+needs must be in it — and anything you are unsure of is an OPEN QUESTION,
+never a guess.
+
 For each node-id call get_design_context and get_screenshot, then compile:
 1. Exact-values table per breakpoint: typography (family, size, weight,
    line-height, letter-spacing), colors, spacing (padding/margin/gap), sizes,
    border-radii, frame width. These are the CSS override targets AND the
    expected values for computed-style assertions — record exactly.
 2. Desktop vs mobile differences (stacking, order, visibility, alignment).
-3. Every widget state visible in the frames — selected option, open dropdown,
-   hover, error, … — and which values change in each.
-4. Each screenshot's scale (1x/2x) and pixel dimensions — captures must match
-   them exactly for the pixel diff.
-5. Asset inventory — one row per exportable asset: layer name | node-id |
+3. Layout intent, per breakpoint: which elements form a row, a grid or a stack,
+   the group each belongs to, and how that grouping changes between desktop and
+   mobile (a desktop 3-up row becoming a mobile stack, and in what order).
+4. Stacking and overlap: z-order wherever elements sit over one another, which
+   element is on top, and the offset and overlap amount of each overlapping pair.
+5. Group rhythm: the spacing BETWEEN sibling groups, per breakpoint — not only
+   per-element margins. Give the gap between each pair of adjacent groups and
+   name the repeating interval where one exists.
+6. Every widget state visible in the frames — selected option, open dropdown,
+   hover, error, … — and which values change in each. Name the interaction that
+   reproduces each one. The render-and-report phase captures and asserts per
+   state, so a state you do not record is a state nobody checks.
+7. Asset inventory — one row per exportable asset: layer name | node-id |
    kind (raster fill / vector / composition) | the node's w×h | for a raster
    fill, the fill's rendered percentage of its node (the `w-`/`h-` values
    get_design_context emits) and whether the subtree holds text. Phase 3
    exports from the node-id, so every asset carries its own; text in the
    subtree is an OPEN QUESTION, since exporting flattens it.
+
+Sections 3, 4 and 5 are WRITTEN FROM THE SCREENSHOT — read the image, describe
+what the widget actually does — and EVERY claim in them is backed by a value
+from get_design_context, cited inline (the layout mode, the item spacing, the
+absolute position, the bounds). A claim you cannot back with a value is an
+OPEN QUESTION, not an assertion. The screenshot is the source of the structure;
+the design context is the source of the numbers.
+
+Open the document with this header line, verbatim, before section 1:
+
+    producer: shopify-app-restyle — write surface: its own override
+    stylesheet only — the app's own code and assets are never touched
 
 Write the FULL findings to {temp-dir}/figma-spec.md with an OPEN QUESTIONS
 section at the end for anything ambiguous. Return only a 3–5 line summary plus
@@ -112,8 +133,8 @@ and skip re-deriving 1–3; different or absent → do 1–3 in full and rewrite
 the doc. THEME-CAPABILITIES, when usable, answers 6–7 in the exact contract
 sections `## §CSS load` and `## §Globals` — read those headings; absent or
 stale → derive both sections per-run. COMPONENTS at the current format is
-appended only after the verification gate, then its format gate is rerun; a
-higher-format COMPONENTS doc is read-as-newer and left byte-for-byte unchanged.
+appended only at cleanup, then its format gate is rerun; a higher-format
+COMPONENTS doc is read-as-newer and left byte-for-byte unchanged.
 
 In the browser, find the widget the app renders (search the DOM for the app's
 name, handle, or vendor prefix in classes, ids, and data-attributes), then:
@@ -146,49 +167,43 @@ OPEN QUESTIONS at the end — .agent/THEME-CAPABILITIES.md is read-only for
 this skill. Return only a 3–5 line summary plus the open questions.
 ```
 
-### visual-verifier prompt
+### style-reporter prompt
 
 ```
-You are measuring one verification iteration of a restyled third-party app
-widget against its Figma reference. You NEVER edit theme files — measure,
-record, report only.
+You are producing the style report for one breakpoint and one state of a
+restyled third-party app widget built from a design spec. You NEVER edit theme
+files — no Write, no Edit, no shell command that changes a theme file. Your
+ONLY writes are the result screenshot and the report file named below.
+Capture, assert, record, report.
 
-Iteration: {n} — breakpoint {desktop|mobile}, width {w}px, scale {s}, expected
-capture dimensions {W}x{H}px
-State(s) to verify: {default, plus each state and the interactions that
-reproduce it}
+Breakpoint: {desktop|mobile}, width {w}px
+State: {default | the state name, plus the interaction that reproduces it}
 Render at: {dev-server-url | preview-url}
 Widget container: {selector}
-Figma reference: .agent/shopify-app-restyle/visual-check/{widget-name}/
-figma-{breakpoint}.png
-(per-state references where extracted: figma-{breakpoint}-{state}.png)
-Expected values: {temp-dir}/figma-spec.md
-Key elements to assert: {list from the plan}
-Diff tool: {pixelmatch … | odiff-bin …} (installed direct, else via npx; anti-aliasing ignored)
+Design spec (the expected values): {temp-dir}/figma-spec.md
+Key elements to assert: {list from the plan, for THIS state}
 
-Per state:
-1. Capture hygiene, then capture: viewport at the exact width and scale above;
+1. Capture hygiene, then capture: viewport at the Figma frame width above;
    animations/transitions disabled; wait for document.fonts.ready + network
-   idle; reproduce the state by interacting; clip to the widget container. The
-   capture's pixel dimensions must equal the reference's exactly.
-2. Computed styles: getComputedStyle on each key element vs the expected
-   values (font-family/size/weight, line-height, letter-spacing, color,
-   background, padding, margin, gap, border-radius). Record every mismatch:
-   element, property, expected, actual.
-3. Pixel diff vs the reference; record the diff ratio; save the diff image.
-4. Overwrite .agent/shopify-app-restyle/visual-check/{widget-name}/
-   result-{breakpoint}[-{state}].png and diff-{breakpoint}[-{state}].png with
-   THIS iteration's capture and diff. State suffixes are allowed only for
-   states in the approved plan; do not generate `clean-`, `section-`, or other
-   render variants.
-5. Leak check: inspect the elements around the widget (siblings, host section,
+   idle; reproduce the state by interacting; clip to the widget container, not
+   the full page.
+2. Computed styles: getComputedStyle on each key element vs the design spec's
+   values FOR THIS STATE (font-family/size/weight, line-height,
+   letter-spacing, color, background, padding, margin, gap, border-radius).
+   Record every mismatch: the state above, element, property, expected, actual.
+3. Write the capture to .agent/shopify-app-restyle/visual-check/{widget-name}/
+   result-{breakpoint}[-{state}].png, overwriting what is there. The state
+   suffix is used only for states in the plan; generate no diff image and no
+   `clean-`, `section-`, or other render variant.
+4. Leak check: inspect the elements around the widget (siblings, host section,
    page chrome) and report anything the override stylesheet affects outside
    the widget container.
 
-Write the FULL report to {temp-dir}/verify-report-{n}.md: mismatch table, diff
-ratio per state, largest diff regions and where they sit, leak findings.
-Return only the diff ratio(s), mismatch count, and one line on the biggest
-offender.
+Write the FULL table to {temp-dir}/style-report-{breakpoint}[-{state}].md: one
+row per mismatch — state | element | property | expected | actual — followed by
+the leak findings. Every row carries the state, so the main agent's report
+stays legible once the states are merged. Return that table as TEXT only, plus
+the mismatch count and the leak findings. Return no images.
 ```
 
 ## Knowledge docs — scan once, reuse
@@ -199,7 +214,7 @@ This skill's docs:
 
 - **`.agent/shopify-app-restyle/app-widget-<app-handle>.md`** — one per app, `<app-handle>` kebab-cased from the installed app name: the widget container's outerHTML snapshot, stable override selectors, matched CSS rules with origins (app-served vs theme), and the JS-injected inline-`!important` list. Freshness is a live check: compare the current container outerHTML against the stored snapshot — equal → trust the doc; different → full re-inspection, doc rewritten (app updates are the staleness source).
 - **`.agent/THEME-CAPABILITIES.md`** — read-only here; its shape is fixed, so it reads the same no matter which skill produced it. This skill reads the exact contract headings `## §Globals` (variable names and wiring — current values resolve live) and `## §CSS load` (how the theme loads custom CSS); absent → the widget-inspector derives those two sections per-run into its report. This skill adds no sections, blocks, or settings, so it never updates this doc.
-- **`.agent/COMPONENTS.md`** — appended-to here: after verification passes and the doc exists at this skill's format, add one row for the override stylesheet — name · `assets/<app-handle>-overrides.css` + its include point · what it restyles · reuse keywords — plus, only when the override introduces a reusable/recurring motion treatment (named `@keyframes`, a hover/loading treatment applied across the widget), one Animations row (under `## Animations`) pointing at the same stylesheet + include point, its `what it does` opening with trigger + tech and its trigger words repeated in `reuse keywords`; plain color/spacing overrides add no Animations row. Refresh the header fields (date, git line, counts), append one dated line to `updates:` naming the affected categories, and rerun the format spec's completeness gate. Doc absent, lower-format, or higher-format → skip the append and report its status; a future full inventory scan discovers the stylesheet.
+- **`.agent/COMPONENTS.md`** — appended-to here: at cleanup, where the doc exists at this skill's format, add one row for the override stylesheet — name · `assets/<app-handle>-overrides.css` + its include point · what it restyles · reuse keywords — plus, only when the override introduces a reusable/recurring motion treatment (named `@keyframes`, a hover/loading treatment applied across the widget), one Animations row (under `## Animations`) pointing at the same stylesheet + include point, its `what it does` opening with trigger + tech and its trigger words repeated in `reuse keywords`; plain color/spacing overrides add no Animations row. Refresh the header fields (date, git line, counts), append one dated line to `updates:` naming the affected categories, and rerun the format spec's completeness gate. Doc absent, lower-format, or higher-format → skip the append and report its status; a future full inventory scan discovers the stylesheet.
 
 This skill's app-widget doc opens with this header (`scanned:` records the inspected URL + container selector; the shared docs carry the same fields with their own refresh phrases):
 
@@ -228,16 +243,16 @@ code; freshness checks + refresh instructions in their headers.
 
 ## The visual-check folder
 
-`.agent/shopify-app-restyle/visual-check/<widget-name>/` in the theme repo, kebab-cased from the app/widget name (e.g. "Product Options Pro" → `.agent/shopify-app-restyle/visual-check/product-options-pro/`). The root has exactly three image classes:
+`.agent/shopify-app-restyle/visual-check/<widget-name>/` in the theme repo, kebab-cased from the app/widget name (e.g. "Product Options Pro" → `.agent/shopify-app-restyle/visual-check/product-options-pro/`). Its root holds the design spec and two image classes:
 
-- **Figma references**, at the folder root — `figma-desktop.png` / `figma-mobile.png`; when the approved plan has state-specific Figma frames, use only `figma-{breakpoint}-{state}.png`.
-- **Clean renders**, at the folder root — `result-desktop.png` / `result-mobile.png`; for approved state-specific checks, use only `result-{breakpoint}-{state}.png`.
-- **Image diffs**, at the folder root — `diff-desktop.png` / `diff-mobile.png`; for approved state-specific checks, use only `diff-{breakpoint}-{state}.png`.
-- No `clean-`, `section-`, or other render variants are generated. These whole-frame files are the only measured comparison set; the pixel diff measures the frame.
+- **The design spec**, at the folder root — `figma-spec.md`, copied in from the temp directory at render start and retained, so the values this restyle was given survive the run.
+- **Figma references**, at the folder root — `figma-desktop.png` / `figma-mobile.png`; where the plan has state-specific Figma frames, use only `figma-{breakpoint}-{state}.png`.
+- **Clean renders**, at the folder root — `result-desktop.png` / `result-mobile.png`, written by the style reporter, one per breakpoint and state: `result-{breakpoint}-{state}.png` for each state the plan names, so every state is separately reviewable by eye.
+- No diff images, and no `clean-`, `section-`, or other render variants are generated. These whole-frame files are what the user compares by eye.
 - **Per-asset exports**, in `assets/`, flat — the shipping crop for each Figma node, each raster's `original-source-*` beside it, and `UPLOAD.md` (§Asset export).
-- `HARDCODE-ACTIVE.md` — present only while a verification hardcode is live (§Hardcode-then-revert).
+- `HARDCODE-ACTIVE.md` — present only while a hardcode is live (§Hardcode-then-revert).
 
-The folder is not theme code: `.agent/` stays out of git via a `.git/info/exclude` line (confirm the `.agent/` line exists; append it as a planned edit if not — a local, never-committed file, and the Shopify CLI ignores non-theme root directories, so it is never pushed). At cleanup, the root retains only the allowed Figma/reference, result, and diff images; `assets/` remains for the user to review and upload, while `HARDCODE-ACTIVE.md` is deleted after every revert.
+The folder is not theme code: `.agent/` stays out of git via a `.git/info/exclude` line (confirm the `.agent/` line exists; append it as a planned edit if not — a local, never-committed file, and the Shopify CLI ignores non-theme root directories, so it is never pushed). At cleanup, the root retains only the design spec and the allowed Figma-reference and result images; `assets/` remains for the user to review and upload, while `HARDCODE-ACTIVE.md` is deleted after every revert.
 
 ## Asset export — the design's crop, one file per node
 
@@ -297,11 +312,11 @@ Where existing theme or app code pipes an asset through `image_url` with `format
 
 ## Hardcode-then-revert
 
-App-served images only change once the user uploads the export in the app admin, so until then the widget renders the app's old art and the diff measures a region that is already correct in the design. Verification renders the exported assets directly, then puts the app's own back.
+App-served images only change once the user uploads the export in the app admin, so until then the widget renders the app's old art and the result screenshot would show the wrong picture in a region that is already correct in the design — the one thing the user is going to judge the restyle by. The render puts the exported assets in directly, then puts the app's own back.
 
 **Before hardcoding**, write `HARDCODE-ACTIVE.md` into the visual-check folder: every file path about to be touched, the original markup verbatim, and every temp asset copied into the theme's `assets/`. It is the snapshot the revert restores from.
 
-**Hardcode once**, before the loop rather than per iteration, in the override stylesheet — the app's markup is never touched, so the swap is a scoped `background-image`. Injected regions sit between sentinels and temp assets carry the `vh-tmp-` prefix, which is what makes both greppable:
+**Hardcode once**, after the render is up and before the first capture, in the override stylesheet — the app's markup is never touched, so the swap is a scoped `background-image`. Injected regions sit between sentinels and temp assets carry the `vh-tmp-` prefix, which is what makes both greppable:
 
 ```css
 /* VERIFY-HARDCODE-START <name> */
@@ -311,95 +326,98 @@ App-served images only change once the user uploads the export in the app admin,
 /* VERIFY-HARDCODE-END <name> */
 ```
 
-Iteration fixes go outside the marked region.
+Correction-round fixes go outside the marked region.
 
-**Revert** on every exit — pass, cap, and abort: restore from the breadcrumb, delete `assets/vh-tmp-*`, delete the breadcrumb. The region returns to the not-CSS-fixable list, where its remedy was an app-admin upload all along.
+**Revert** on every exit — completion and abort alike: restore from the breadcrumb, delete `assets/vh-tmp-*`, delete the breadcrumb. The region returns to the not-CSS-fixable list, where its remedy was an app-admin upload all along.
 
 **Prove it** in the final output: `grep -r VERIFY-HARDCODE` over the theme returns nothing, and no `vh-tmp-*` remains. A revert that fails reports **REVERT FAILED** with the breadcrumb path.
 
-A session that dies mid-verification leaves the breadcrumb and the sentinels in place. Finding either at the start of a run means reverting from it first.
+A session that dies mid-render leaves the breadcrumb and the sentinels in place. Finding either at the start of a run means reverting from it first.
 
 ## Phase 1 — Research (read-only on the theme)
 
-**Stranded-hardcode check first** (main agent, before anything else): a `HARDCODE-ACTIVE.md` in any `.agent/shopify-app-restyle/visual-check/*/`, or a `grep -r VERIFY-HARDCODE` hit in the theme, is a hardcode a previous session left live. Revert it per §Hardcode-then-revert and report it before the run continues — a stranded hardcode is the one theme edit this phase makes, and leaving it would corrupt every measurement that follows.
+**Stranded-hardcode check first** (main agent, before anything else): a `HARDCODE-ACTIVE.md` in any `.agent/shopify-app-restyle/visual-check/*/`, or a `grep -r VERIFY-HARDCODE` hit in the theme, is a hardcode a previous session left live. Revert it per §Hardcode-then-revert and report it before the run continues — a stranded hardcode is the one theme edit this phase makes, and leaving it live in a client's theme is the risk the mechanism exists to close.
 
 Run the two delegations in parallel, plus tooling detection. Beyond that revert, no theme file is created or modified; the one canonical write is the app-widget doc (§Knowledge docs).
 
-- **Figma extraction** → figma-extractor: both frames via the Figma MCP; exact-values table (the override targets AND the expected values for verification's computed-style assertions); desktop/mobile differences; every visible widget state; screenshot scale + pixel dimensions; asset inventory. Report: `figma-spec.md`.
+- **Figma extraction** → figma-extractor: both frames via the Figma MCP; the producer/write-surface header; exact-values table (the override targets AND the style report's expected values); desktop/mobile differences; layout intent; stacking and overlap; group rhythm; every visible widget state with the interaction that reproduces it; asset inventory. Report: `figma-spec.md`, the design spec. This is the run's only extraction — the overrides read from it and never return to Figma for a value.
 - **Widget inspection + theme reads** → widget-inspector (in main if browser tools don't reach subagents), knowledge docs read first and passed in (§Knowledge docs): locate the widget by app name; verify doc freshness against the live container outerHTML; container outerHTML; matched rules with origins; JS-injected inline `!important` styles flagged; stable selectors; baseline screenshots at the Figma frame widths (read the widths via a cheap Figma `get_metadata` call at dispatch); per-run, the app-block entry + placement anchor in the target template; the theme's custom-CSS conventions and global typography/color variables (from `.agent/THEME-CAPABILITIES.md` when present, derived per-run otherwise). Writes/updates the app-widget doc; per-run report: `theme-widget-report.md`.
-- **Tooling detection** (main agent, non-mutating checks only): Browser pane availability first, then fallbacks per Browser tiers; run the capture-exactness check; the Agent tool and which tools reach subagents (fix the delegation map). Render path: Shopify CLI + `shopify.theme.toml` → `shopify theme dev` (desktop app: defined in `.claude/launch.json` so the pane manages the server); otherwise a preview/live store URL. A real store render is required — app-block markup only exists there, so a local Liquid engine cannot produce it and there is NO static fallback. Diff tool: installed `pixelmatch`/`odiff` (PATH or project `node_modules/.bin`) invoked directly, else `npx pixelmatch` / `npx odiff-bin`. Check `.git/info/exclude` for a `.agent/` line.
-- **Wrong-state check**: the dev preview must agree with the live site on everything that changes how the widget renders — availability (in stock vs sold out), widget presence, options shown. On any disagreement, pause measurement and work [environment-mismatch.md](environment-mismatch.md) to the first step that fixes it; a wrong-state widget is never inspected or verified against.
-- **Difference list** (main agent, from `figma-spec.md`, the knowledge docs, and `theme-widget-report.md`), element by element and per state, split into (a) CSS-fixable and (b) not fixable by CSS — markup/structure differences, text and labels configured in the app admin, app-served images/icons, JS-set inline `!important` styles. Where a not-CSS-fixable item is an app-served image/icon, note that its Figma export will be in the visual-check `assets/` folder for app-admin upload, and that verification measures it through a hardcode meanwhile (§Hardcode-then-revert).
+- **Tooling detection** (main agent, non-mutating checks only): Browser pane availability first, then fallbacks per Browser tiers; the Agent tool and which tools reach subagents (fix the delegation map). Render path: Shopify CLI + `shopify.theme.toml` → `shopify theme dev` (desktop app: defined in `.claude/launch.json` so the pane manages the server); otherwise a preview/live store URL. A real store render is required — app-block markup only exists there, so a local Liquid engine cannot produce it and there is NO static fallback. Check `.git/info/exclude` for a `.agent/` line.
+- **Wrong-state check**: the dev preview must agree with the live site on everything that changes how the widget renders — availability (in stock vs sold out), widget presence, options shown. On any disagreement, pause and work [environment-mismatch.md](environment-mismatch.md) to the first step that fixes it; a wrong-state widget is never inspected or restyled against.
+- **Difference list** (main agent, from `figma-spec.md`, the knowledge docs, and `theme-widget-report.md`), element by element and per state, split into (a) CSS-fixable and (b) not fixable by CSS — markup/structure differences, text and labels configured in the app admin, app-served images/icons, JS-set inline `!important` styles. Where a not-CSS-fixable item is an app-served image/icon, note that its Figma export will be in the visual-check `assets/` folder for app-admin upload, and that the render shows it through a hardcode meanwhile (§Hardcode-then-revert).
 
-**Done when:** both reports exist and the app-widget doc is current (fresh header); every OPEN QUESTION has been put to the user and answered; the tooling record names browser tier, capture source (exactness result), render path, diff tool, delegation map, temp dir, and the exclude status; any dev/live disagreement is resolved (note the step); and the difference list places every Figma-vs-live difference in exactly one of the two lists.
+**Done when:** the design spec `figma-spec.md` exists, carrying its producer/write-surface header and all seven sections; the widget report exists and the app-widget doc is current (fresh header); every OPEN QUESTION has been put to the user and answered; the tooling record names browser tier, capture source, render path, delegation map, temp dir, and the exclude status; any dev/live disagreement is resolved (note the step); and the difference list places every Figma-vs-live difference in exactly one of the two lists.
 
 ## Phase 2 — Plan (write it out, then continue)
 
-The plan is an audit trail in the transcript, not a checkpoint — write it in full, then proceed straight to Phase 3. It states:
+The plan is an audit trail in the transcript, not a checkpoint — write it in full, then proceed straight to Phase 3. The run has no approval stop; writing the plan out is what makes the design spec's numbers reviewable in the transcript. It states:
 
+- **The design spec, quoted inline**: the exact-values table reproduced in the plan itself, per breakpoint and per state, plus the layout intent, the stacking and overlap, and the group rhythm — quoted, never referenced by file path. Nothing after this re-reads Figma, so the numbers themselves sit in the transcript. Every OPEN QUESTION is resolved above it.
 - **Stylesheet**: filename (e.g. `assets/<app-handle>-overrides.css`) and load point per the theme's CSS conventions. App CSS can load async — `!important` carries the win, not load order.
 - **Override table**: element → scoped selector → property: current value → target value (exact Figma value, or a theme variable where it genuinely matches) → media query if breakpoint-specific.
 - **Not-CSS-fixable list**: each item with its remedy — app-admin setting, accept as-is, or upload the exported asset. Reported, not gated: everything CSS can fix gets fixed; the list rides through to the final output. Never attempt DOM hacks.
 - **Placement**: the `block_order` diff moving the app block to the input-5 position, or confirmation it already sits there.
 - **Git hygiene**: confirmation `.git/info/exclude` carries the `.agent/` line, or the append adding it.
 - **Asset-export list** (§Asset export, §Asset delivery): every inventoried asset → node-id, kind, source field, format, computed scale, and filename in `.agent/shopify-app-restyle/visual-check/<widget-name>/assets/`, plus the not-CSS-fixable row it remedies and, for a raster fill, its `original-source-*` twin; `assets/UPLOAD.md` is written from this list.
-- **Hardcode plan** (§Hardcode-then-revert): every app-served image region to be hardcoded for measurement, its temp `vh-tmp-` asset, and the selector the swap targets.
+- **Hardcode plan** (§Hardcode-then-revert): every app-served image region to be hardcoded for the render, its temp `vh-tmp-` asset, and the selector the swap targets.
 - **Inline-branch list** (§Asset delivery): every asset the user designated as carrying motion or a hover/scheme colour change → the `.svg` committed to the theme's `assets/`, its `mask-image` rule, and its selector — each named as not swappable from the app admin.
 - **Delegation map**: which roles ran/will run delegated vs main, and the report paths produced so far.
-- **Verification approach**: browser tier with the capture-exactness result (pane captures, or which fallback), render path, whether `.claude/launch.json` will be created/updated (a planned file if so), capture widths and scale, the widget states to verify, key elements for computed-style assertions, diff tool + pass threshold (default: ≤ 1%, anti-aliasing ignored), iteration cap (default: 8 per breakpoint, plateau exit after 2 iterations without improvement), and the exact temporary-install list with method (on-demand runner / project-local / venv) — listed installs proceed without approval; the cleanup ledger still guarantees their removal.
+- **Render-and-report approach**: browser tier, render path, whether `.claude/launch.json` will be created/updated (a planned file if so), the capture width per breakpoint, the widget container selector, **the state list** — every state from the design spec with the interaction that reproduces it and its `-<state>` render filename — the key elements the style report asserts per breakpoint and state, and the exact temporary-install list with method (on-demand runner / project-local / venv) — listed installs proceed without approval; the cleanup ledger still guarantees their removal.
 
 ## Phase 3 — Implement (main agent only)
 
 Touch only planned files; no delegated edits; app-served files and assets stay untouched.
 
-- Create the override stylesheet per the plan: every declaration carries `!important`; every selector is scoped under the app's container so nothing leaks into the rest of the page; mapped theme variables where planned, exact Figma values otherwise; media queries per the planned breakpoint strategy.
+- Create the override stylesheet per the plan, from the design spec alone — its exact values, its layout intent, its stacking and overlap, its group rhythm, its per-state values: every declaration carries `!important`; every selector is scoped under the app's container so nothing leaks into the rest of the page; mapped theme variables where planned, exact Figma values otherwise; media queries per the planned breakpoint strategy. Figma is not re-read; a value the spec does not carry goes back to the user.
 - Add the stylesheet include at the planned load point. Apply the planned `block_order` edit; append the `.agent/` line to `.git/info/exclude` if planned. Read every file before editing; show the diff inline for every edited file — audit trail, not checkpoint.
 - Export the Figma assets per the plan (§Asset export) into `.agent/shopify-app-restyle/visual-check/<widget-name>/assets/`; run the bounds, identity and count checks. Inline-branch assets are also committed to the theme's `assets/`, with their `mask-image` rules in the override stylesheet.
 
 **Done when:** every planned file exists as planned, every edit's diff is in the transcript, nothing outside the plan changed, and all three export checks pass — bounds, identity, and both counts — with `assets/UPLOAD.md` written.
 
-## Phase 4 — Verify
+## Phase 4 — Render and report
 
-**Static:** an edited template still parses as valid JSON; `shopify theme check` on changed files if available; fix errors.
+**Static, first:** an edited template still parses as valid JSON; `shopify theme check` on changed files if available; fix errors.
 
-**Visual** — the gate is numeric; never assumed, never skipped silently. At verification start, write `figma-desktop.png` / `figma-mobile.png` into the visual-check folder.
+Then **seven steps, in this order** — render → data check → capture hygiene → `style-reporter` → correction round → style report → cleanup. The three Figma-driven skills share this shape; the one thing this skill varies is the AXIS those steps run over — capture hygiene, the `style-reporter` call, and the style report all run per state as well as per breakpoint, because an app widget's appearance changes on interaction and a state-dependent override is exactly what breaks. Nothing else varies. There is no loop, no iteration cap and no pass/fail verdict: the run passes through the seven once and ends by handing the user the evidence.
 
-- **Render:** `shopify theme dev` when available (Browser pane manages it via `.claude/launch.json` in the desktop app); otherwise the preview/live store URL. If neither is possible, stop and report exactly what's missing. If a dev/live disagreement reappears, work [environment-mismatch.md](environment-mismatch.md) before continuing — a wrong-state widget is never verified against.
-- **Capture:** Browser pane screenshots if the capture-exactness check passed; otherwise connected browser MCP or installed Chrome; otherwise `npx playwright screenshot` (with `npx playwright install chromium` if no system browser — the download goes on the cleanup ledger). The pane remains the interaction/inspection surface regardless.
-- **Capture hygiene, before every capture:** exact Figma frame widths at the Figma screenshot's scale — identical pixel dimensions (diff tools require same-size inputs); clip to the widget container, not the full page; animations/transitions disabled; wait for `document.fonts.ready` + network idle; reproduce each Figma widget state by interacting in the browser before capturing it.
+At the start, write the Figma references the plan names into the visual-check folder — `figma-desktop.png` / `figma-mobile.png`, or the per-state `figma-{breakpoint}-{state}.png` set where the plan has state-specific frames — and copy the design spec in beside them as `figma-spec.md`.
 
-**Hardcode** (main agent, before the loop): breadcrumb, then inject per §Hardcode-then-revert, so the loop measures the design rather than the app's pending art.
+**1. Render.** `shopify theme dev` when available (Browser pane manages it via `.claude/launch.json` in the desktop app); otherwise the preview/live store URL. There is no static fallback — app-block markup only exists on a real store, so a local Liquid engine cannot produce it.
 
-**Loop, per breakpoint and state** — with delegation, steps 1–3 and 5 run as ONE visual-verifier call per iteration; the main agent reads `verify-report-<n>.md`, performs step 4, and launches the next round. Without delegation, the loop runs in main as written.
+**2. Data check** (main agent) — the shape's data check in its plain form. Each skill's render pulls its own kind of data, so each fills this step with the check that data needs; filling the slot is not varying the shape — the per-state axis is the one thing this skill varies. The widget renders the app's OWN data and the store's real product state, so the dev preview must still agree with the live site on everything Phase 1's wrong-state check listed. On any disagreement, work [environment-mismatch.md](environment-mismatch.md) to the first step that fixes it and resume once it agrees — nothing is captured against a wrong-state widget.
 
-1. **Computed styles first**: getComputedStyle on the key elements vs the Figma values (font-family/size/weight, line-height, letter-spacing, color, background, padding, margin, gap, border-radius). Fix every mismatch before looking at pixels.
-2. **Pixel-diff gate**: the planned diff tool (installed direct, else npx) vs the Figma screenshot; record the diff ratio and save the diff image — every iteration.
-3. **Live tracking**: immediately overwrite `result-<breakpoint>[-<state>].png` and `diff-<breakpoint>[-<state>].png` in the visual-check folder with this iteration's capture and diff. State suffixes must be approved; generate no `clean-`, `section-`, or other render variant.
-4. **Diagnosis** (main agent): on failure, read the DIFF IMAGE / mismatch report to localize the mismatch, map it to a cause, fix, hard-refresh, re-capture, repeat from step 1.
-5. **Leak check**: the overrides affect nothing outside the widget container.
+**3. Capture hygiene** (before every capture, per breakpoint AND per state): the Figma frame width per breakpoint; clip to the widget container, not the full page; animations/transitions disabled; wait for `document.fonts.ready` + network idle; reproduce the state by interacting in the browser before capturing it. No scale-matching and no pixel-dimension requirement — nothing compares the capture to the reference mechanically. Capture source: the Browser pane, else connected browser MCP or installed Chrome, else `npx playwright screenshot` (with `npx playwright install chromium` if no system browser — the download goes on the cleanup ledger). **Hardcode last** (main agent, before the first capture): breadcrumb, then inject per §Hardcode-then-revert, so the result screenshots show the design rather than the app's pending art.
 
-**Revert** (main agent, the moment the loop exits — pass or cap): restore from the breadcrumb and prove it per §Hardcode-then-revert, before anything else.
+**4. `style-reporter`, once per breakpoint and state.** One call per (breakpoint, state) pair from the plan's state list — desktop and mobile × default plus every named state: it captures, asserts the key elements' computed styles against the design spec's values for that state, writes `result-{breakpoint}[-{state}].png` into the visual-check folder, runs the leak check, and returns a text mismatch table. It never edits theme files and returns no images. Without delegation the same work runs in the main conversation, once per pair.
 
-**Exit:** PASS when the pixel-accurate definition holds at both breakpoints and all verified states. CAP after 8 iterations per breakpoint, or 2 consecutive iterations without diff-ratio improvement (the main agent tracks count and plateau across verifier reports) — then stop and report the final diff ratio, the diff image, and the suspected remaining cause. The threshold never drops silently. Note the report scope: fidelity is proven at the two captured widths only.
+**5. Correction round** (main agent, once). Read the returned tables and fix what they name IN THE OVERRIDE STYLESHEET — never by editing app-served files and never with a DOM hack. A mismatch CSS cannot move (a JS-set inline `!important`, markup, an app-admin string) belongs on the not-CSS-fixable list, surfaced there rather than worked around. Fixes go outside any hardcode sentinel region. Then re-render and re-run `style-reporter` once per affected breakpoint and state. One pass, one re-check, then stop; whatever remains goes into the report as-is.
 
-**Cleanup:** the ledger lists every temporary install (name, method, location). Once verification passes or caps: when `.agent/COMPONENTS.md` is at this skill's format, append the override-stylesheet row (plus the Animations row when the override introduces reusable motion), refresh its header and `updates:`, and rerun its format gate; absent, lower-format, and higher-format docs are reported and left unchanged. Uninstall project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, and delete the temp working directory (including subagent reports). The Browser pane is a built-in — nothing to uninstall; `.claude/launch.json`, if created per the plan, is project config and stays. RETAIN `.agent/` in full — the knowledge docs for the next run, plus `.agent/shopify-app-restyle/visual-check/<widget-name>/` (references, live-updated result/diff images, exported assets) — untracked via `.git/info/exclude`. The user reviews it, uploads the files `assets/UPLOAD.md` lists via the theme editor / app admin, and manages the folder themselves. Nothing from the task gets committed.
+**Revert** closes this step, the last capture now taken: restore from the breadcrumb and prove it per §Hardcode-then-revert.
 
-**Final output (no explanatory prose):** files created/changed; the revert proof (`grep -r VERIFY-HARDCODE` clean, no `vh-tmp-*` remaining) or **REVERT FAILED** with the breadcrumb path; final diff ratio per breakpoint/state with pass/cap status; the not-CSS-fixable list (if any), each hardcoded region named among them; any source-quality flags; any region where the original source ships instead of the crop, with both aspects; any inline-branch assets, named as not swappable from the app admin; the delegation map; the tooling ledger with removal confirmation (or "nothing installed"); knowledge-doc status — `app-widget-<app-handle>.md` reused (fresh) / updated / created; `.agent/THEME-CAPABILITIES.md` observed `format: <n>` and read as fresh/stale/higher-version-as-is, or absent (`format: unknown`; exact sections `## §Globals` + `## §CSS load` derived per-run); `.agent/COMPONENTS.md` observed `format: <n>` and row appended for the override stylesheet (+ Animations row when the override added reusable motion), or absent/lower/higher (`format: <n>`; skipped); the path `.agent/shopify-app-restyle/visual-check/<widget-name>/` with a one-line inventory (references, result/diff images, shipping crops and `original-source-*` counts per format, `UPLOAD.md`) and exclusion confirmation; which environment-mismatch step resolved any dev/live disagreement — and after step 8, confirmation the original theme is live again.
+**6. Style report — per breakpoint AND per state.** Emit the surviving mismatches: one row per mismatch — state, element, property, expected value, actual value — and "no mismatches" where there are none. The state column is what makes a hover-only or open-only regression legible; a row without it is unactionable. Leak findings ride with it. It is output, not judgment: it never blocks completion and carries no threshold, ratio, iteration count, plateau state or verdict. It sits beside `result-{breakpoint}[-{state}].png` and the Figma references, which the user compares by eye, one render per state. Note the report scope: computed styles were checked at the two captured widths, on the key elements the plan named, in the states the plan listed.
+
+If no render or capture path exists even with temporary installs: revert any live hardcode, then stop and report exactly what's missing.
+
+**7. Cleanup.** The ledger lists every temporary install (name, method, location). When `.agent/COMPONENTS.md` is at this skill's format, append the override-stylesheet row (plus the Animations row when the override introduces reusable motion), refresh its header and `updates:`, and rerun its format gate; absent, lower-format, and higher-format docs are reported and left unchanged. Then uninstall project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, and delete the temp working directory (including subagent reports). The Browser pane is a built-in — nothing to uninstall; `.claude/launch.json`, if created per the plan, is project config and stays. RETAIN `.agent/` in full — the knowledge docs for the next run, plus `.agent/shopify-app-restyle/visual-check/<widget-name>/` (the design spec, the references, the result renders per breakpoint and state, exported assets) — untracked via `.git/info/exclude`. The user reviews it, uploads the files `assets/UPLOAD.md` lists via the theme editor / app admin, and manages the folder themselves. Nothing from the task gets committed.
+
+**Final output (no explanatory prose):** files created/changed; the revert proof (`grep -r VERIFY-HARDCODE` clean, no `vh-tmp-*` remaining) or **REVERT FAILED** with the breadcrumb path; the style report per breakpoint and state — state, element, property, expected, actual per surviving mismatch, or "no mismatches" — with the leak findings; the not-CSS-fixable list (if any), each hardcoded region named among them; any source-quality flags; any region where the original source ships instead of the crop, with both aspects; any inline-branch assets, named as not swappable from the app admin; the delegation map; the tooling ledger with removal confirmation (or "nothing installed"); knowledge-doc status — `app-widget-<app-handle>.md` reused (fresh) / updated / created; `.agent/THEME-CAPABILITIES.md` observed `format: <n>` and read as fresh/stale/higher-version-as-is, or absent (`format: unknown`; exact sections `## §Globals` + `## §CSS load` derived per-run); `.agent/COMPONENTS.md` observed `format: <n>` and row appended for the override stylesheet (+ Animations row when the override added reusable motion), or absent/lower/higher (`format: <n>`; skipped); the path `.agent/shopify-app-restyle/visual-check/<widget-name>/` with a one-line inventory (the design spec, the references, the result renders per breakpoint and state, shipping crops and `original-source-*` counts per format, `UPLOAD.md`) and exclusion confirmation; which environment-mismatch step resolved any dev/live disagreement — and after step 8, confirmation the original theme is live again.
 
 ## Rules
 
 - Read every file before editing; include the diff inline when editing an existing file.
 - Gate-free once inputs are complete: the only stops are a missing input, genuine ambiguity, or the live publish swap — which never runs without the user's explicit go-ahead.
 - Subagents research and measure; the main conversation decides, edits, and asks. A delegated worker never edits theme files; OPEN QUESTIONS come back through the main agent.
-- The Browser pane leads when available; fallbacks apply only when it's absent or fails the capture-exactness check.
-- The pixel-diff gate is mandatory: passing is numeric, eyeballing only diagnoses, and the threshold never drops silently.
-- Only approved `figma-{breakpoint}[-{state}].png`, `result-{breakpoint}[-{state}].png`, and `diff-{breakpoint}[-{state}].png` names are generated at the visual-check root; overwrite result/diff files every iteration and generate no `clean-`, `section-`, or other render variant.
+- The Browser pane leads when available; fallbacks apply only when it's absent.
+- The design spec is the authority: the overrides read from it alone, no value is re-read from Figma after Phase 1, and a value it does not carry goes back to the user.
+- The style report reports; it never blocks completion. One check against the design spec, one correction round, then it is emitted with whatever remains — no threshold, no ratio, no iteration count, no verdict.
+- Per state as well as per breakpoint: capture hygiene, the `style-reporter` call, and the style report all run over both axes, and the report carries a state column. This is the skill's only permitted variation from the shared seven-step shape.
+- Only `figma-{breakpoint}[-{state}].png` and `result-{breakpoint}[-{state}].png` names are generated at the visual-check root, alongside the design spec — one result render per state the plan lists, no diff images, and no `clean-`, `section-`, or other render variant.
 - `assets/` holds the design's crop for each Figma node, each raster's `original-source-*` beside it; reference captures at the folder root hold the frame. The bounds and identity checks keep a clipped or whole-frame render out.
 - Upload the crops and let the CDN pick the format — no image encoder reaches the ledger.
-- A hardcode is breadcrumbed before it exists and reverted on every exit — pass, cap, and abort — with the grep proof in the final output.
+- A hardcode is breadcrumbed before it exists and reverted on every exit — completion and abort alike — with the grep proof in the final output.
 - `.agent/` lives at the repo root, is always excluded via `.git/info/exclude`, and is never committed.
-- Knowledge docs first: read `.agent/shopify-app-restyle/app-widget-<app-handle>.md`, `.agent/THEME-CAPABILITIES.md`, and `.agent/COMPONENTS.md`, record each shared doc's `format:` value, and run the relevant format-version ladder before any widget inspection or theme scan; an inspection that runs writes the app-widget doc back before the task continues. Use the exact `## §Globals` and `## §CSS load` headings; an absent or stale THEME-CAPABILITIES doc triggers the declared per-run derivation. A passing run appends COMPONENTS rows only when that doc exists at this skill's format; absent, lower-format, and higher-format docs are reported and left unchanged. Refresh `updates:` and rerun the format gate after an append. An explicit user refresh always wins.
-- Knowledge docs stay current: a passing restyle appends its override stylesheet as a `.agent/COMPONENTS.md` row (plus an Animations row when the override introduces reusable motion), refreshes its header and `updates:` list, and reruns the format spec's completeness gate (when the doc exists) before the final report.
+- Knowledge docs first: read `.agent/shopify-app-restyle/app-widget-<app-handle>.md`, `.agent/THEME-CAPABILITIES.md`, and `.agent/COMPONENTS.md`, record each shared doc's `format:` value, and run the relevant format-version ladder before any widget inspection or theme scan; an inspection that runs writes the app-widget doc back before the task continues. Use the exact `## §Globals` and `## §CSS load` headings; an absent or stale THEME-CAPABILITIES doc triggers the declared per-run derivation. Cleanup appends COMPONENTS rows only when that doc exists at this skill's format; absent, lower-format, and higher-format docs are reported and left unchanged. Refresh `updates:` and rerun the format gate after an append. An explicit user refresh always wins.
+- Knowledge docs stay current: a completed restyle appends its override stylesheet as a `.agent/COMPONENTS.md` row (plus an Animations row when the override introduces reusable motion), refreshes its header and `updates:` list, and reruns the format spec's completeness gate (when the doc exists) before the final report.
 - Every override declaration carries `!important` and sits scoped under the app's container; selectors target the app's stable classes/data-attributes — never generated IDs or `nth-child` chains.
 - Overrides only: app-served files and assets are never modified, and DOM hacks are never attempted — not-CSS-fixable items get reported with a remedy instead.
 - Verify Liquid/schema syntax via the Shopify dev MCP instead of guessing.
