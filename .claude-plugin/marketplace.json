@@ -4,13 +4,13 @@
     "name": "heyitsiveen"
   },
   "description": "Shopify, Figma, and git skills for Claude Code, split into one plugin per bucket.",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "plugins": [
     {
       "name": "heyitsiveen-skills-personal",
       "source": "./personal",
       "description": "Shopify theme & app-integration skills built from Figma designs.",
-      "version": "1.0.0",
+      "version": "1.1.0",
       "author": {
         "name": "heyitsiveen"
       },
