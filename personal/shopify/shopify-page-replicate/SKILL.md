@@ -1,6 +1,6 @@
 ---
 name: shopify-page-replicate
-description: Replicate a page from a client's current theme onto their revamped theme as a temporary stand-in, built from the revamped theme's EXISTING sections and configured to match the old page — for pages the revamp has not redesigned yet, where no Figma frame exists. Use when the user points at a live or preview page URL and wants that page rebuilt on another theme of the same store, or asks to replicate/recreate/stand in a page that has no new design. Recreating a design from Figma frames is figma-shopify-composer's job; moving sections between templates inside ONE theme is shopify-copy-template-content's. The build reads from a design spec extracted from the rendered page, keeps the page's own colors and spacing while inheriting only the target theme's fonts, and reports computed styles against that spec.
+description: Replicate a page from a client's current theme onto their revamped theme as a temporary stand-in, built from the revamped theme's EXISTING sections and configured to match the old page — for pages the revamp has not redesigned yet, where no Figma frame exists. Use when the user points at a live or preview page URL and wants that page rebuilt on another theme of the same store, or asks to replicate/recreate/stand in a page that has no new design. Recreating a design from Figma frames is figma-shopify-composer's job; moving sections between templates inside ONE theme is shopify-copy-template-content's. Where the theme's own sections cannot reach the page, a replica section is written only when the user chooses that over the closest approximation. The build reads from a design spec extracted from the rendered page, keeps the page's own colors and spacing while inheriting only the target theme's fonts, and reports computed styles against that spec.
 ---
 
 # Shopify Page Replicate
@@ -11,15 +11,18 @@ the revamp is unfinished, this page has no new design, and the Target theme cann
 template that renders nothing. So the page is rebuilt from the sections the Target theme
 already ships, configured to look like the page the client already approved.
 
-Four phases — research (read-only on the Target theme), plan (stop for approval), build
-(template JSON only), render and report — then cleanup that leaves the machine as found.
+Four phases — research (read-only on the Target theme), plan (stop 1, for approval), build
+(any chosen replica sections, then the template JSON), render and report — then cleanup that
+leaves the machine as found.
 Nothing is created or modified before approval except knowledge docs under `.agent/`
 (§Knowledge docs) and the revert of a hardcode a previous session stranded (§Phase 1); the
 deliberate leftovers are the visual-check folder, the replication record, and the knowledge
 docs.
 
 A Stand-in is temporary by intent. That is why it is built from what exists rather than from
-new code, and why everything it costs is written down (§The replication record).
+new code — and why new code, where the user chooses it, is one deliberate decision per section
+rather than the run's default (§Replica sections). Everything it costs is written down
+(§The replication record).
 
 ## Inputs
 
@@ -31,28 +34,77 @@ Collect both before starting; ask for either that is missing.
 
 There is deliberately no placement input: a page occupies the whole template, so the target
 template's entire `order` is replaced. There is no data-source input: content is entered as
-values of the existing sections' own settings, matching the Source page. One page per run —
-six pages is six runs, so the plan the user approves is one they can read end to end.
+theme-editor setting values matching the Source page — the existing sections' own settings, and
+any replica section's. One page per run — six pages is six runs, so the plan the user approves
+is one they can read end to end.
 
 The **source template** is derived from the page, never asked for (§`references/source-page-capture.md`).
 The storefront password is asked for once, and only when the store is closed.
 
 ## The build surface
 
-The build is configuration, not code:
+The build is configuration first, and code only where the user asks for it:
 
-- NO new theme files, NO new settings, NO schema edits. The Target theme's section, block,
-  snippet, CSS and JS files are READ-ONLY.
-- The only writable surfaces: the target template JSON; the `.git/info/exclude` line for
-  `.agent/`; `.claude/launch.json` if planned; and the `.agent/` tree — knowledge docs, the
-  replication record, and `.agent/shopify-page-replicate/visual-check/`.
+- **Pass A — compose**, always: the target template JSON. NO new settings on the Target theme's
+  own sections, NO schema edits to them.
+- **Pass B — build**, only for the sections chosen at stop 1: new files of its own, every one
+  carrying the `replica-<template>-<name>` prefix (§Replica sections).
+- The Target theme's own section, block, snippet, CSS and JS files are READ-ONLY throughout,
+  either pass. Nothing existing is edited to make room for a replica section.
+- The other writable surfaces: the `.git/info/exclude` line for `.agent/`; `.claude/launch.json`
+  if planned; and the `.agent/` tree — knowledge docs, the replication record, and
+  `.agent/shopify-page-replicate/visual-check/`.
 - The one exception is transient: the render's `vh-tmp-` assets, which live in the theme's
   `assets/` only between the hardcode and its revert (§Hardcode-then-revert). The build
   surface is what SURVIVES the run.
 - The Source theme is never written to. It is read, and only where the Shopify CLI reaches it.
 
 Where the Target theme genuinely cannot produce something, the forecast marks it UNACHIEVABLE
-and the style report names it. Nothing is built to close the gap in this run.
+and stop 1 offers the choice: accept the closest approximation, or have a replica section built
+for it. Accepting is the default, and nothing is built to close a gap the user did not choose to
+close — the style report names those instead.
+
+## Replica sections — built only when chosen
+
+Every element the fidelity forecast marks UNACHIEVABLE reaches stop 1 as a choice: accept the
+closest approximation with its visible cost, or have the section built as a **replica section**
+— a new section file this run writes for this page alone.
+
+**Accepting the approximation is the default**, and the choice is per section. A Stand-in is
+temporary: a later build replaces it, and every line of section code written for one is thrown
+away with it. How much of that this page is worth is the user's call, not the run's, so silence
+is a no.
+
+Choosing at least one opens **stop 2** at the head of Phase 3, covering only those sections
+(§Phase 3). Choosing none skips that stop entirely and the run keeps its single one.
+
+**Every file Pass B writes carries the `replica-<template>-<name>` prefix** — section file,
+stylesheet and snippet alike: `sections/replica-page-about-hero.liquid`,
+`assets/replica-page-about-hero.css`, `snippets/replica-page-about-hero-item.liquid`. One
+`grep -rl 'replica-<template>'` then returns the whole Stand-in, which is what makes retiring it
+mechanical rather than archaeological.
+
+**Theme-editor settings only.** A replica section's content is its own schema settings, carrying
+the design spec's values as defaults where the setting type allows one. There is no metafield and
+no metaobject path: a Stand-in that needs data created in admin before it renders is a Stand-in
+that does not render. Sections only, never theme blocks — a repeated item is a block type inside
+the replica section's own schema. Schema shape is verified via the Shopify dev MCP, not guessed.
+
+**Half of the split, deliberately.** A replica section renders NOTHING when its required settings
+are empty — in the theme editor and on the storefront alike, one branch, no `request.design_mode`
+fork. There is no editor placeholder, and that is the decision, not an omission: a placeholder's
+whole job is to invite a merchant to fill the section in, and nobody should be filling in a page
+that is about to be replaced. Read the missing placeholder as this rule rather than as a bug to
+fix.
+
+Shopify still wraps the section in `<div id="shopify-section-…">`. Where theme CSS gives that
+wrapper margin or padding, the plan closes the leftover gap, so a section rendering nothing
+leaves no band on the page.
+
+**Required settings are the user's call at stop 2**, never inferred from "this field is blank":
+the minimum that leaves the section meaningless when empty — typically its primary copy — with
+every other setting skip-only. Repeated items cascade: an item whose required settings are blank
+is skipped on its own, and when no item survives, the whole section renders nothing.
 
 ## The design spec is the authority
 
@@ -68,8 +120,9 @@ still the single authority a build reads from, and still the thing the style rep
 against.
 
 The palette is fixed to what the Target theme already ships, so the plan states upfront what
-will match EXACTLY, what APPROXIMATES, and what is UNACHIEVABLE without new code; the user
-approves that **fidelity forecast** before anything is written.
+will match EXACTLY, what APPROXIMATES, what is UNACHIEVABLE without new code, and — for each of
+those — whether the user accepted the approximation or chose to have it BUILT; the user approves
+that **fidelity forecast** before anything is written.
 
 Accuracy is still the goal. It is not a claim the skill makes on its own behalf: the run ends
 with a **style report** — computed styles against the design spec's values, each mismatch
@@ -100,6 +153,10 @@ when the real design arrives, and it is carried into the replication record.
 Where the Target theme's font family does not ship the weight the Source page uses, the
 element is marked APPROXIMATES with the nearest available weight named. A silent substitution
 would read later as a build defect.
+
+A replica section obeys the same table: its schema defaults and its stylesheet carry the Source
+page's numbers, and its type inherits the Target theme's heading and body families through the
+theme's own variables rather than re-declaring a family of its own.
 
 ## Browser tiers
 
@@ -142,8 +199,8 @@ scratchpad when available) and is deleted at cleanup.
 
 **Never delegated:** the requirements-to-capabilities matching (1c — the synthesis that feeds
 the fidelity forecast), planning and every user approval (the design spec, the forecast, the
-removal list), all implementation edits, and the correction round that follows the style
-report.
+removal list, the accept-or-build choice, each replica section's schema), all implementation
+edits, and the correction round that follows the style report.
 
 | Role | Phase | Report |
 |---|---|---|
@@ -163,9 +220,10 @@ carried into the merge so the gate still measures the whole theme.
 
 ```
 You are extracting a design spec from a RENDERED Shopify page — the Source page — which
-will be replicated on a different theme of the same store using only that theme's EXISTING
-sections. Every value must be exact. Work only in the browser and, where it reaches, a
-Shopify CLI pull of the Source theme; do not modify anything.
+will be replicated on a different theme of the same store from that theme's EXISTING
+sections, plus new section code only where the developer explicitly chooses it. Every value
+must be exact. Work only in the browser and, where it reaches, a Shopify CLI pull of the
+Source theme; do not modify anything.
 
 Source page: {source-page-url}
 Breakpoints: 1440px and 390px, both fixed.
@@ -216,8 +274,9 @@ source of the structure; the computed styles are the source of the numbers.
 
 Open the document with this header line, verbatim, before section 1:
 
-    producer: shopify-page-replicate — write surface: template JSON only —
-    no new code, no new files, no new settings, no schema edits
+    producer: shopify-page-replicate — write surface: the target template JSON, plus
+    any replica-<template>-* files the plan approves — the Target theme's own sections,
+    blocks, snippets, CSS and JS are read-only
 
 Write the FULL findings to {temp-dir}/design-spec.md with an OPEN QUESTIONS section at the
 end for anything ambiguous, and the two screenshots to {temp-dir}/source-desktop.png and
@@ -237,7 +296,8 @@ shape, its row schemas, and the sources to sweep are the spec's; the prompt carr
 ```
 You are cataloging what a Shopify theme's existing sections, blocks, and settings can
 already do. A page from another theme of the same store will be replicated from those
-capabilities alone — no new code — so what you catalog decides what is achievable.
+capabilities wherever they reach — so what you catalog decides what is achievable without
+new code, and every gap you leave unrecorded reads later as a gap in the theme.
 READ-ONLY on the theme: your only write is the doc named below.
 
 Format spec: {skill-dir}/references/theme-capabilities-format.md
@@ -301,10 +361,10 @@ is what the gate measures against.
 
 ```
 You are producing the style report for one breakpoint of a replicated Shopify page — the
-Target theme's existing sections configured via template JSON — built from a design spec
-extracted from a rendered Source page. You NEVER edit theme files — no Write, no Edit, no
-shell command that changes a theme file. Your ONLY writes are the result screenshot and the
-report file named below. Capture, assert, reconcile, report.
+Target theme's existing sections configured via template JSON, plus any replica sections the
+plan approved — built from a design spec extracted from a rendered Source page. You NEVER
+edit theme files — no Write, no Edit, no shell command that changes a theme file. Your ONLY
+writes are the result screenshot and the report file named below. Capture, assert, reconcile, report.
 
 Breakpoint: {desktop|mobile}, width {1440|390}px
 Render at: {dev-server-url | preview-url}
@@ -312,11 +372,11 @@ Clip to: {the Target theme's equivalent of the design spec's clip boundary} — 
 template's own sections, never the header or footer
 Design spec (the expected values): {temp-dir}/design-spec.md
 Fidelity forecast, from the approved plan: {element → EXACT | APPROXIMATES (with the
-forecast delta) | UNACHIEVABLE}
+forecast delta) | BUILT (a replica section renders it) | UNACHIEVABLE}
 Capability map for tagging: .agent/THEME-CAPABILITIES.md + the approved settings map
-Key elements to assert: {the forecast's EXACT and APPROXIMATES elements, from the approved
-plan, GROUPED BY SECTION} — elements forecast UNACHIEVABLE are NOT asserted; list them by
-name instead
+Key elements to assert: {the forecast's EXACT, APPROXIMATES and BUILT elements, from the
+approved plan, GROUPED BY SECTION} — elements forecast UNACHIEVABLE are NOT asserted; list
+them by name instead
 
 1. Capture hygiene, then capture: viewport at the width above; animations/transitions
    disabled; full scroll then back to top so lazy content is present; wait for
@@ -335,13 +395,17 @@ name instead
    - forecast APPROXIMATES → APPROXIMATION, QUANTIFIED. Not a failure. Give the measured
      delta (expected vs actual, and the numeric difference) and whether it is within the
      delta the forecast described.
+   - forecast BUILT → BUILD DEFECT. A replica section was written specifically to render
+     this element exactly, so a mismatch is code this run owns and can edit. Name the
+     replica section file.
 4. Write the capture to .agent/shopify-page-replicate/visual-check/{name}/
    result-{breakpoint}.png, overwriting what is there. Generate no other render variant.
 
 Write the FULL table to {temp-dir}/style-report-{breakpoint}.md, GROUPED BY SECTION in
 render order, with a subheading per section: one row per mismatch — element | property |
-expected | actual | forecast (EXACT / APPROXIMATES) | reconciliation (BROKEN FORECAST +
-tag, or the quantified delta) — followed by the UNACHIEVABLE elements named and excluded.
+expected | actual | forecast (EXACT / APPROXIMATES / BUILT) | reconciliation (BROKEN FORECAST
++ tag, the quantified delta, or BUILD DEFECT + the replica section file) — followed by the
+UNACHIEVABLE elements named and excluded.
 Report every mismatch: there is NO cap and no truncation, because a capped report reads as
 complete when it is not. Return that table as TEXT only, plus the mismatch count split by
 forecast class and by section. Return no images.
@@ -371,6 +435,12 @@ refresh / read-as-is, the completeness gate, and the sharding threshold.
 
 Producing the reuse inventory rather than only consulting it is what keeps a run on a theme
 without one from silently losing a signal this skill says it uses.
+
+**A replica section earns a row in both docs**, appended at cleanup: one capability-catalog
+entry and one reuse-inventory row per section the run wrote, each carrying the word **Stand-in**,
+the instruction **do not reuse**, and the path to `.agent/shopify-page-replicate/replication.md`.
+A replica section is built for one page and dies with it, so a later run that finds it must
+neither reuse it as a capability nor rediscover it as a mystery.
 
 **Read before any scan (main agent, at 1b):**
 
@@ -489,16 +559,18 @@ into the theme's `assets/`. It is the snapshot the revert restores from.
 **Inject once**, after the render is up and before the first capture, at the first tier that
 reaches the region:
 
+0. **A replica section's own Liquid**, where the region sits inside one — this run wrote that
+   file and owns it, so the sentinels go straight in and come straight back out at revert.
 1. **The section's own `liquid` setting** in the template JSON — renders in the right DOM
    position and stays inside the template-only build surface. The capability inventory flags
    which sections expose one.
 2. **A temporary Custom Liquid section** in `order`, emitting a `{% style %}` block alone that
    background-images the real element in place — for host sections with no `liquid` setting,
    and only where the empty picker still renders a targetable element.
-3. **Neither tier reaches it** — this skill writes template JSON only, and a region needing
-   committed section code is out of its reach. It is not injected and not worked around: the
-   plan names it, the result render shows the empty picker, and the final output says so with
-   the tier that would be needed.
+3. **No tier reaches it** — for a region in one of the Target theme's own sections, which this
+   skill does not edit, with no `liquid` setting and no targetable element. It is not injected
+   and not worked around: the plan names it, the result render shows the empty picker, and the
+   final output says so with the tier that would be needed.
 
 Injected regions sit between sentinels and temp assets carry the `vh-tmp-` prefix, which is
 what makes both greppable:
@@ -585,8 +657,10 @@ no theme file is created or modified; the only writes are the knowledge docs (§
   lacks the measured one. Every color, spacing, size, radius and border is a per-instance value
   from the Source page, and each one that departs from a Target theme global is a row of the
   override table. Anything with no existing capability is a GAP: record the closest achievable
-  approximation and its visible cost, and whether an existing per-instance custom CSS/Liquid
-  setting (an existing setting, so within the constraint) could close it.
+  approximation and its visible cost, whether an existing per-instance custom CSS/Liquid
+  setting (an existing setting, so within the constraint) could close it, and what a replica
+  section would have to contain to render it exactly — so stop 1 has two costed options to
+  choose between rather than a refusal.
 - **1d. Tooling detection** (main agent, non-mutating checks only): Browser pane availability
   first, then fallbacks per §Browser tiers; the Agent tool and which tools reach subagents (fix
   the delegation map — the page extractor most likely runs in main). The Shopify CLI's reach
@@ -606,11 +680,11 @@ every section of the Source page is matched to a capability or recorded as a gap
 QUESTION is answered; and the tooling record names browser tier, capture source, Source theme
 structure source, render path, delegation map, temp dir, and the exclude status.
 
-## Phase 2 — Plan (stop for approval)
+## Phase 2 — Plan (stop 1, for approval)
 
 Present the complete plan and stop. Create or modify nothing until the user approves. Approval
-covers the design spec, the fidelity forecast, the override table, the removal list, and the
-temporary installs.
+covers the design spec, the fidelity forecast, the override table, the removal list, the
+accept-or-build choice on every UNACHIEVABLE element, and the temporary installs.
 
 - **The design spec, quoted inline**: the per-section exact-values table reproduced in the
   plan itself, per breakpoint, plus the layout differences and the verbatim copy — quoted,
@@ -636,12 +710,21 @@ temporary installs.
   global it departs from. This is the unwind list, and it exists from day one.
 - **Fidelity forecast**: every element sorted into EXACT (fully met by existing capabilities),
   APPROXIMATES (closest achievable, its visible cost and expected delta described), or
-  UNACHIEVABLE without new code — accepted as a gap, with the nearest achievable alternative
-  named so there is something to accept rather than only a refusal. A per-instance custom
-  CSS/Liquid setting proposed as a gap-closer is its own flagged line item. The forecast is per
-  element, because the style report reads every mismatch back against it: an EXACT element that
-  misses is a broken forecast, an APPROXIMATES element that misses is the approximation
-  quantified, and the UNACHIEVABLE elements are the ones the report names rather than asserts.
+  UNACHIEVABLE without new code, with the nearest achievable alternative named so there is
+  something to accept rather than only a refusal. A per-instance custom CSS/Liquid setting
+  proposed as a gap-closer is its own flagged line item. The forecast is per element, because
+  the style report reads every mismatch back against it: an EXACT element that misses is a
+  broken forecast, an APPROXIMATES element that misses is the approximation quantified, a BUILT
+  element that misses is a build defect, and the UNACHIEVABLE elements are the ones the report
+  names rather than asserts.
+- **Accept or build, per UNACHIEVABLE section** (§Replica sections): each one is presented as
+  a two-option line — the closest approximation with its visible cost, ACCEPT (the default),
+  against the replica section that would render it exactly, BUILD, named with the files it
+  would add under the `replica-<template>-<name>` prefix and what it would contain. Say plainly
+  that a replica section is thrown away when the real design lands. Every element the user
+  chooses to build is reclassified BUILT and moves onto the style report's assertion list;
+  everything left stays UNACHIEVABLE and is named there instead. Choosing at least one build
+  opens stop 2 at the head of Phase 3; choosing none keeps the run at a single stop.
 - **Asset plan** (§Asset capture): every inventory row, its pile, the section setting it will be
   assigned to, and the staged filename for anything downloaded; the sort's counts; any
   source-quality flags; `assets/UPLOAD.md` is written from this list.
@@ -668,7 +751,40 @@ temporary installs.
 
 ## Phase 3 — Build (main agent only)
 
-Touch only planned files; no delegated edits.
+Touch only planned files; no delegated edits. Two passes, and **Pass B runs first** — forced,
+not chosen: a template cannot reference a section type whose file does not exist yet.
+
+**Stop 2 — the replica sections** (only where stop 1 chose at least one; otherwise this stop
+does not fire at all and Pass B is skipped with it). Present, and stop for approval:
+
+- Each replica section's files, by path, under the `replica-<template>-<name>` prefix — the
+  section file, its stylesheet, its snippets.
+- Its schema: every setting id, type, label and default, with the design spec's values quoted
+  inline, plus the block types any repeated item needs.
+- Which of those settings are REQUIRED, so the section renders nothing when they are empty
+  (§Replica sections) — proposed, then confirmed or corrected by the user, never assumed into
+  approval.
+- The markup and CSS outline per breakpoint, including the desktop/mobile differences the design
+  spec records, and the wrapper-gap fix where theme CSS leaves one.
+- The elements this moves off the UNACHIEVABLE list and onto the style report's assertion list
+  as BUILT.
+
+Approval here covers new code only; everything else was approved at stop 1.
+
+**Pass B — write the replica sections** (only what stop 2 approved):
+
+- Create each file under its `replica-<template>-<name>` prefix, configuring from the approved
+  design spec alone — its exact values, its layout differences, its verbatim copy; both
+  breakpoints exact. The Source page is not re-read.
+- Theme-editor settings only: no metafield and no metaobject access, no theme blocks, schema
+  shape verified via the Shopify dev MCP rather than guessed.
+- Wire the render-nothing branch per §Replica sections — the required-settings check emitting no
+  markup and no placeholder, with no `request.design_mode` fork to differ on; item level first,
+  then the whole section when no item survives; the wrapper gap closed.
+- Edit no existing theme file to accommodate them. A replica section that would need one is an
+  OPEN QUESTION back to the user, not an edit.
+
+**Pass A — write the target template JSON:**
 
 - Write the target template JSON exactly as approved — the `sections` map with its settings
   maps and block configurations, the whole `order` replaced by the Source page's section order,
@@ -684,10 +800,12 @@ Touch only planned files; no delegated edits.
 - Append the run's entry to `.agent/shopify-page-replicate/replication.md` per
   §The replication record. Its gap list is completed after the style report.
 
-**Done when:** the target template JSON is in place as approved and nothing else changed — no
-new theme files, no new settings, no edited section/block/snippet/CSS/JS file, the Source theme
-untouched — the asset sort's counts reconcile with `assets/UPLOAD.md` written, and the
-replication record carries the run's entry.
+**Done when:** every approved replica section exists under its `replica-<template>-<name>`
+prefix — written before the template that references it — the target template JSON is in place
+as approved, and nothing else changed: no new settings on the Target theme's own sections, no
+edited section/block/snippet/CSS/JS file of theirs, the Source theme untouched. The asset sort's
+counts reconcile with `assets/UPLOAD.md` written, and the replication record carries the run's
+entry, listing every replica file.
 
 ## Phase 4 — Render and report
 
@@ -738,15 +856,21 @@ fidelity forecast, writes `result-{breakpoint}.png` into the visual-check folder
 text mismatch table grouped by section. It never edits theme files and returns no images.
 Without delegation the same work runs in the main conversation, once per breakpoint.
 
-**5. Correction round** (main agent, once). Read the returned tables and fix what they name by
-ADJUSTING SETTINGS VALUES in the template JSON per the capability map — never by editing section
-code, which belongs to the Target theme and is read-only. If no setting can move the value, it
-is an undeclared gap: surface it, don't hack it. Then re-render and re-run `style-reporter` once
-per affected breakpoint. One pass, one re-check, then stop; whatever remains goes into the
-report as-is.
+**5. Correction round** (main agent, once), and the surface splits by pass. A **Pass A section**
+is corrected by ADJUSTING SETTINGS VALUES in the template JSON per the capability map — never by
+editing section code, which belongs to the Target theme and is read-only. A **replica section**
+is corrected by EDITING ITS OWN CODE, which this run wrote and owns — its Liquid, its schema
+defaults, its stylesheet. Each surface keeps the constraint it already had. If neither can move
+the value, it is an undeclared gap: surface it, don't hack it. Then re-render and re-run
+`style-reporter` once per affected breakpoint. One pass, one re-check, then stop; whatever
+remains goes into the report as-is.
 
 **Revert** closes this step, the last capture now taken: restore from the breadcrumb and prove
-it per §Hardcode-then-revert.
+it per §Hardcode-then-revert. **Render-nothing check** after, for replica sections only, on the
+real settings path: blank each replica section's required settings, confirm it emits no markup at
+the dev-server or preview URL AND shows no placeholder in the theme editor — item level first,
+then the whole section — then restore the content. The Target theme's own sections are not this
+run's code and are not touched by this check.
 
 **6. Style report — this skill's permitted variation.** Emit the surviving mismatches per
 breakpoint, GROUPED BY SECTION in render order — a page-scale report reads in the order it
@@ -759,6 +883,9 @@ would be repaired — each one read back against the approved forecast for its e
 - **Forecast APPROXIMATES, mismatched → the approximation, quantified.** Not a failure: the row
   carries the measured delta — expected, actual, the numeric difference — and whether it sits
   inside the delta the forecast described.
+- **Forecast BUILT, mismatched → a build defect.** A replica section was written specifically
+  to render this element exactly, so the code is this run's own: step 5 edits it, and anything
+  surviving is reported as a defect in a file the report names, not as a limit of the theme.
 - **Forecast UNACHIEVABLE → excluded from the assertion list and named.** These are never
   asserted, so they never appear as mismatches; the report lists them by name as out of reach
   without new code.
@@ -781,28 +908,35 @@ then stop and report exactly what's missing.
 complete the replication record's gap list from the emitted report — every UNACHIEVABLE element
 and every surviving approximation with its delta — then refresh both shared knowledge docs
 against the current branch using their format ladders: reconcile the changed template scan and
-`git:` line, append the run to `updates:`, and rerun both completeness gates before the final
-report; a higher-format doc is read-as-newer and left byte-for-byte unchanged. Then uninstall
-project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, and delete
-the temp working directory (including subagent reports). The Browser pane is a built-in —
-nothing to uninstall; `.claude/launch.json`, if created per the plan, is project config and
-stays. RETAIN `.agent/` in full — the knowledge docs for the next run, the replication record,
-plus `.agent/shopify-page-replicate/visual-check/<name>/` (the design spec, the Source page
+`git:` line, append one row per replica section to each doc — **Stand-in**, **do not reuse**,
+and the path to `.agent/shopify-page-replicate/replication.md` (§Knowledge docs) — append the
+run to `updates:`, and rerun both completeness gates before the final report; a higher-format
+doc is read-as-newer and left byte-for-byte unchanged. Then uninstall project-local packages,
+delete venvs, `npx playwright uninstall` downloaded browsers, and delete the temp working
+directory (including subagent reports). The Browser pane is a built-in — nothing to uninstall;
+`.claude/launch.json`, if created per the plan, is project config and stays. RETAIN `.agent/`
+in full — the knowledge docs for the next run, the replication record, plus
+`.agent/shopify-page-replicate/visual-check/<name>/` (the design spec, the Source page
 captures, the result renders, the staged assets) — untracked via `.git/info/exclude`. The user
 reviews the renders before committing, uploads the files `assets/UPLOAD.md` lists through the
 theme editor and assigns them to the image settings, and manages the folder themselves. Nothing
 lands in git except the planned template edit.
 
-**Final output (no explanatory prose):** files changed (expected: the target template JSON;
-possibly the `.git/info/exclude` append, `.claude/launch.json`) with confirmation that NO theme
-file REMAINS beyond those, NO schemas were edited, and the Source theme was not written to; the
+**Final output (no explanatory prose):** files changed (expected: the target template JSON,
+every approved `replica-<template>-<name>` file by path; possibly the `.git/info/exclude` append,
+`.claude/launch.json`) with confirmation that NO theme file REMAINS beyond those, that no schema
+of the Target theme's own sections was edited, and that the Source theme was not written to; the
+render-nothing check's result per replica section — no markup on the storefront, no placeholder
+in the editor — with the required settings it was run against, or "no replica sections were
+built"; the
 sections removed from the target template, by label and type, or that the template was created;
 the revert proof (`grep -r VERIFY-HARDCODE` clean, no `vh-tmp-*` remaining, template JSON
 matching the breadcrumb original) or **REVERT FAILED** with the breadcrumb path; the style report
 per breakpoint, grouped by section and uncapped — element, expected, actual, forecast class and
 reconciliation per surviving mismatch, or "no mismatches" — with the broken forecasts called
 out, the approximations' deltas given, and the UNACHIEVABLE elements named as excluded; the font
-table with every weight substitution; the override table's row count; the asset sort's counts
+table with every weight substitution; the accept-or-build outcome per UNACHIEVABLE element; the
+override table's row count; the asset sort's counts
 with any miss named and any source-quality flags; the app blocks copied and any app routed to
 `shopify-inject-app-into-liquid`; any image region no hardcode tier reached, named as showing
 empty in the result render; the delegation map and whether the Shopify CLI pull of the Source
@@ -828,6 +962,18 @@ confirmation.
   Sizes, weights, line heights, letter spacings, colors, spacing, radii and borders are the
   Source page's, written as per-instance values, and every departure from a global is a row of
   the override table.
+- A replica section is written only where the user chose BUILD over the closest approximation at
+  stop 1, and accepting the approximation is the default — a page that is about to be replaced
+  does not quietly acquire custom sections.
+- Every file Pass B writes carries the `replica-<template>-<name>` prefix — sections, stylesheets
+  and snippets alike — and Pass B runs before Pass A, so the template never references a section
+  file that does not exist.
+- A replica section uses theme-editor settings only: no metafield, no metaobject, no theme blocks.
+- A replica section renders nothing when its required settings are empty, on the storefront and in
+  the theme editor alike, with no placeholder in either — because a Stand-in is not meant to be
+  edited by a merchant, and the wrapper gap is closed so nothing renders as a band.
+- The correction round adjusts a Pass A section's settings values and edits a replica section's
+  own code. Neither surface crosses into the other.
 - The style report reports; it never blocks completion. One check against the design spec, one
   correction round, then it is emitted with whatever remains — grouped by section, uncapped, no
   threshold, no ratio, no iteration count, no verdict.
@@ -836,11 +982,12 @@ confirmation.
   failure; UNACHIEVABLE is never asserted, only named. Nothing else is excluded from the report.
 - Typography asserts against the Target theme's family, never the family measured on the Source
   page.
-- The target template JSON is the only build surface; `.git/info/exclude`, `.claude/launch.json`,
-  and the `.agent/` tree are the only other writable paths, per the plan. Section, block,
-  snippet, CSS and JS files stay read-only — no new theme files, no new settings, no schema
-  edits. The render's `vh-tmp-` assets are the one transient exception and the revert removes
-  them.
+- The build surface is the target template JSON plus the approved `replica-<template>-<name>`
+  files; `.git/info/exclude`, `.claude/launch.json`, and the `.agent/` tree are the only other
+  writable paths, per the plan. The Target theme's own section, block, snippet, CSS and JS files
+  stay read-only — no new settings on them, no schema edits to them, and nothing existing edited
+  to make room for a replica section. The render's `vh-tmp-` assets are the one transient
+  exception and the revert removes them.
 - The whole `order` is replaced, so every section the run removes is listed in the plan before
   approval.
 - Only the template's own sections are read, built, captured or compared. The header, the footer
@@ -867,6 +1014,8 @@ confirmation.
   alongside the design spec and the two Source page captures; no other render variant.
 - `.agent/` lives at the repo root, is always excluded via `.git/info/exclude`, and is never
   committed.
+- The replication record lists every replica file the run wrote, and both knowledge docs carry a
+  row per replica section marked **Stand-in** and **do not reuse**.
 - The replication record is the retirement checklist. Every run appends to it; no run rewrites
   another run's entry.
 - CLI tools: check installed first (on PATH, project dep, or npm script) — installed → invoke

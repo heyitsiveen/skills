@@ -58,6 +58,16 @@ they inherit.)
 | Image | Pile | Reference |
 |---|---|---|
 
+### Replica files
+
+(Every file Pass B wrote, by path, under the `replica-<template>-<name>` prefix — section files,
+stylesheets and snippets alike — with the element each section was built to render and the
+required settings that make it render nothing when empty. Empty where the run built nothing:
+say "none — every gap was accepted as an approximation".)
+
+| File | Renders | Required settings |
+|---|---|---|
+
 ### Apps
 
 (App blocks copied across, with their app. App embeds are untouched by construction — say so.
@@ -75,6 +85,7 @@ not treat the Stand-in as a faithful copy.)
 - Replace `<target-template>` with the real design when it exists.
 - Delete this entry and the visual-check folder `<name>/`.
 - Revert every row of the override table to its global, or delete the section instance.
-- (Where a later run built replica sections, they are listed here by filename and deleted
-  with the entry.)
+- Delete every file listed under **Replica files** — one
+  `grep -rl 'replica-<template>'` finds them all, and nothing else depends on them.
+- Delete their rows from `.agent/THEME-CAPABILITIES.md` and `.agent/COMPONENTS.md`.
 ```
