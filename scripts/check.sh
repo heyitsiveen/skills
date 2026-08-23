@@ -5,7 +5,8 @@
 #   1. the two knowledge-doc format specs are byte-identical across the four
 #      producer skills
 #   2. `## Asset export` is byte-identical across the three Figma-driven skills
-#   3. every skill is listed in all three registries
+#   3. every skill is listed in all three registries — `deprecated/` is a
+#      retained snapshot, not a bucket, so it is skipped by this assertion
 #   4. the retired pixel-diff vocabulary appears in none of the three
 #      Figma-driven skills, nor in the README
 #   5. Phase 4's seven steps are present, in order, in each of the three
@@ -230,7 +231,8 @@ check_registries() {
     printf '%s\n' "$entries" | grep -qxF "$bucket	$domain/$name" ||
       fail "$MARKETPLACE does not list \"./$domain/$name\" under plugin heyitsiveen-skills-$bucket ($dir)"
   done < <(find . -mindepth 4 -maxdepth 4 -name SKILL.md \
-             -not -path './.git/*' -not -path './.scratch/*' | sort)
+             -not -path './.git/*' -not -path './.scratch/*' \
+             -not -path './deprecated/*' | sort)
 }
 
 # ---------------------------------------------------------------------------

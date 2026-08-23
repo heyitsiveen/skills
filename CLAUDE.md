@@ -16,6 +16,13 @@ Current buckets:
 - `personal/` — my main skills (e.g. `personal/shopify/…`)
 - `productivity/`, `misc/` — kept empty for future skills
 
+`deprecated/` is **not** a bucket. It holds a byte-identical snapshot of a skill
+as it stood before a rewrite, so the previous behaviour can be restored if the
+replacement misbehaves. It mirrors the same `<domain>/<skill-name>/` layout, is
+listed in none of the three registries, is published by no plugin, and is
+skipped by `scripts/check.sh`. Nothing reads a skill from it: to roll one back,
+copy the folder over its `<bucket>/<domain>/` counterpart.
+
 ## Three registries — keep them in sync
 
 Every skill must be listed in all three:
