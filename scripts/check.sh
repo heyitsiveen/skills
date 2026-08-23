@@ -2,15 +2,16 @@
 #
 # Assert this repo's cross-file invariants:
 #
-#   1. the two knowledge-doc format specs are byte-identical across the four
+#   1. the two knowledge-doc format specs are byte-identical across the five
 #      producer skills
 #   2. `## Asset export` is byte-identical across the three Figma-driven skills
 #   3. every skill is listed in all three registries — `deprecated/` is a
 #      retained snapshot, not a bucket, so it is skipped by this assertion
-#   4. the retired pixel-diff vocabulary appears in none of the three
-#      Figma-driven skills, nor in the README
-#   5. Phase 4's seven steps are present, in order, in each of the three
-#   6. each of the three specifies the design spec's producer header
+#   4. the retired pixel-diff vocabulary appears in none of the
+#      spec-driven skills, nor in the README
+#   5. Phase 4's seven steps are present, in order, in each spec-driven skill
+#   6. each spec-driven skill specifies the design spec's producer header
+#   7. every skill entry in the three registries names a directory that exists
 #
 # Run from anywhere; it resolves the repo root itself.
 #   ./scripts/check.sh
@@ -30,15 +31,23 @@ README=README.md
 SKILLS_SH=skills.sh.json
 MARKETPLACE=.claude-plugin/marketplace.json
 
-# The four skills that produce the shared knowledge-doc format specs.
-PRODUCERS=(client-theme-onboarding figma-shopify-builder figma-shopify-composer figma-shopify-globals)
+# The five skills that produce the shared knowledge-doc format specs.
+PRODUCERS=(client-theme-onboarding figma-shopify-builder figma-shopify-composer figma-shopify-globals shopify-page-replicate)
 
-# The three Figma-driven skills, which share a `## Asset export` section and
-# the seven-step Phase 4.
-FIGMA_SKILLS=(figma-shopify-builder figma-shopify-composer shopify-app-restyle)
+# The Figma-driven skills, whose `## Asset export` section is byte-identical.
+# Scoped to these alone: a skill that exports assets from somewhere other than
+# Figma writes a legitimately different section, and forcing it to match this
+# one would be wrong rather than consistent.
+ASSET_EXPORT_SKILLS=(figma-shopify-builder figma-shopify-composer shopify-app-restyle)
 
-# Terms the design-spec convention retired. None may reappear in the three
-# Figma-driven skills or in the README. Each is a POSIX ERE, deliberately wider
+# The skills that build from a design spec, and so share the seven-step Phase 4,
+# the design spec's producer header, and the retirement of the pixel-diff
+# vocabulary. A skill joins this set by sharing that shape, whether or not its
+# spec comes from Figma.
+SPEC_DRIVEN_SKILLS=(figma-shopify-builder figma-shopify-composer shopify-app-restyle shopify-page-replicate)
+
+# Terms the design-spec convention retired. None may reappear in the
+# spec-driven skills or in the README. Each is a POSIX ERE, deliberately wider
 # than the literal wording the tickets used: the hyphenated spellings are this
 # repo's own house style, so they are the likeliest form of a relapse, and the
 # diff-image names are generalised past the two breakpoints that existed.
@@ -107,7 +116,7 @@ check_format_specs() {
       other="personal/shopify/$skill/references/$spec"
       require_file "$other" || continue
       compare_to_base "$base" "$base" "$other" "$other" \
-        "references/$spec must be byte-identical across the four producers"
+        "references/$spec must be byte-identical across the five producers"
     done
   done
 }
@@ -133,7 +142,7 @@ check_asset_export() {
 
   base=""
   base_label=""
-  for skill in "${FIGMA_SKILLS[@]}"; do
+  for skill in "${ASSET_EXPORT_SKILLS[@]}"; do
     path="personal/shopify/$skill/SKILL.md"
     require_file "$path" || continue
     extract_section '^## Asset export' "$path" > "$tmp/$skill"
@@ -236,14 +245,14 @@ check_registries() {
 }
 
 # ---------------------------------------------------------------------------
-# 4. The retired pixel-diff vocabulary appears nowhere
+# 4. The retired pixel-diff vocabulary appears in no spec-driven skill
 # ---------------------------------------------------------------------------
 
 check_banned_terms() {
   local term target hits status line skill
   local targets=("$README")
 
-  for skill in "${FIGMA_SKILLS[@]}"; do
+  for skill in "${SPEC_DRIVEN_SKILLS[@]}"; do
     targets+=("personal/shopify/$skill")
   done
 
@@ -270,7 +279,7 @@ check_banned_terms() {
 }
 
 # ---------------------------------------------------------------------------
-# 5. Phase 4's seven steps are present, in order, in each Figma-driven skill
+# 5. Phase 4's seven steps are present, in order, in each spec-driven skill
 # ---------------------------------------------------------------------------
 
 check_phase4_shape() {
@@ -278,7 +287,7 @@ check_phase4_shape() {
 
   total=${#PHASE4_STEPS[@]}
 
-  for skill in "${FIGMA_SKILLS[@]}"; do
+  for skill in "${SPEC_DRIVEN_SKILLS[@]}"; do
     path="personal/shopify/$skill/SKILL.md"
     require_file "$path" || continue
 
@@ -313,13 +322,13 @@ check_phase4_shape() {
 }
 
 # ---------------------------------------------------------------------------
-# 6. Each Figma-driven skill specifies the design spec's producer header
+# 6. Each spec-driven skill specifies the design spec's producer header
 # ---------------------------------------------------------------------------
 
 check_producer_header() {
   local skill path
 
-  for skill in "${FIGMA_SKILLS[@]}"; do
+  for skill in "${SPEC_DRIVEN_SKILLS[@]}"; do
     path="personal/shopify/$skill/SKILL.md"
     require_file "$path" || continue
 
@@ -331,12 +340,78 @@ check_producer_header() {
   done
 }
 
+# ---------------------------------------------------------------------------
+# 7. Every registry entry names a skill directory that exists
+# ---------------------------------------------------------------------------
+
+# The reverse of assertion 3. That one walks the directories and looks for them
+# in the registries; this one walks the registries and looks for the
+# directories, so deleting a skill cannot leave an entry behind that publishes a
+# path resolving to nothing.
+
+# Print one quoted string per entry of every `"skills": [ … ]` array, so
+# skills.sh.json's grouped name lists are read without a JSON parser.
+skills_sh_entries() {
+  awk '
+    /"skills"[[:space:]]*:/ { if ($0 !~ /\]/) inside = 1; next }
+    inside && /\]/         { inside = 0; next }
+    inside && /"/ {
+      entry = $0
+      sub(/^[^"]*"/, "", entry)
+      sub(/".*/, "", entry)
+      if (entry != "") print entry
+    }
+  ' "$1"
+}
+
+check_registry_entries() {
+  local skills_dirs entry path name bucket
+
+  require_file "$README" || return
+  require_file "$SKILLS_SH" || return
+  require_file "$MARKETPLACE" || return
+
+  # `<bucket>/<domain>/<name>` for every skill that exists, same scope as
+  # assertion 3: `deprecated/` is a retained snapshot, not a published skill.
+  skills_dirs="$(find . -mindepth 4 -maxdepth 4 -name SKILL.md \
+                   -not -path './.git/*' -not -path './.scratch/*' \
+                   -not -path './deprecated/*' \
+                   | sed -e 's|^\./||' -e 's|/SKILL\.md$||' | sort)"
+  if [ -z "$skills_dirs" ]; then
+    fail "found no skill directories to check the registries against"
+    return
+  fi
+
+  # README: every `./<bucket>/<domain>/<name>/SKILL.md` link must resolve.
+  while IFS= read -r entry; do
+    [ -n "$entry" ] || continue
+    [ -f "$entry" ] ||
+      fail "$README links \"$entry\", which does not exist"
+  done < <(grep -oE '\./[A-Za-z0-9_./-]+/SKILL\.md' "$README" | sort -u)
+
+  # skills.sh.json: every listed name must be the name of a skill directory.
+  while IFS= read -r name; do
+    [ -n "$name" ] || continue
+    printf '%s\n' "$skills_dirs" | grep -qx ".*/$name" ||
+      fail "$SKILLS_SH lists \"$name\", which is not the name of any skill directory"
+  done < <(skills_sh_entries "$SKILLS_SH" | sort -u)
+
+  # marketplace.json: every `<bucket>` + `./<domain>/<name>` must resolve.
+  while IFS=$'\t' read -r bucket entry; do
+    [ -n "$entry" ] || continue
+    path="$bucket/$entry"
+    printf '%s\n' "$skills_dirs" | grep -qx "$path" ||
+      fail "$MARKETPLACE lists \"./$entry\" under plugin heyitsiveen-skills-$bucket, which does not exist ($path)"
+  done < <(marketplace_entries "$MARKETPLACE")
+}
+
 check_format_specs
 check_asset_export
 check_registries
 check_banned_terms
 check_phase4_shape
 check_producer_header
+check_registry_entries
 
 if [ "$FAILURES" -ne 0 ]; then
   printf '\n%d check(s) failed.\n' "$FAILURES" >&2

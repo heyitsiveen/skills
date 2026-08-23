@@ -48,7 +48,7 @@ Pixel-accurate theme building, app-widget styling & injection, and template cont
 - **[figma-shopify-globals](./personal/shopify/figma-shopify-globals/SKILL.md)** — Sync observed full-site globals and derive approved interaction-state values from their base colours in a draft theme, with approval-gated evidence, contrast checks, and verification.
 - **[rebuy-widget-customization](./personal/shopify/rebuy-widget-customization/SKILL.md)** — Replace a Rebuy widget's markup with custom Vue 2 templates while Rebuy's engine, discounts, and subscriptions keep running underneath.
 - **[shopify-app-restyle](./personal/shopify/shopify-app-restyle/SKILL.md)** — Restyle a third-party app's widget to match a Figma design using `!important`-scoped theme CSS overrides, every declaration traced to a design spec extracted from the frames.
-- **[shopify-migrate-page-to-new-theme](./personal/shopify/shopify-migrate-page-to-new-theme/SKILL.md)** — Audit a page on an old theme and produce a spec doc + handoff prompt to recreate it on a new theme — content verbatim, restyled to the new theme's design system.
+- **[shopify-page-replicate](./personal/shopify/shopify-page-replicate/SKILL.md)** — Replicate a page from a client's current theme onto their revamped theme as a temporary stand-in, built from the revamped theme's existing sections, keeping the page's own colours and spacing while inheriting only its fonts.
 
 ### Engineering
 
@@ -72,7 +72,7 @@ Skills are organised as `<bucket>/<domain>/<skill>/`, where the domain is `globa
 ├── engineering/
 │   └── global/gc/                # git commit helper             (published)
 ├── personal/
-│   └── shopify/                  # 10 Shopify theme & app skills  (published)
+│   └── shopify/                  # 11 Shopify theme & app skills  (published)
 ├── productivity/                 # empty — for future skills
 └── misc/                         # empty — for future skills
 ```

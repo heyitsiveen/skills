@@ -14,7 +14,7 @@
         "shopify-app-restyle",
         "shopify-copy-template-content",
         "shopify-inject-app-into-liquid",
-        "shopify-migrate-page-to-new-theme",
+        "shopify-page-replicate",
         "rebuy-widget-customization"
       ]
     },
