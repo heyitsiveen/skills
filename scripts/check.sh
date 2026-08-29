@@ -12,6 +12,9 @@
 #   5. Phase 4's seven steps are present, in order, in each spec-driven skill
 #   6. each spec-driven skill specifies the design spec's producer header
 #   7. every skill entry in the three registries names a directory that exists
+#   8. `## Asset export` requests PDF and carries the alpha check, so a
+#      synchronised edit cannot reinstate the transparency bug in all three
+#      copies at once
 #
 # Run from anywhere; it resolves the repo root itself.
 #   ./scripts/check.sh
@@ -30,6 +33,7 @@ fi
 README=README.md
 SKILLS_SH=skills.sh.json
 MARKETPLACE=.claude-plugin/marketplace.json
+ADR_PDF=docs/adr/0005-export-ships-through-pdf.md
 
 # The five skills that produce the shared knowledge-doc format specs.
 PRODUCERS=(client-theme-onboarding figma-shopify-builder figma-shopify-composer figma-shopify-globals shopify-page-replicate)
@@ -136,20 +140,34 @@ extract_section() {
   ' "$2"
 }
 
+# asset_export_sections <target-dir>
+# Extract each Figma-driven skill's `## Asset export` to <target-dir>/<skill>,
+# reporting a missing file or a missing section and leaving nothing behind for
+# it. Assertions 2 and 8 read the same set; extracting it once stops the two
+# from drifting apart on what they consider present.
+asset_export_sections() {
+  local dir="$1" skill path
+  for skill in "${ASSET_EXPORT_SKILLS[@]}"; do
+    path="personal/shopify/$skill/SKILL.md"
+    require_file "$path" || continue
+    extract_section '^## Asset export' "$path" > "$dir/$skill"
+    if [ ! -s "$dir/$skill" ]; then
+      fail "$path has no '## Asset export' section"
+      rm -f "$dir/$skill"
+    fi
+  done
+}
+
 check_asset_export() {
   local tmp base base_label path skill
   tmp="$(mktemp -d)" || { fail "cannot create a temp dir for the '## Asset export' comparison"; return; }
+  asset_export_sections "$tmp"
 
   base=""
   base_label=""
   for skill in "${ASSET_EXPORT_SKILLS[@]}"; do
+    [ -s "$tmp/$skill" ] || continue
     path="personal/shopify/$skill/SKILL.md"
-    require_file "$path" || continue
-    extract_section '^## Asset export' "$path" > "$tmp/$skill"
-    if [ ! -s "$tmp/$skill" ]; then
-      fail "$path has no '## Asset export' section"
-      continue
-    fi
     if [ -z "$base" ]; then
       base="$tmp/$skill"
       base_label="$path"
@@ -405,6 +423,47 @@ check_registry_entries() {
   done < <(marketplace_entries "$MARKETPLACE")
 }
 
+# ---------------------------------------------------------------------------
+# 8. `## Asset export` requests PDF and carries the alpha check
+# ---------------------------------------------------------------------------
+
+# Assertion 2 proves the three copies match each other. It cannot notice all
+# three being changed together, which is exactly how the transparency bug would
+# come back. The MCP's `export` field renders a node with its whole ancestor
+# chain, so its PNG and SVG paint the design's page fill behind the artwork;
+# its PDF does not. See ADR 0005. These greps are the guard on that.
+
+check_asset_export_rules() {
+  local skill path section tmp
+  tmp="$(mktemp -d)" || { fail "cannot create a temp dir for the '## Asset export' rule check"; return; }
+
+  # Reported, not returned on: a missing ADR is worth naming, but the sections
+  # below are still worth checking without it.
+  require_file "$ADR_PDF"
+
+  asset_export_sections "$tmp"
+
+  for skill in "${ASSET_EXPORT_SKILLS[@]}"; do
+    section="$tmp/$skill"
+    [ -s "$section" ] || continue
+    path="personal/shopify/$skill/SKILL.md"
+
+    grep -qF -- 'defaultFormat: "pdf"' "$section" ||
+      fail "$path: '## Asset export' does not request 'defaultFormat: \"pdf\"' — a PNG or SVG export carries the node's ancestor chain, page fill and all (see $ADR_PDF)"
+
+    grep -qE '^- \*\*Alpha\*\*' "$section" ||
+      fail "$path: '## Asset export' has no Alpha check — without it nothing measures the transparency the PDF route exists to preserve"
+
+    grep -qF -- 'sips' "$section" ||
+      fail "$path: '## Asset export' names no macOS rasterizer, so its PDF never becomes a deliverable file"
+
+    grep -qF -- 'pdftoppm' "$section" ||
+      fail "$path: '## Asset export' names no rasterizer for non-macOS systems, so its PDF step breaks off a Mac with no explanation"
+  done
+
+  rm -rf "$tmp"
+}
+
 check_format_specs
 check_asset_export
 check_registries
@@ -412,6 +471,7 @@ check_banned_terms
 check_phase4_shape
 check_producer_header
 check_registry_entries
+check_asset_export_rules
 
 if [ "$FAILURES" -ne 0 ]; then
   printf '\n%d check(s) failed.\n' "$FAILURES" >&2

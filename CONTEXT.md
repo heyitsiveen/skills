@@ -30,6 +30,22 @@ Temporarily substituting real values for empty editor settings so the rendered r
 **The split**:
 A section or block renders a placeholder in the theme editor and nothing at all on the live storefront when its required settings are empty.
 
+### Getting assets from a design
+
+**Original source**:
+The designer's uploaded picture, returned by `download_assets` as `rawImages` and never re-rendered. It keeps its alpha, sets the scale ceiling, and where the node shows the whole of it, it is itself the shipping file.
+_Avoid_: raw image, source asset, uncropped export
+
+**Crop**:
+What the node shows when it shows less than the whole original source. A crop exists only where the fill renders above 100% in either axis, or the aspects differ by more than 2% — otherwise there is nothing to crop and the original source ships.
+_Avoid_: cut, trim
+
+**Scale ceiling**:
+The largest export scale the original source's real resolution supports. Past it Figma interpolates, so a bigger number buys pixels and no detail.
+
+**Transport format**:
+A format a file passes through and is never delivered in. `export` is requested as PDF because its PNG and SVG carry the design's page fill behind the node; the PDF is rasterized and deleted. See `docs/adr/0005-export-ships-through-pdf.md`.
+
 ### Replicating a page
 
 **Stand-in**:

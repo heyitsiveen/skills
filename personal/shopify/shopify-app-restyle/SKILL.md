@@ -86,9 +86,16 @@ For each node-id call get_design_context and get_screenshot, then compile:
 7. Asset inventory — one row per exportable asset: layer name | node-id |
    kind (raster fill / vector / composition) | the node's w×h | for a raster
    fill, the fill's rendered percentage of its node (the `w-`/`h-` values
-   get_design_context emits) and whether the subtree holds text. Phase 3
-   exports from the node-id, so every asset carries its own; text in the
-   subtree is an OPEN QUESTION, since exporting flattens it.
+   get_design_context emits) and the largest `rawImages` entry's own w×h |
+   needs-transparency | whether the subtree holds text. Phase 3 exports from
+   the node-id, so every asset carries its own; text in the subtree is an
+   OPEN QUESTION, since exporting flattens it. The source's w×h is what
+   separates a cropped row from an uncropped one and what caps the scale, so
+   a raster-fill row without it cannot be exported. Needs-transparency is
+   measured, not judged: a raster fill needs it when its largest `rawImages`
+   entry carries sub-opaque pixels, a vector always does, and a composition's
+   is read from the design. It is what the export phase's Alpha check
+   asserts against.
 
 Sections 3, 4 and 5 are WRITTEN FROM THE SCREENSHOT — read the image, describe
 what the widget actually does — and EVERY claim in them is backed by a value
@@ -249,48 +256,69 @@ code; freshness checks + refresh instructions in their headers.
 - **Figma references**, at the folder root — `figma-desktop.png` / `figma-mobile.png`; where the plan has state-specific Figma frames, use only `figma-{breakpoint}-{state}.png`.
 - **Clean renders**, at the folder root — `result-desktop.png` / `result-mobile.png`, written by the style reporter, one per breakpoint and state: `result-{breakpoint}-{state}.png` for each state the plan names, so every state is separately reviewable by eye.
 - No diff images, and no `clean-`, `section-`, or other render variants are generated. These whole-frame files are what the user compares by eye.
-- **Per-asset exports**, in `assets/`, flat — the shipping crop for each Figma node, each raster's `original-source-*` beside it, and `UPLOAD.md` (§Asset export).
+- **Per-asset exports**, in `assets/`, flat — the shipping file for each Figma node, each raster's `original-source-*` beside it, and `UPLOAD.md` (§Asset export).
 - `HARDCODE-ACTIVE.md` — present only while a hardcode is live (§Hardcode-then-revert).
 
 The folder is not theme code: `.agent/` stays out of git via a `.git/info/exclude` line (confirm the `.agent/` line exists; append it as a planned edit if not — a local, never-committed file, and the Shopify CLI ignores non-theme root directories, so it is never pushed). At cleanup, the root retains only the design spec and the allowed Figma-reference and result images; `assets/` remains for the user to review and upload, while `HARDCODE-ACTIVE.md` is deleted after every revert.
 
-## Asset export — the design's crop, one file per node
+## Asset export — one file per node, and never the page behind it
 
-A `download_assets` call per asset node-id from the inventory, where the row's **kind** picks the field:
+A `download_assets` call per asset node-id from the inventory. **`export` renders the node with its whole ancestor chain**, clipped to the node's bounds, so its PNG and SVG paint the design's page fill behind the artwork — usually white, whatever the page frame holds. Its PDF does not. Every `export` is therefore requested as PDF and rasterized locally; `rawImages` and `svgAssets` are unaffected and preserve alpha as they always did. See `docs/adr/0005-export-ships-through-pdf.md`.
+
+A crop exists only when the node shows less than the whole source picture. That is what picks the field, with the row's **kind**:
 
 | Kind | Ships | Kept beside it |
 |---|---|---|
-| **Raster fill** | `export` — the node's own bounds, which is the designer's **crop** | the largest `rawImages`, as `original-source-<name>` |
+| **Raster fill, uncropped** — fill renders at 100% or less in both axes, and the source aspect is within 2% of the node's | the largest `rawImages` — the picture whole, with its alpha | the same bytes again, as `original-source-<name>` |
+| **Raster fill, cropped** — the fill renders above 100% in either axis, or the aspects differ by more than 2% | `export` as PDF, rasterized | the largest `rawImages`, as `original-source-<name>` |
 | **Vector** | `svgAssets` — scale-free, and a multi-layer group comes back composed into one file | — |
-| **Composition** — shapes plus text, which exists no other way | `export` | — |
+| **Composition** — shapes plus text, which exists no other way | `export` as PDF, rasterized | — |
 
-`rawImages` holds the designer's upload at its original framing: 832×1248 portrait where the design shows a 616×464 landscape. That makes it the **original source** — it sets the export's scale ceiling and stays in `assets/` for a later re-crop, while the crop is what ships. Several entries at one aspect (within 1%) are one picture at several resolutions, so the largest is it; aspects that differ, or `rawImagesTruncated`, mean the row claims one fill over a subtree holding more — OPEN QUESTION.
+An uncropped fill has nothing for `export` to contribute: it would upscale the same pixels and flatten the page behind them. Residual framing within 2% is the section's own `object-fit` to reproduce, not an export's. The 2% is a chosen line rather than a derived one — move it deliberately and record the move here.
+
+The archive copy is **unconditional**: an uncropped row's `original-source-<name>` duplicates its own shipping file, and that duplication is the point. The prefix is the run's standing guarantee that the untouched source is on disk, and a guarantee that holds only for some rows is not one.
+
+**PDF is a transport format, never a deliverable.** Pass `defaultFormat: "pdf"`, rasterize at the chosen scale, delete the PDF. Nothing uploads one, nothing keeps one:
+
+```sh
+sips -s format png --resampleWidth <target-px> export.pdf --out <name>.png      # macOS, ships with the OS
+pdftoppm -png -scale-to-x <target-px> -scale-to-y -1 export.pdf <name>          # elsewhere; magick also works
+```
+
+`<target-px>` is the node's `w` times the scale chosen below — the same number the **Bounds** check divides back out. Both commands take it, so neither platform needs a second conversion.
+
+**Delivered format follows the artwork, not the route:** PNG where any pixel is transparent, JPEG where the picture is a fully opaque photograph, SVG for vectors. A `rawImages` file ships as the bytes arrived, in the format its `format` field names — re-encoding it only adds a generation of loss.
+
+`rawImages` holds the designer's upload at its original framing: 832×1248 portrait where the design shows a 616×464 landscape. That makes it the **original source** — it sets the export's scale ceiling and stays in `assets/` for a later re-crop; where a crop exists, the crop is what ships. Several entries at one aspect (within 1%) are one picture at several resolutions, so the largest is it; aspects that differ, or `rawImagesTruncated`, mean the row claims one fill over a subtree holding more — OPEN QUESTION.
 
 **`export` flattens**, so a node whose subtree holds text reaches the user as an OPEN QUESTION naming each string, and that export waits on the answer — the inventory flags it, `get_metadata` confirms it at export time. Flattening trades live copy for pixels: right for a badge, wrong for a card whose heading and CTA belong in markup.
 
-**Scale** applies to `export` alone — `rawImages` and `svgAssets` are scale-free. Pass `defaultScale` explicitly every time, so a node's own export settings never decide it, and take the largest value satisfying both — or the first alone on a composition, which carries no original source to cap it:
+**Scale** applies to `export` alone — `rawImages` and `svgAssets` are scale-free. Pass `defaultScale` explicitly every time, so a node's own export settings never decide it, and take the largest value satisfying all three — or the first two alone on a composition, which carries no original source to cap it:
 
 - `≤ 4`, `w × h ≤ 20 MP`, `max(w,h) ≤ 5760` — Files rejects above 20 MP and `image_url` caps at 5760 px, so a blanket 4x fails on square assets.
+- **`max(w,h) ≤ 4096`** — `download_assets` caps a render there when the node carries no export settings of its own.
 - **The original source's real resolution**, `source_w ÷ (node_w × w%)` from the fill's rendered percentage — 1.35 for an 832-wide original filling a 616-wide node. Past it Figma interpolates, and upscaling invents no detail.
 
-Filenames kebab-case from the Figma layer name, extension by format. One node, one file.
+Filenames kebab-case from the Figma layer name, extension by delivered format. One node, one file.
 
-**Three checks close the phase:**
+**Four checks close the phase:**
 
+- **Alpha** — every asset the inventory marks as needing transparency carries pixels below full opacity. A file that is 100% opaque failed, however plausible it looks; report the node and the measured figure rather than the eye.
 - **Bounds** — each `export`-sourced file's pixels ÷ its scale equals the node's `w`×`h` within 1 px. Short means the parent frame **clipped** it: report the node and both numbers.
 - **Identity** — each asset node-id is its own, distinct from the desktop and mobile frame node-ids the run was given.
 - **Count** — shipping files in `assets/` equals inventory rows, and `original-source-*` equals the raster-fill rows; name any miss.
 
 **Source-quality flag:** when an original source is narrower than 2× its slot's rendered CSS width, record it in the plan and the final output with the layer name and both numbers. The remedy is new source art in Figma, not a bigger export.
 
-`assets/UPLOAD.md` closes the phase and keeps the folder self-describing once the run's temp directory is gone:
+`assets/UPLOAD.md` closes the phase and keeps the folder self-describing once the run's temp directory is gone. The archive block carries every raster-fill row:
 
 ```
 UPLOAD THESE
 <file>                  <w>×<h>  → <destination>
 
 DO NOT UPLOAD — archive only
-original-source-<file>  <w>×<h>  uncropped
+original-source-<file>  <w>×<h>  the untouched source; the same bytes as the
+                                 shipping file where the row was uncropped
 ```
 
 ## Asset delivery — uploaded to the app
@@ -300,11 +328,11 @@ These exports are the remedy for the app-served images and icons on the not-CSS-
 | Asset | Export as |
 |---|---|
 | Icon, flat illustration, logo, line art | **SVG** |
-| Photo, hero, product shot | **PNG** crop |
+| Photo, hero, product shot | **PNG** where any pixel is transparent, **JPEG** where fully opaque |
 
-Upload the crops: whatever the app hands to Shopify's CDN gets re-encoded to WebP or AVIF per browser and per derivative on its own, so pre-converting only adds a generation of loss and no image encoder ever reaches the ledger.
+Upload what ships: whatever the app hands to Shopify's CDN gets re-encoded to WebP or AVIF per browser and per derivative on its own, so pre-converting only adds a generation of loss and no image encoder ever reaches the ledger.
 
-The crop is framed to the Figma node, which the override's own geometry then reproduces — the two agree by construction. Where the container's aspect is on the not-CSS-fixable list, the app re-crops the crop: report the region with both aspects and hand over `original-source-<name>` instead, so the app crops once from the full picture. This is the one case where the original source ships, so the plan and the final output name it.
+The crop is framed to the Figma node, which the override's own geometry then reproduces — the two agree by construction. Where the container's aspect is on the not-CSS-fixable list, the app re-crops the crop: report the region with both aspects and hand over `original-source-<name>` instead, so the app crops once from the full picture. This is the one case where a *cropped* row falls back to its original source, so the plan and the final output name it.
 
 Where existing theme or app code pipes an asset through `image_url` with `format: 'pjpg'`, it forfeits WebP and AVIF entirely — report it on the region under measurement.
 
@@ -400,7 +428,7 @@ If no render or capture path exists even with temporary installs: revert any liv
 
 **7. Cleanup.** The ledger lists every temporary install (name, method, location). When `.agent/COMPONENTS.md` is at this skill's format, append the override-stylesheet row (plus the Animations row when the override introduces reusable motion), refresh its header and `updates:`, and rerun its format gate; absent, lower-format, and higher-format docs are reported and left unchanged. Then uninstall project-local packages, delete venvs, `npx playwright uninstall` downloaded browsers, and delete the temp working directory (including subagent reports). The Browser pane is a built-in — nothing to uninstall; `.claude/launch.json`, if created per the plan, is project config and stays. RETAIN `.agent/` in full — the knowledge docs for the next run, plus `.agent/shopify-app-restyle/visual-check/<widget-name>/` (the design spec, the references, the result renders per breakpoint and state, exported assets) — untracked via `.git/info/exclude`. The user reviews it, uploads the files `assets/UPLOAD.md` lists via the theme editor / app admin, and manages the folder themselves. Nothing from the task gets committed.
 
-**Final output (no explanatory prose):** files created/changed; the revert proof (`grep -r VERIFY-HARDCODE` clean, no `vh-tmp-*` remaining) or **REVERT FAILED** with the breadcrumb path; the style report per breakpoint and state — state, element, property, expected, actual per surviving mismatch, or "no mismatches" — with the leak findings; the not-CSS-fixable list (if any), each hardcoded region named among them; any source-quality flags; any region where the original source ships instead of the crop, with both aspects; any inline-branch assets, named as not swappable from the app admin; the delegation map; the tooling ledger with removal confirmation (or "nothing installed"); knowledge-doc status — `app-widget-<app-handle>.md` reused (fresh) / updated / created; `.agent/THEME-CAPABILITIES.md` observed `format: <n>` and read as fresh/stale/higher-version-as-is, or absent (`format: unknown`; exact sections `## §Globals` + `## §CSS load` derived per-run); `.agent/COMPONENTS.md` observed `format: <n>` and row appended for the override stylesheet (+ Animations row when the override added reusable motion), or absent/lower/higher (`format: <n>`; skipped); the path `.agent/shopify-app-restyle/visual-check/<widget-name>/` with a one-line inventory (the design spec, the references, the result renders per breakpoint and state, shipping crops and `original-source-*` counts per format, `UPLOAD.md`) and exclusion confirmation; which environment-mismatch step resolved any dev/live disagreement — and after step 8, confirmation the original theme is live again.
+**Final output (no explanatory prose):** files created/changed; the revert proof (`grep -r VERIFY-HARDCODE` clean, no `vh-tmp-*` remaining) or **REVERT FAILED** with the breadcrumb path; the style report per breakpoint and state — state, element, property, expected, actual per surviving mismatch, or "no mismatches" — with the leak findings; the not-CSS-fixable list (if any), each hardcoded region named among them; any source-quality flags; any region where the original source ships instead of the crop, with both aspects; any inline-branch assets, named as not swappable from the app admin; the delegation map; the tooling ledger with removal confirmation (or "nothing installed"); knowledge-doc status — `app-widget-<app-handle>.md` reused (fresh) / updated / created; `.agent/THEME-CAPABILITIES.md` observed `format: <n>` and read as fresh/stale/higher-version-as-is, or absent (`format: unknown`; exact sections `## §Globals` + `## §CSS load` derived per-run); `.agent/COMPONENTS.md` observed `format: <n>` and row appended for the override stylesheet (+ Animations row when the override added reusable motion), or absent/lower/higher (`format: <n>`; skipped); the path `.agent/shopify-app-restyle/visual-check/<widget-name>/` with a one-line inventory (the design spec, the references, the result renders per breakpoint and state, shipping files and `original-source-*` counts per format, `UPLOAD.md`) and exclusion confirmation; which environment-mismatch step resolved any dev/live disagreement — and after step 8, confirmation the original theme is live again.
 
 ## Rules
 
@@ -412,8 +440,8 @@ If no render or capture path exists even with temporary installs: revert any liv
 - The style report reports; it never blocks completion. One check against the design spec, one correction round, then it is emitted with whatever remains — no threshold, no ratio, no iteration count, no verdict.
 - Per state as well as per breakpoint: capture hygiene, the `style-reporter` call, and the style report all run over both axes, and the report carries a state column. This is the skill's only permitted variation from the shared seven-step shape.
 - Only `figma-{breakpoint}[-{state}].png` and `result-{breakpoint}[-{state}].png` names are generated at the visual-check root, alongside the design spec — one result render per state the plan lists, no diff images, and no `clean-`, `section-`, or other render variant.
-- `assets/` holds the design's crop for each Figma node, each raster's `original-source-*` beside it; reference captures at the folder root hold the frame. The bounds and identity checks keep a clipped or whole-frame render out.
-- Upload the crops and let the CDN pick the format — no image encoder reaches the ledger.
+- `assets/` holds the shipping file for each Figma node — its crop where one exists, its original source where none does — each raster's `original-source-*` beside it; reference captures at the folder root hold the frame. The bounds, identity and alpha checks keep a clipped, whole-frame or page-backed render out.
+- Upload what ships and let the CDN pick the format — no image encoder reaches the ledger.
 - A hardcode is breadcrumbed before it exists and reverted on every exit — completion and abort alike — with the grep proof in the final output.
 - `.agent/` lives at the repo root, is always excluded via `.git/info/exclude`, and is never committed.
 - Knowledge docs first: read `.agent/shopify-app-restyle/app-widget-<app-handle>.md`, `.agent/THEME-CAPABILITIES.md`, and `.agent/COMPONENTS.md`, record each shared doc's `format:` value, and run the relevant format-version ladder before any widget inspection or theme scan; an inspection that runs writes the app-widget doc back before the task continues. Use the exact `## §Globals` and `## §CSS load` headings; an absent or stale THEME-CAPABILITIES doc triggers the declared per-run derivation. Cleanup appends COMPONENTS rows only when that doc exists at this skill's format; absent, lower-format, and higher-format docs are reported and left unchanged. Refresh `updates:` and rerun the format gate after an append. An explicit user refresh always wins.
