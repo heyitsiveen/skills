@@ -5,5 +5,9 @@
 node_modules/
 *.log
 
+# Python (skill test runs)
+__pycache__/
+*.pyc
+
 # Local issue tracker (see docs/agents/issue-tracker.md)
 .scratch/
