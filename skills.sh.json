@@ -11,6 +11,7 @@
         "figma-shopify-builder",
         "figma-shopify-composer",
         "figma-shopify-globals",
+        "sheet-to-shopify-metafields",
         "shopify-app-restyle",
         "shopify-copy-template-content",
         "shopify-inject-app-into-liquid",

@@ -36,6 +36,7 @@ Pixel-accurate theme building, app-widget styling & injection, and template cont
 
 **User-invoked**
 
+- **[sheet-to-shopify-metafields](./personal/shopify/sheet-to-shopify-metafields/SKILL.md)** — Push product copy from a Google Sheet into Shopify product metafields through the browser, converting the source HTML into the shape Shopify can actually store and taking a restorable backup before it overwrites anything.
 - **[shopify-copy-template-content](./personal/shopify/shopify-copy-template-content/SKILL.md)** — Copy sections or blocks from one template JSON into others at a chosen position, keeping the JSON valid and the source untouched.
 - **[shopify-inject-app-into-liquid](./personal/shopify/shopify-inject-app-into-liquid/SKILL.md)** — Make a third-party app's widget render inside a container you own, instead of wherever the app drops it by default.
 
