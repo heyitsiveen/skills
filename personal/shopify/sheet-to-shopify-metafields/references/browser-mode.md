@@ -6,23 +6,63 @@ Both the Backup capture and the write go through the admin's **bulk editor**, no
 
 Every mechanic below was established by doing it. Where one exists only because something silently misbehaves, the reason is stated — those are the ones not to optimise away.
 
+## Pin the order before anything else
+
+The product list's default sort is **`Created` / `Newest first`**. The sort control is not a button of its own — it lives in the list-settings popover behind the columns icon at the right of the search-and-filter bar.
+
+Skip the UI. **The sort is settable directly in the URL**, and that is what to use:
+
+```
+/store/<store>/products?order=title+asc
+```
+
+The parameter is `order`, the value `<field> <asc|desc>`, the space encoding as `+`. Observed field keys: `title`, `inventory_total`, `product_type`, `vendor`, `created_at`, `updated_at`, `publishing_error`.
+
+**Use `title+asc`. Never `updated_at`.** Saving a batch of metafields changes each product's updated time, so a list sorted that way **reorders itself underneath the pass** — the same corruption as a mid-pass window resize, from a cause that looks like nothing happening. A title sort is unaffected by anything this skill writes.
+
 ## Opening the grid
 
-1. Products list → select the **page** → **Bulk edit**. Store-wide "select all" does not carry into the bulk editor. Fifty at a time.
-2. **Columns** → clear every default column, then check only the mapped metafields **and `URL handle (SEO)`**.
+1. Products list at the pinned sort → select the page → **Bulk edit**. Fifty at a time.
+2. **Columns** → the `SEO` group holds `URL handle (SEO)`. Tick it. Default columns are five, and `Product title` cannot be unticked.
 3. Widen the handle column; narrow the title column.
 
-The handle column is not optional. Two products can share a title, and the grid is positional — the handle is the only thing tying a row to the product it belongs to.
+**The sort carries into the bulk editor, and its URL carries it too.** The bulk-edit URL holds both `order=` and an `ids=` list — and `ids=` is in *selection* order, not display order, so `order` is what actually drives the rows. Changing `order=title+desc` by hand reverses the grid, which means the row order is deterministic and settable rather than something to be discovered.
 
-## Settling the grid before touching it
+Ticking the handle column appends `handle` to the `edit=` parameter, so the whole grid can be opened in one known state.
 
-The grid lazy-loads and arrives with every product's variants expanded, so row positions do not correspond to products until they are collapsed.
+The header counts up as rows load — "Editing 15 products" then "Editing 18 products". **Wait for it to stop rising** before reading anything.
 
-Collapse by clicking every `button[aria-expanded="true"]` except those labelled `Columns` or starting with `Status`. Scroll down, collapse again, and repeat until the header count stops rising.
+## Never count rows. Read the handle.
 
-**Work strictly top-down from then on.** Collapse state resets when virtualised rows recycle, so scrolling back up mid-pass silently re-expands what was collapsed and every row position below moves.
+**A grid row is not a product.** A product with variants expands into extra rows — one real product with 260 variants becomes 260 extra rows — and on every one of those the product-level fields, including the handle, are **blank**.
 
-**If the browser window changes size mid-pass, stop.** Re-derive every row position before continuing. A resize shifts the whole grid, and the write lands on the wrong product with no error.
+So row position and product position are different numbers, and the difference is invisible unless you look for it.
+
+The rule that follows is short: **identify every row by the handle in its handle column.** A row with a blank handle is a variant row; skip it. A row whose handle is not in the write plan is a product the sheet does not cover; leave it completely alone.
+
+Collapsing variants is still worth doing — fewer rows, less scrolling. Click every `button[aria-expanded="true"]` except those labelled `Columns` or starting with `Status`, scroll, repeat until the header count settles. But collapsing is an optimisation, not the safety mechanism. The handle is the safety mechanism.
+
+**Work strictly top-down.** Collapse state resets when virtualised rows recycle, so scrolling back up mid-pass silently re-expands what was collapsed.
+
+**If the browser window changes size mid-pass, stop** and re-read the grid before continuing.
+
+## Matching the sheet to the grid
+
+The sheet's order and the admin's order have no reason to agree, and nothing is ever written by sheet position.
+
+```sh
+python3 scripts/convert.py match --converted <converted.json> --admin <admin-handles.json>
+```
+
+`admin-handles.json` is the list of product handles in admin list order, read off the pinned-sort product list. The plan comes back per page: which handles to write, which fields each needs, and where each sits in the **product list** — `list_position`, a number for a human to sanity-check against, never a grid row to count to.
+
+It fails when a sheet handle is not in the admin at all, naming each one, rather than quietly updating 51 of 52.
+
+`untouched_admin_products` says how many products the sheet does not cover. Those are never opened.
+
+## Selection
+
+The header checkbox selects the page, and the dropdown then offers `Select all N on page` and `Unselect all`. No store-wide "select all across your store" affordance was found on a single-page store, and page size is not URL-settable — `limit` is ignored. **On a store with more than fifty products this is unconfirmed**; check what the selection dropdown offers before assuming a whole catalogue can be taken in one go.
 
 ## Capturing the Backup
 
