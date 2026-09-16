@@ -71,8 +71,8 @@ say "none — every gap was accepted as an approximation".)
 ### Apps
 
 (App blocks copied across, with their app. App embeds are untouched by construction — say so.
-Any app injected into the Source theme's Liquid is named here as routed to
-`shopify-inject-app-into-liquid`, not attempted.)
+Any app injected into the Source theme's Liquid is named here as out of scope,
+not attempted.)
 
 ### What is not the Source page
 
