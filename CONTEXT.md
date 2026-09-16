@@ -1,6 +1,6 @@
 # Skills
 
-A Claude Code marketplace of agent skills, organised as bucket → domain → skill. The language below covers the Shopify theme-build skill suite in `personal/shopify/`, where most of the shared vocabulary lives.
+A Claude Code marketplace of agent skills, organised as bucket → domain → skill. The language below covers the skills in `personal/shopify/`, where most of the shared vocabulary lives — the theme-build suite first, then the sheet-to-metafields work, which shares none of its vocabulary and needed its own.
 
 ## Language
 
@@ -66,3 +66,41 @@ _Avoid_: new theme, revamped theme
 **Replicate**:
 To rebuild a Source page on the Target theme so that it renders the same, using the Target theme's existing sections wherever they reach.
 _Avoid_: copy, clone, port, migrate
+
+### Pushing sheet data into metafields
+
+**Run**:
+One execution of `sheet-to-shopify-metafields`: one Source sheet, one store, one Mapping. A Run is the unit a Backup covers and the unit an Undo restores.
+
+**Source sheet**:
+The Google Sheet a Run reads its new values from. Read-only to the skill — never written to, not even to add a tab.
+_Avoid_: the spreadsheet, the doc, the source of truth
+
+**Mapping**:
+The column → metafield correspondence a Run is given. Supplied per Run, never inferred: a column header and a metafield display name may differ (`Details (HTML)` → `Revamp Details`), and a metafield key may not follow its own naming convention (`Revamp Product Benefits` → `custom.product_benefits`).
+_Avoid_: the schema, the config, the column map
+
+**Pre-flight**:
+The audit a Run performs before it writes anything: real headers, true row count, empty mapped cells, duplicate handles, every HTML tag present in the source columns, and the contents of any notes column — including one the Mapping was told to ignore. Ignoring a column means not mapping it, not that its contents are irrelevant to whether the Run is safe.
+_Avoid_: validation, the dry run, the check
+
+**Converted value**:
+What the converter produces for one cell: a rich-text HTML fragment and its plain-text twin, or the ordered values of a list metafield. Produced before the browser is touched, and inspectable on screen before any write.
+_Avoid_: the payload, the output, the transformed cell
+
+**Welding**:
+The failure this design exists to prevent. Pasting a definition list into Shopify's rich-text metafield editor discards `<dl>`, `<dt>` and `<dd>` **and the whitespace around them**, concatenating every term to its value with no separator — `Best forEspressoOrigins…`. It saves without error and reads correctly in the admin's collapsed preview. Only the storefront shows it, and the pairing cannot be recovered.
+
+**Backup**:
+The prior values of every metafield a Run will write, captured before the first write, in a form that can restore them. A record that can only be read is not a Backup.
+_Avoid_: the snapshot, the export, the safety copy
+
+**Undo**:
+Restoring a Run's prior values from its Backup. Because clearing a metafield in the admin deletes the record rather than storing an empty one, an Undo can restore *absent* as absent.
+_Avoid_: revert (taken by Hardcode-then-revert), rollback, restore
+
+**Matrixify mode**:
+The path a Run takes when the store has Matrixify. One export is the Backup; one import is the write. No editor, no clipboard, none of Browser mode's hazards.
+
+**Browser mode**:
+The path a Run takes without Matrixify. The Backup and the write both go through the admin's bulk editor, fifty products at a time, saving every twenty.
