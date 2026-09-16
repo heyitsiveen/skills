@@ -1,6 +1,6 @@
 ---
 name: sheet-to-shopify-metafields
-description: Use when the user wants product copy pushed from a Google Sheet into Shopify product metafields through the browser, with no Shopify API. Triggers on "update product metafields from this sheet", "push the PDP copy to Shopify", "bulk fill metafields from a spreadsheet", "write the sheet columns into the metafields", a structured prompt carrying `Sheet:`, `Store:`, `Mapping:` or `Matrixify:`, and on "undo the metafield run" / "put the old metafield values back" for reversing a previous Run. Also use when asked to audit such a sheet before writing anything. For copying sections between template JSON files use `shopify-copy-template-content`; for building a section from Figma use `figma-shopify-builder`.
+description: Use when the user wants product copy pushed from a Google Sheet into Shopify product metafields through the browser, with no Shopify API. Triggers on "update product metafields from this sheet", "push the PDP copy to Shopify", "bulk fill metafields from a spreadsheet", "write the sheet columns into the metafields", a structured prompt carrying `Sheet:`, `Store:`, `Mapping:` or `Matrixify:`, and on "undo the metafield run" / "put the old metafield values back" for reversing a previous Run. Also use when asked to audit such a sheet before writing anything. For building a section from Figma use `figma-shopify-builder`.
 user-invocable: true
 ---
 

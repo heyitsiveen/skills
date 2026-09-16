@@ -1,6 +1,6 @@
 ---
 name: shopify-page-replicate
-description: Replicate a page from a client's current theme onto their revamped theme as a temporary stand-in, built from the revamped theme's EXISTING sections and configured to match the old page — for pages the revamp has not redesigned yet, where no Figma frame exists. Use when the user points at a live or preview page URL and wants that page rebuilt on another theme of the same store, or asks to replicate/recreate/stand in a page that has no new design. Recreating a design from Figma frames is figma-shopify-composer's job; moving sections between templates inside ONE theme is shopify-copy-template-content's. Where the theme's own sections cannot reach the page, a replica section is written only when the user chooses that over the closest approximation. The build reads from a design spec extracted from the rendered page, keeps the page's own colors and spacing while inheriting only the target theme's fonts, and reports computed styles against that spec.
+description: Replicate a page from a client's current theme onto their revamped theme as a temporary stand-in, built from the revamped theme's EXISTING sections and configured to match the old page — for pages the revamp has not redesigned yet, where no Figma frame exists. Use when the user points at a live or preview page URL and wants that page rebuilt on another theme of the same store, or asks to replicate/recreate/stand in a page that has no new design. Recreating a design from Figma frames is figma-shopify-composer's job; Where the theme's own sections cannot reach the page, a replica section is written only when the user chooses that over the closest approximation. The build reads from a design spec extracted from the rendered page, keeps the page's own colors and spacing while inheriting only the target theme's fonts, and reports computed styles against that spec.
 ---
 
 # Shopify Page Replicate
@@ -541,9 +541,9 @@ ALREADY IN FILES — nothing to do
 |---|---|
 | **An app block** in the source template's `order` or a section's `blocks` | copied straight across — same store, same installed apps, so the app that was on the page is still on the page |
 | **An app embed** (store-wide, in `settings_data.json`'s `current.blocks`) | left alone. A page-level run does not touch store-wide app settings |
-| **An app injected into the Source theme's Liquid** — a snippet, a hardcoded script tag, markup inside a section file | named in the plan and ROUTED to `shopify-inject-app-into-liquid`. Never attempted here |
+| **An app injected into the Source theme's Liquid** — a snippet, a hardcoded script tag, markup inside a section file | named in the plan as OUT OF SCOPE. Never attempted here |
 
-The routing is proposed, never executed: the run names the skill, the app, and the element,
+The exclusion is named, never worked around: the run names the app and the element,
 and the user decides. Growing a second job into this skill is how it stops doing this one.
 
 ## Hardcode-then-revert
@@ -729,7 +729,7 @@ accept-or-build choice on every UNACHIEVABLE element, and the temporary installs
   assigned to, and the staged filename for anything downloaded; the sort's counts; any
   source-quality flags; `assets/UPLOAD.md` is written from this list.
 - **App plan** (§Apps on the page): the app blocks being copied, confirmation that app embeds
-  are untouched, and any Liquid-injected app named as routed to `shopify-inject-app-into-liquid`.
+  are untouched, and any Liquid-injected app named as out of scope.
 - **Template diff**: the exact JSON — the new `sections` map and the new `order`, replacing the
   target template's whole `order`; or the whole file where the template is being created. The
   pointer comment as its first line.
@@ -937,8 +937,8 @@ reconciliation per surviving mismatch, or "no mismatches" — with the broken fo
 out, the approximations' deltas given, and the UNACHIEVABLE elements named as excluded; the font
 table with every weight substitution; the accept-or-build outcome per UNACHIEVABLE element; the
 override table's row count; the asset sort's counts
-with any miss named and any source-quality flags; the app blocks copied and any app routed to
-`shopify-inject-app-into-liquid`; any image region no hardcode tier reached, named as showing
+with any miss named and any source-quality flags; the app blocks copied and any Liquid-injected
+app named as out of scope; any image region no hardcode tier reached, named as showing
 empty in the result render; the delegation map and whether the Shopify CLI pull of the Source
 theme succeeded; the tooling ledger with removal confirmation (or "nothing installed");
 knowledge-doc status, one line each for `.agent/THEME-CAPABILITIES.md` and
@@ -995,7 +995,7 @@ confirmation.
 - An image already in Files keeps its reference; an image living in the Source theme's assets is
   downloaded and staged for upload; the sort is proven by count and any miss is named.
 - App blocks are copied, app embeds are untouched, and an app injected into the Source theme's
-  Liquid is routed to `shopify-inject-app-into-liquid` and never attempted here.
+  Liquid is named as out of scope and never attempted here.
 - A hardcode is breadcrumbed before it exists and reverted on every exit — completion and abort
   alike — with the grep proof in the final output.
 - Knowledge docs first: read `.agent/THEME-CAPABILITIES.md` and `.agent/COMPONENTS.md` before
