@@ -66,6 +66,8 @@ It exits 0 when every rule holds, and otherwise names the offending path and exi
 
 It runs on its own now: a pre-commit hook and a CI job both call it, so a broken invariant cannot land. Enable the hook once per clone with `git config core.hooksPath .githooks`.
 
+The same CI job also runs every skill's Python tests: each folder outside `deprecated/` that holds `test*.py` files is one standard-library `unittest` suite, run as `python3 -m unittest discover -s <folder>`. Name a test file `test*.py`, or CI never runs it.
+
 The rules that need **judgement** — the three permitted Phase 4 variations, which duplication is deliberate and which divergence is, whether a `description` fires at the right time — cannot be asserted and live in [`CODING_STANDARDS.md`](CODING_STANDARDS.md), read at review time. When a check turns out to be wrong, change the rule here and the assertion in `check.sh` in the same commit.
 
 ## Distribution

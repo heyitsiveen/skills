@@ -19,3 +19,16 @@ jobs:
         run: bash -n scripts/check.sh
       - name: Cross-file invariants
         run: ./scripts/check.sh
+      # Each folder holding test*.py files is one standard-library unittest
+      # suite, so a skill with no tests adds nothing to run. Hidden folders and
+      # deprecated/, a frozen snapshot, hold no skill and are not searched.
+      # Every suite runs even after one fails, so no failure hides another.
+      - name: Python test suites
+        run: |
+          status=0
+          while IFS= read -r dir; do
+            echo "== $dir"
+            python3 -m unittest discover -s "$dir" || status=1
+          done < <(find . \( -path './.*' -o -path ./deprecated \) -prune -o \
+                     -name 'test*.py' -print | sed 's|/[^/]*$||' | sort -u)
+          exit "$status"
