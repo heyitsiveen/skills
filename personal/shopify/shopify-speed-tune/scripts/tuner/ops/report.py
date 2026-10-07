@@ -6,6 +6,7 @@ Chrome versions that took every Sample.
 """
 
 import math
+from datetime import datetime
 
 from tuner import ledger, stats, tools
 from tuner.output import say
@@ -66,7 +67,7 @@ def render(inv):
         "| | |",
         "|---|---|",
         "| Store | %s (`%s`) |" % (store["url"], store["myshopify"]),
-        "| Invocation | `%s`, started %s |" % (inv.id, data.get("created_at", "")),
+        "| Invocation | `%s`, started %s |" % (inv.id, when(data.get("created_at"))),
         "| Requested score | %s |" % data.get("requested_score"),
         "| Measured on | the Control theme `%s` (#%s), an unpublished copy of the published "
         "theme `%s` (#%s) |" % (control.get("name"), control.get("id"), published.get("name"),
@@ -120,7 +121,24 @@ def render(inv):
             warnings[key] = warnings.get(key, 0) + 1
     if warnings:
         lines += ["", "## Lighthouse warnings", ""]
-        for (page, device, warning), count in sorted(warnings.items()):
+        for (page, device, warning), count in sorted(warnings.items(), key=page_order):
             lines.append("- %s %s, %d Sample%s: %s" % (PAGE_NAMES.get(page, page), device, count,
                                                       "" if count == 1 else "s", warning))
     return "\n".join(lines) + "\n"
+
+
+def page_order(item):
+    (page, device, warning), _ = item
+    rank = stats.PAGE_ORDER.index(page) if page in stats.PAGE_ORDER else len(stats.PAGE_ORDER)
+    return rank, stats.DEVICES.index(device), warning
+
+
+def when(stamp):
+    """An ISO timestamp as `2026-10-08 06:00 (UTC+08:00)`."""
+    try:
+        moment = datetime.fromisoformat(stamp)
+    except (TypeError, ValueError):
+        return stamp or "?"
+    offset = moment.strftime("%z")
+    zone = " (UTC%s:%s)" % (offset[:3], offset[3:]) if offset else ""
+    return moment.strftime("%Y-%m-%d %H:%M") + zone
