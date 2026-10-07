@@ -2,10 +2,13 @@
 """Fake `curl` for the decision program's tests: a storefront served from FAKE_STORE.
 
 It understands only the flags the program uses (-s -S -o -D -A -H --max-time)
-and answers like a Shopify storefront:
+and answers like a Shopify storefront did in October 2026:
 
 - /meta.json                  the shop's identity
 - /?preview_theme_id=<id>     302 with a preview cookie for an unpublished theme
+- a plain URL with a cookie   302 to /services/access_tokens/create_sharing/<id>
+  that is not yet shared      until the cookie has visited that URL once
+- the create_sharing URL      302 back to its return_to, sharing the cookie
 - any other path              200 HTML rendered by the theme the cookie selects,
                               or by the published theme when there is none
 """
@@ -13,7 +16,7 @@ and answers like a Shopify storefront:
 import json
 import os
 import sys
-from urllib.parse import parse_qs, urlsplit
+from urllib.parse import parse_qs, quote, urlsplit
 
 state_path = os.environ["FAKE_STORE"]
 with open(state_path, encoding="utf-8") as f:
@@ -105,6 +108,20 @@ if "preview_theme_id" in query:
 served = live()
 if cookie.startswith("_shopify_essential=fake-"):
     chosen = theme(int(cookie.split("-")[1]))
+    shared = store.setdefault("shared_cookies", [])
+    if parts.path.startswith("/services/access_tokens/create_sharing/"):
+        if cookie not in shared and not store.get("refuses_sharing"):
+            shared.append(cookie)
+            with open(state_path, "w", encoding="utf-8") as f:
+                json.dump(store, f, indent=2)
+        back = query.get("return_to", ["/"])[0]
+        respond(302, ["location: https://%s%s" % (shop["domain"], back)], "")
+    if chosen is not None and cookie not in shared:
+        respond(302, [
+            "location: https://%s/services/access_tokens/create_sharing/%d?return_to=%s"
+            % (shop["domain"], chosen["id"], quote(parts.path, safe="")),
+            timing(chosen["id"]),
+        ], "")
     if chosen is not None:
         served = chosen
 

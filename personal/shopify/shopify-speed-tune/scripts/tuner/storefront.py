@@ -9,7 +9,7 @@ import os
 import re
 import tempfile
 import time
-from urllib.parse import urlsplit
+from urllib.parse import urljoin, urlsplit
 
 from tuner.output import Failed, Refused
 from tuner.proc import run
@@ -92,29 +92,40 @@ def fetch(url, cookie=None, timeout=30):
     return response
 
 
-def preview_cookie(store_url, theme_id, retry_pause=10):
+SHARING = "/services/access_tokens/create_sharing/"
+
+
+def preview_cookie(store_url, theme_id):
     """The cookie that makes the plain storefront URL render an unpublished theme.
 
     Shopify answers `/?preview_theme_id=<id>` with a redirect that sets
-    `_shopify_essential`; sent alone on a plain URL, that cookie selects the
-    theme. The query parameter itself is never used for a Sample: its redirect
-    adds most of a second to every load. Returns `_shopify_essential=<value>`.
+    `_shopify_essential`. Sent alone on a plain URL, that cookie first redirects
+    to a `create_sharing` URL; once the cookie has visited that URL, the plain
+    URL renders the theme. The query parameter itself is never used for a
+    Sample: its redirect adds most of a second to every load.
+    Returns `_shopify_essential=<value>`, already shared.
     """
     for attempt in (1, 2):
         response = fetch("%s?preview_theme_id=%s" % (store_url, theme_id))
-        if "create_sharing" in (response.header("location") or ""):
-            if attempt == 1:
-                time.sleep(retry_pause)
-                continue
-            raise Failed("preview-refused",
-                         "%s refused an anonymous preview of theme %s" % (store_url, theme_id))
+        cookie = None
         for value in response.headers.get("set-cookie", []):
             m = re.match(r"\s*(_shopify_essential=[^;]+)", value)
             if m:
-                return m.group(1)
-        break
-    raise Failed("preview-refused", "%s set no preview cookie for theme %s (HTTP %d)"
-                 % (store_url, theme_id, response.status))
+                cookie = m.group(1)
+        if cookie is None:
+            raise Failed("preview-refused", "%s set no preview cookie for theme %s (HTTP %d)"
+                         % (store_url, theme_id, response.status))
+        plain = fetch(store_url, cookie=cookie)
+        target = plain.header("location") or ""
+        if SHARING not in target:
+            return cookie
+        fetch(urljoin(store_url, target), cookie=cookie)
+        if SHARING not in (fetch(store_url, cookie=cookie).header("location") or ""):
+            return cookie
+        if attempt == 1:
+            time.sleep(float(os.environ.get("SPEED_TUNE_POLL_SECONDS", "10")))
+    raise Failed("preview-refused", "%s refused to share a preview of theme %s"
+                 % (store_url, theme_id))
 
 
 def verify_theme(url, cookie, theme_id):

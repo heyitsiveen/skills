@@ -33,6 +33,18 @@ class StoreMustMatchTheRepo(unittest.TestCase):
             self.assertEqual(library[theme_id]["role"], "unpublished")
 
 
+class BothThemesMustPreview(unittest.TestCase):
+    def test_a_store_that_refuses_to_share_a_preview_stops_start(self):
+        box = Sandbox(self)
+        box.edit_store(lambda s: s.update(refuses_sharing=True))
+
+        result = box.run("start", "--store", STORE_URL)
+
+        self.assertEqual(result.code, 1, result)
+        self.assertRegex(result.out, r"(?m)^FAILED preview-refused: ")
+        self.assertNotIn("START ready", result.out)
+
+
 class TheRepoMustNameOnlyItsStore(unittest.TestCase):
     def test_a_repo_without_shopify_theme_toml_is_refused(self):
         box = Sandbox(self)
