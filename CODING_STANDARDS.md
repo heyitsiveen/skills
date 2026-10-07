@@ -62,7 +62,7 @@ A model-invoked skill fires on its `description` and nothing else. `check.sh` on
 
 ### Invocation grouping
 
-`README.md` groups each category under **User-invoked** / **Model-invoked**. A skill is user-invoked when it is a slash command or sets `user-invocable: true`. The grouping cannot be checked mechanically, because a slash command carries no frontmatter flag — so confirm by hand that a skill's README group matches how it is actually reached.
+`README.md` groups each category under **User-invoked** / **Model-invoked**. A skill is user-invoked when it is a slash command or its frontmatter sets `user-invocable: true` or `disable-model-invocation: true`. The grouping cannot be checked mechanically, because a slash command carries no frontmatter flag — so confirm by hand that a skill's README group matches how it is actually reached.
 
 ### Don't re-litigate ADRs
 

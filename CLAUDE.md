@@ -35,7 +35,7 @@ Whenever you add, rename, move, or retire a skill, update all three (and this fi
 
 ## Invocation
 
-- **User-invoked** — run on demand: a slash command like `/gc`, or a skill whose frontmatter sets `user-invocable: true` (built to be triggered directly, usually with a structured prompt).
+- **User-invoked** — run on demand: a slash command like `/gc`, or a skill whose frontmatter sets `user-invocable: true` or `disable-model-invocation: true` (built to be triggered directly, usually with a structured prompt).
 - **Model-invoked** — the agent reaches for them automatically when the task matches their `description`.
 
 `README.md` groups each category's entries under **User-invoked** / **Model-invoked** headings.
