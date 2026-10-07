@@ -16,7 +16,7 @@ import time
 from datetime import datetime
 
 from tuner import ledger, lock, repo, shopify, storefront, tools
-from tuner.output import Failed, Refused, say
+from tuner.output import Failed, Refused, Stop, say
 
 ORDER = 10
 THEME_LIMIT = 20
@@ -92,7 +92,7 @@ def run(args):
 
     try:
         prepare(inv, configured, published)
-    except Failed as failure:
+    except Stop as failure:
         inv.log("start", "failed: %s" % failure)
         inv.save()
         failure.notes = failure.notes + (

@@ -40,6 +40,7 @@ def run(args):
     return_to_start_branch(inv, discard=args.discard)
 
     if tools.restore_chrome_preferences(data["tools"].get("chrome_preferences")):
+        inv.save()
         say("FINISH", "chrome-preferences restored")
     workspace = data.get("workspace")
     if workspace and os.path.isdir(workspace) and \

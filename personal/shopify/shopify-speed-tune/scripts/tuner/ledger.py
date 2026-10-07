@@ -92,7 +92,13 @@ def current(op):
         raise Refused("other-repo", "the open invocation belongs to %s, not %s (%s)"
                       % (held.get("repo"), here, lock.describe(held)),
                       "Run the program from that repo, or finish that invocation first.")
-    inv = load(os.path.dirname(held["ledger"]))
+    try:
+        inv = load(os.path.dirname(held.get("ledger", "")))
+    except (OSError, ValueError):
+        raise Refused("no-ledger", "the lock names a ledger that cannot be read: %s"
+                      % held.get("ledger"),
+                      "If that invocation was abandoned, clear the lock with "
+                      "`unlock --invocation %s`." % held.get("invocation"))
     lock.touch(inv.id, op)
     return inv
 

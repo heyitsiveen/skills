@@ -77,11 +77,16 @@ def save_chrome_preferences(workspace):
 
 
 def restore_chrome_preferences(snapshot):
-    if not snapshot or not snapshot.get("saved") or shutil.which("defaults") is None:
+    """Put the saved domain back once; True when this call restored it."""
+    if not snapshot or not snapshot.get("saved") or snapshot.get("restored") \
+            or shutil.which("defaults") is None:
         return False
     if snapshot.get("existed"):
+        if not os.path.isfile(snapshot["file"]):
+            return False
         argv = ["defaults", "import", CFT_DOMAIN, snapshot["file"]]
     else:
         argv = ["defaults", "delete", CFT_DOMAIN]
     subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, text=True)
+    snapshot["restored"] = True
     return True
