@@ -33,7 +33,8 @@
         "./shopify/rebuy-widget-customization",
         "./shopify/sheet-to-shopify-metafields",
         "./shopify/shopify-app-restyle",
-        "./shopify/shopify-page-replicate"
+        "./shopify/shopify-page-replicate",
+        "./shopify/shopify-speed-tune"
       ]
     },
     {
