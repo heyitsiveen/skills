@@ -1,0 +1,133 @@
+#!/usr/bin/env python3
+"""Fake pnpm for the decision program's tests: `pnpm dlx` of the two tools it runs.
+
+- `@puppeteer/browsers@3.2.3 install chrome@<build> --path <dir>` lays out a
+  stand-in Chrome for Testing and prints its path.
+- `lighthouse@13.5.0 --version` prints the version.
+- `lighthouse@13.5.0 <url> …` writes the next real report from FAKE_STORE's
+  queue for the device the flags ask for, as the page the cookie selects.
+
+It holds the program to the same contract the real tools do: the pnpm store and
+cache must be isolated, Chrome must be the invocation's own, the URL comes
+first, error reporting is off, and a preview cookie travels in a flags file.
+"""
+
+import json
+import os
+import re
+import stat
+import sys
+from urllib.parse import urlsplit
+
+state_path = os.environ["FAKE_STORE"]
+with open(state_path, encoding="utf-8") as f:
+    store = json.load(f)
+
+
+def fail(message, code=1):
+    sys.stderr.write(message + "\n")
+    sys.exit(code)
+
+
+args = sys.argv[1:]
+if args[:1] != ["dlx"]:
+    fail("fake pnpm: only `pnpm dlx` is expected, got %r" % args, 2)
+args = args[1:]
+while args and args[0].startswith("--"):  # pnpm's own options precede the spec
+    args = args[1:]
+if not args:
+    fail("fake pnpm: no package spec", 2)
+
+for var in ("PNPM_CONFIG_STORE_DIR", "PNPM_CONFIG_CACHE_DIR"):
+    if not os.environ.get(var):
+        fail("fake pnpm: %s is not set, so this would write the global pnpm store" % var)
+
+spec, rest = args[0], args[1:]
+
+if spec == "@puppeteer/browsers@3.2.3":
+    if rest[:1] != ["install"]:
+        fail("fake pnpm: unsupported browsers command %r" % rest, 2)
+    build = rest[1].split("@", 1)[1]
+    path = rest[rest.index("--path") + 1]
+    if not os.path.isabs(path):
+        fail("fake pnpm: --path must be absolute, got %r" % path)
+    exe = os.path.join(path, "chrome", "mac_arm-%s" % build, "chrome-mac-arm64",
+                       "Google Chrome for Testing.app", "Contents", "MacOS",
+                       "Google Chrome for Testing")
+    os.makedirs(os.path.dirname(exe), exist_ok=True)
+    with open(exe, "w", encoding="utf-8") as f:
+        f.write("#!/bin/sh\nexit 0\n")
+    os.chmod(exe, os.stat(exe).st_mode | stat.S_IXUSR)
+    fmt = rest[rest.index("--format") + 1] if "--format" in rest else "{{browser}}@{{buildId}} {{path}}"
+    print(fmt.replace("{{browser}}", "chrome").replace("{{buildId}}", build).replace("{{path}}", exe))
+    sys.exit(0)
+
+if not spec.startswith("lighthouse@"):
+    fail("fake pnpm: unexpected package %r" % spec, 2)
+if spec != "lighthouse@13.5.0":
+    fail("fake pnpm: this store only has lighthouse@13.5.0, not %r" % spec)
+
+if rest == ["--version"]:
+    print("13.5.0")
+    sys.exit(0)
+
+if not rest or rest[0].startswith("-"):
+    fail("Please provide a url")
+url, flags = rest[0], rest[1:]
+
+chrome = os.environ.get("CHROME_PATH", "")
+if not (os.path.isfile(chrome) and os.access(chrome, os.X_OK)):
+    fail("ChromeNotInstalledError: CHROME_PATH %r is not an executable" % chrome)
+if "--no-enable-error-reporting" not in flags:
+    fail("fake pnpm: without --no-enable-error-reporting Lighthouse writes ~/.config/configstore")
+if any(f.startswith("--extra-headers") and "{" in f for f in flags):
+    fail("fake pnpm: a cookie in argv shows in `ps`; pass it in a flags file")
+
+
+def value(name):
+    for f in flags:
+        if f.startswith(name + "="):
+            return f.split("=", 1)[1]
+    return None
+
+
+output_path = value("--output-path")
+if not output_path:
+    fail("fake pnpm: no --output-path")
+extra_headers = None
+if value("--cli-flags-path"):
+    with open(value("--cli-flags-path"), encoding="utf-8") as f:
+        extra_headers = json.load(f).get("extraHeaders")
+device = "desktop" if value("--preset") == "desktop" else "mobile"
+
+served = next(t for t in store["themes"] if t["role"] == "live")
+cookie = (extra_headers or {}).get("Cookie", "")
+match = re.match(r"_shopify_essential=fake-(\d+)-cookie$", cookie)
+# drops_cookie: the browser lost the header, so the store served its published theme.
+if match and not store["lighthouse"].get("drops_cookie"):
+    served = next((t for t in store["themes"] if t["id"] == int(match.group(1))), served)
+
+queue = store["lighthouse"][device]
+count = store["lighthouse"].setdefault("taken", {}).get(device, 0)
+fixture = queue[count % len(queue)]
+store["lighthouse"]["taken"][device] = count + 1
+with open(state_path, "w", encoding="utf-8") as f:
+    json.dump(store, f, indent=2)
+
+with open(fixture, encoding="utf-8") as f:
+    report = json.load(f)
+
+# The preview query parameter redirects to the plain URL, as on a real store.
+landed = url.split("?preview_theme_id")[0]
+report["requestedUrl"] = url
+report["mainDocumentUrl"] = report["finalDisplayedUrl"] = landed
+host = urlsplit(url).hostname
+number = store.get("asset_numbers", {}).get(str(served["id"]), 1)
+for item in report["audits"]["network-requests"]["details"]["items"]:
+    item["url"] = re.sub(r"^https://[^/]+", "https://" + host, item["url"])
+    item["url"] = re.sub(r"/cdn/shop/t/\d+/", "/cdn/shop/t/%d/" % number, item["url"])
+report.setdefault("configSettings", {})["extraHeaders"] = extra_headers
+
+with open(output_path, "w", encoding="utf-8") as f:
+    json.dump(report, f)
+sys.exit(0)

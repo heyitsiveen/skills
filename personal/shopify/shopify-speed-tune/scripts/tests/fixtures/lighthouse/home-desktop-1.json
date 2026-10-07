@@ -1,0 +1,191 @@
+{
+ "lighthouseVersion": "13.5.0",
+ "requestedUrl": "https://store.example/",
+ "mainDocumentUrl": "https://store.example/",
+ "finalDisplayedUrl": "https://store.example/",
+ "fetchTime": "2026-10-07T21:40:42.042Z",
+ "runWarnings": [
+  "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+ ],
+ "environment": {
+  "hostUserAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+  "credits": {
+   "axe-core": "4.14.0"
+  }
+ },
+ "configSettings": {
+  "formFactor": "desktop",
+  "extraHeaders": null
+ },
+ "categories": {
+  "performance": {
+   "score": 0.88
+  },
+  "accessibility": {
+   "score": 0.94
+  }
+ },
+ "audits": {
+  "first-contentful-paint": {
+   "numericValue": 760.6212928771973,
+   "numericUnit": "millisecond"
+  },
+  "largest-contentful-paint": {
+   "numericValue": 2177.556377349854,
+   "numericUnit": "millisecond"
+  },
+  "total-blocking-time": {
+   "numericValue": 3,
+   "numericUnit": "millisecond"
+  },
+  "cumulative-layout-shift": {
+   "numericValue": 3.318767694013951e-05,
+   "numericUnit": "unitless"
+  },
+  "speed-index": {
+   "numericValue": 1121.461652767286,
+   "numericUnit": "millisecond"
+  },
+  "network-requests": {
+   "details": {
+    "items": [
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/critical.css?v=19156505368130484971787729508"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/swiper-bundle.min.css?v=28935635071648937771787729509"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/loader.css?v=167543319965776213751787729509"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/toast.css?v=123631997579840776401787729510"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/scroll-shadow.css?v=30193809147179601081787729509"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/video-player.css?v=118666841815353052901787729508"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/sticky-add-to-cart.css?v=172258083435992148281787729508"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/nav-panel.css?v=36705063307078071761787729508"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/dropdown-menu.css?v=58453767977385003171787729510"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/sheet-menu.css?v=30631438094504123231788002086"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/dialog-menu.css?v=114121083340782281421787729510"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/quick-view.css?v=72383612429634034071790129707"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/input.css?v=135719220095235167071787729509"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/accordion.css?v=72339561723780080711787729507"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/gsc-instagram-overrides.css?v=143350410625111438391788558912"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/lazysizes.min.js?v=56805471290311245611787729509"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/swiper-bundle.min.js?v=112363457588466789761787729510"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/scroll-shadow.js?v=162336993044809908471787729510"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/video-player.js?v=71619390498859573441787729508"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/collection-tabs.js?v=164872106704507881041787729508"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/product-hotspots.js?v=80035838591906008731787729508"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/monotone-noise.js?v=11897303371095212301787729507"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/image-comparison-slider.js?v=35885581428553668841787729508"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/product-recommendations.js?v=136987283113921345541788198417"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/cart-product-recommendations.js?v=68649323270976239791787987246"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/cart-product-recommendations-desktop.js?v=56536809654439217341789665037"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/product-card-variant-selector.js?v=7907834326361581731790128956"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/variant-selector.js?v=96145598764445464231787729508"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/quantity-selector.js?v=114889446100703748111787743489"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/sticky-add-to-cart.js?v=116883869585675926341787743489"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/nav-panel.js?v=127572039183423446271787729508"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/accordion.js?v=51507151752634891881787729508"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/tabs.js?v=128825151637515804591787729510"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/dialog-menu.js?v=9634694748937200641787729510"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/filters.js?v=24081821513779547321787729508"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/cart.js?v=165544989043064993351787987246"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/tooltip.js?v=128710220612660731311787729511"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/dropdown-menu.js?v=178510553068039488231787729507"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/sheet-menu.js?v=11452747344513105951789664117"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/quick-view.js?v=41379663328432007791789661681"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/side-panel.js?v=103722517322306910711787729507"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/predictive-search.js?v=115120908048467630361787729511"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/CaviarDreams-Bold.ttf?v=41413591160852340851787734478"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/CaviarDreams.ttf?v=168276437267777086351787734478"
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/utils.js"
+     }
+    ]
+   }
+  }
+ }
+}

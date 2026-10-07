@@ -1,0 +1,115 @@
+#!/usr/bin/env python3
+"""Fake Shopify CLI for the decision program's tests: a theme library kept in FAKE_STORE.
+
+It answers `theme list`, `theme duplicate` and `theme delete` the way CLI 4.8.2
+does, including its traps: duplicate exits 0 when it fails, and every command
+talks to whichever store `--store` names, so a missing or wrong store fails.
+"""
+
+import json
+import os
+import sys
+
+state_path = os.environ["FAKE_STORE"]
+with open(state_path, encoding="utf-8") as f:
+    store = json.load(f)
+
+
+def save():
+    with open(state_path, "w", encoding="utf-8") as f:
+        json.dump(store, f, indent=2)
+
+
+def flag(name, many=False):
+    values = []
+    args = sys.argv[1:]
+    for i, a in enumerate(args):
+        if a == name and i + 1 < len(args):
+            values.append(args[i + 1])
+        elif a.startswith(name + "="):
+            values.append(a.split("=", 1)[1])
+    return values if many else (values[0] if values else None)
+
+
+def fail(message, code=1):
+    sys.stderr.write(message + "\n")
+    sys.exit(code)
+
+
+args = sys.argv[1:]
+if args[:1] != ["theme"] or len(args) < 2:
+    fail("fake shopify: unsupported command %r" % args, 2)
+
+if flag("--store") != store["shop"]["myshopify_domain"]:
+    fail("fake shopify: --store must name %s, got %r"
+         % (store["shop"]["myshopify_domain"], flag("--store")))
+
+command = args[1]
+themes = store["themes"]
+
+if command == "list":
+    if "--json" not in args:
+        fail("fake shopify: the program must ask for --json", 2)
+    picked = themes
+    if flag("--id"):
+        picked = [t for t in picked if str(t["id"]) == flag("--id")]
+    if flag("--role"):
+        picked = [t for t in picked if t["role"] == flag("--role")]
+    if (flag("--id") or flag("--role")) and not picked:
+        fail("No themes on the store match the filter")
+    rows = [dict(t) for t in picked]
+    # A fresh copy reports processing once, then settles.
+    for t in themes:
+        if t.get("processing"):
+            t["processing"] = False
+    save()
+    print(json.dumps(rows, indent=2))
+    sys.exit(0)
+
+if command == "duplicate":
+    if "--force" not in args and "-f" not in args:
+        fail("Failed to prompt: run with --force", 1)
+    source = next((t for t in themes if str(t["id"]) == flag("--theme")), None)
+    # duplicate_errors_after: that many copies succeed, then the library is full.
+    made = store.get("duplicates_made", 0)
+    store["duplicates_made"] = made + 1
+    save()
+    errors = store.get("duplicate_errors") or (
+        ["Maximum number of themes reached"]
+        if made >= store.get("duplicate_errors_after", 10 ** 6) else [])
+    if errors:
+        print(json.dumps({"message": "The theme '%s' could not be duplicated due to errors"
+                          % (source or {}).get("name"),
+                          "errors": errors, "requestId": "fake"}))
+        sys.exit(0)
+    if source is None:
+        print(json.dumps({"message": "No theme with ID %s could be found." % flag("--theme"),
+                          "errors": []}))
+        sys.exit(0)
+    new_id = store["next_theme_id"]
+    store["next_theme_id"] += 1
+    themes.append({"id": new_id, "name": flag("--name") or "Copy of " + source["name"],
+                   "role": "unpublished", "processing": True})
+    numbers = store.setdefault("asset_numbers", {})
+    numbers[str(new_id)] = store.get("next_asset_number", 50)
+    store["next_asset_number"] = numbers[str(new_id)] + 1
+    save()
+    print(json.dumps({"theme": {"id": new_id, "name": flag("--name"), "role": "unpublished",
+                                "shop": store["shop"]["myshopify_domain"]}}))
+    sys.exit(0)
+
+if command == "delete":
+    if "--force" not in args and "-f" not in args:
+        fail("Failed to prompt: run with --force", 1)
+    for wanted in flag("--theme", many=True):
+        match = [t for t in themes if str(t["id"]) == wanted]
+        if not match:
+            fail('No themes on the store match the ID or name "%s"' % wanted)
+        if match[0]["role"] == "live":
+            fail("The published theme cannot be deleted")
+        themes.remove(match[0])
+        print("The theme '%s' (#%s) was deleted." % (match[0]["name"], wanted))
+    save()
+    sys.exit(0)
+
+fail("fake shopify: unsupported theme command %r" % command, 2)

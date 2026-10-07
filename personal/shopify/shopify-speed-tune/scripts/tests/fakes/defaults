@@ -1,0 +1,40 @@
+#!/usr/bin/env python3
+"""Fake macOS `defaults` for the decision program's tests.
+
+The program snapshots and restores Chrome for Testing's preferences domain. The
+tests must never touch the real one, so this keeps each domain as a file in
+FAKE_DEFAULTS.
+"""
+
+import os
+import shutil
+import sys
+
+root = os.environ["FAKE_DEFAULTS"]
+os.makedirs(root, exist_ok=True)
+args = sys.argv[1:]
+command, domain = args[0], args[1]
+path = os.path.join(root, domain + ".plist")
+
+if command == "read":
+    if not os.path.exists(path):
+        sys.stderr.write("Domain %s does not exist\n" % domain)
+        sys.exit(1)
+    with open(path, encoding="utf-8") as f:
+        sys.stdout.write(f.read())
+    sys.exit(0)
+if command == "export":
+    if not os.path.exists(path):
+        sys.stderr.write("Domain %s does not exist\n" % domain)
+        sys.exit(1)
+    shutil.copyfile(path, args[2])
+    sys.exit(0)
+if command == "import":
+    shutil.copyfile(args[2], path)
+    sys.exit(0)
+if command == "delete":
+    if os.path.exists(path):
+        os.remove(path)
+    sys.exit(0)
+sys.stderr.write("fake defaults: unsupported %r\n" % args)
+sys.exit(2)

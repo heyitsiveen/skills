@@ -1,0 +1,123 @@
+#!/usr/bin/env python3
+"""Fake `curl` for the decision program's tests: a storefront served from FAKE_STORE.
+
+It understands only the flags the program uses (-s -S -o -D -A -H --max-time)
+and answers like a Shopify storefront:
+
+- /meta.json                  the shop's identity
+- /?preview_theme_id=<id>     302 with a preview cookie for an unpublished theme
+- any other path              200 HTML rendered by the theme the cookie selects,
+                              or by the published theme when there is none
+"""
+
+import json
+import os
+import sys
+from urllib.parse import parse_qs, urlsplit
+
+state_path = os.environ["FAKE_STORE"]
+with open(state_path, encoding="utf-8") as f:
+    store = json.load(f)
+
+args = sys.argv[1:]
+out_file = header_file = url = None
+headers = []
+i = 0
+while i < len(args):
+    a = args[i]
+    if a in ("-o", "-D", "-A", "-H", "--max-time"):
+        value = args[i + 1]
+        if a == "-o":
+            out_file = value
+        elif a == "-D":
+            header_file = value
+        elif a == "-H":
+            if value.startswith("@"):
+                with open(value[1:], encoding="utf-8") as f:
+                    headers.extend(line.strip() for line in f if line.strip())
+            else:
+                headers.append(value)
+        i += 2
+        continue
+    if a.startswith("-"):
+        i += 1
+        continue
+    url = a
+    i += 1
+
+parts = urlsplit(url or "")
+shop = store["shop"]
+if parts.hostname != shop["domain"]:
+    sys.stderr.write("curl: (6) Could not resolve host: %s\n" % parts.hostname)
+    sys.exit(6)
+
+cookie = ""
+for h in headers:
+    name, _, value = h.partition(":")
+    if name.strip().lower() == "cookie":
+        cookie = value.strip()
+
+
+def theme(theme_id):
+    for t in store["themes"]:
+        if t["id"] == theme_id:
+            return t
+    return None
+
+
+def live():
+    return next(t for t in store["themes"] if t["role"] == "live")
+
+
+def respond(status, head, body):
+    reason = {200: "OK", 302: "Found", 404: "Not Found"}.get(status, "")
+    lines = ["HTTP/2 %d %s" % (status, reason)] + head
+    if header_file:
+        with open(header_file, "w", encoding="utf-8") as f:
+            f.write("\r\n".join(lines) + "\r\n\r\n")
+    if out_file:
+        with open(out_file, "w", encoding="utf-8") as f:
+            f.write(body)
+    else:
+        sys.stdout.write(body)
+    sys.exit(0)
+
+
+def timing(theme_id):
+    return 'server-timing: processing;dur=12, theme;desc="%d", pageType;desc="index"' % theme_id
+
+
+query = parse_qs(parts.query)
+
+if parts.path == "/meta.json":
+    respond(200, ["content-type: application/json"], json.dumps(shop))
+
+if "preview_theme_id" in query:
+    wanted = theme(int(query["preview_theme_id"][0]))
+    if wanted is None or wanted["role"] == "development":
+        respond(404, [], "not found")
+    respond(302, [
+        "location: https://%s/" % shop["domain"],
+        timing(wanted["id"]),
+        "set-cookie: _shopify_essential=fake-%d-cookie; Path=/; HttpOnly; Secure" % wanted["id"],
+    ], "")
+
+served = live()
+if cookie.startswith("_shopify_essential=fake-"):
+    chosen = theme(int(cookie.split("-")[1]))
+    if chosen is not None:
+        served = chosen
+
+pages = store.get("pages", {})
+page_key = parts.path + ("?" + parts.query if parts.query else "")
+if page_key in pages:
+    with open(pages[page_key], encoding="utf-8") as f:
+        body = f.read()
+else:
+    number = store.get("asset_numbers", {}).get(str(served["id"]), 1)
+    body = (
+        '<html><head><link rel="stylesheet" '
+        'href="//%s/cdn/shop/t/%d/assets/base.css?v=1"></head>'
+        "<body><main>%s</main></body></html>" % (shop["domain"], number, parts.path)
+    )
+respond(200, ["content-type: text/html", timing(served["id"])], body)
