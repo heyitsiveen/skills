@@ -1,0 +1,15 @@
+#!/bin/sh
+# Assert this repo's cross-file invariants before a commit lands.
+# Enable once per clone:
+#     git config core.hooksPath .githooks
+# Bypass a single commit with `git commit --no-verify`.
+#
+# check.sh resolves the repo root itself, so the working directory does not matter.
+
+repo_root=$(git rev-parse --show-toplevel) || exit 0
+
+"$repo_root/scripts/check.sh" || {
+    echo
+    echo "pre-commit: repo invariants broken. Fix them, or commit with --no-verify if the rule is wrong." >&2
+    exit 1
+}

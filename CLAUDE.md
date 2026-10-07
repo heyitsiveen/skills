@@ -64,6 +64,10 @@ When editing these skills, keep every path on this convention and the seven skil
 
 It exits 0 when every rule holds, and otherwise names the offending path and exits non-zero.
 
+It runs on its own now: a pre-commit hook and a CI job both call it, so a broken invariant cannot land. Enable the hook once per clone with `git config core.hooksPath .githooks`.
+
+The rules that need **judgement** — the three permitted Phase 4 variations, which duplication is deliberate and which divergence is, whether a `description` fires at the right time — cannot be asserted and live in [`CODING_STANDARDS.md`](CODING_STANDARDS.md), read at review time. When a check turns out to be wrong, change the rule here and the assertion in `check.sh` in the same commit.
+
 ## Distribution
 
 The repo root is a Claude Code **plugin marketplace** (`.claude-plugin/marketplace.json`). Each top-level bucket is published as its own plugin, `heyitsiveen-skills-<bucket>`, defined **inline** in the marketplace (`strict: false`, so there is no per-bucket `plugin.json`). Empty buckets are listed but stay hidden in `/plugin` Discover until they hold a skill. Install the marketplace, then the buckets you want:

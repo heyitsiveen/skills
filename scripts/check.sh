@@ -15,6 +15,10 @@
 #   8. `## Asset export` requests PDF and carries the alpha check, so a
 #      synchronised edit cannot reinstate the transparency bug in all three
 #      copies at once
+#   9. every skill sits at `<bucket>/<domain>/<skill>/SKILL.md`, under a known
+#      bucket, and its folder is named exactly its `name:` frontmatter
+#  10. every skill carries a non-empty `name:` and `description:`
+#  11. no skill occupies the reserved, unbuilt name `figma-shopify-pixel-match`
 #
 # Run from anywhere; it resolves the repo root itself.
 #   ./scripts/check.sh
@@ -34,6 +38,7 @@ README=README.md
 SKILLS_SH=skills.sh.json
 MARKETPLACE=.claude-plugin/marketplace.json
 ADR_PDF=docs/adr/0005-export-ships-through-pdf.md
+ADR_PIXEL_DIFF=docs/adr/0001-design-spec-replaces-pixel-diff.md
 
 # The five skills that produce the shared knowledge-doc format specs.
 PRODUCERS=(client-theme-onboarding figma-shopify-builder figma-shopify-composer figma-shopify-globals shopify-page-replicate)
@@ -83,6 +88,14 @@ PHASE4_NO_EIGHTH='^\*\*8\.'
 
 # The one-line summary of the shape, which all three carry verbatim.
 PHASE4_CHAIN='render → data check → capture hygiene → `style-reporter` → correction round → style report → cleanup'
+
+# The buckets a skill may live in. `deprecated/` is a retained snapshot, not a
+# bucket, so a skill found there is not a layout error.
+BUCKETS=(engineering personal productivity misc)
+
+# Reserved, unbuilt skill name: CLAUDE.md forbids creating one under it, and
+# ADR 0001 says why. Nothing else enforces that, so a stray folder would ship.
+RESERVED_NAMES=(figma-shopify-pixel-match)
 
 FAILURES=0
 
@@ -464,6 +477,52 @@ check_asset_export_rules() {
   rm -rf "$tmp"
 }
 
+# ---------------------------------------------------------------------------
+# 9-11. Skill layout, frontmatter, and the reserved name.
+#
+# The three registries say which skills exist; none of them says a skill is
+# shaped correctly. A folder whose name has drifted from its `name:` frontmatter
+# still resolves from every registry, so the registry assertions above pass
+# while the harness loads the skill under a name no document uses.
+check_skill_layout() {
+  local path dir folder bucket depth name desc reserved
+
+  while IFS= read -r path; do
+    dir="${path%/SKILL.md}"
+
+    # `<bucket>/<domain>/<skill>` is three segments; anything else is misfiled.
+    depth=$(printf '%s' "$dir" | tr -cd '/' | wc -c | tr -d ' ')
+    if [ "$depth" -ne 2 ]; then
+      fail "$path: expected <bucket>/<domain>/<skill>/SKILL.md, got a depth of $((depth + 1))"
+      continue
+    fi
+
+    bucket="${dir%%/*}"
+    case " ${BUCKETS[*]} " in
+      *" $bucket "*) ;;
+      *) fail "$path: '$bucket' is not a bucket (expected one of: ${BUCKETS[*]})" ;;
+    esac
+
+    folder="${dir##*/}"
+    name=$(sed -n '/^---$/,/^---$/p' "$path" | sed -n 's/^name: *//p' | head -1 | tr -d '"'"'"'' | tr -d '\r')
+    desc=$(sed -n '/^---$/,/^---$/p' "$path" | sed -n 's/^description: *//p' | head -1)
+
+    if [ -z "$name" ]; then
+      fail "$path: no 'name:' in the frontmatter, so no harness can load it"
+    elif [ "$name" != "$folder" ]; then
+      fail "$path: folder is '$folder' but 'name:' is '$name' — the registries resolve the folder, the harness loads the name"
+    fi
+
+    [ -n "$desc" ] ||
+      fail "$path: no 'description:' in the frontmatter — a model-invoked skill with no description can never fire"
+
+    for reserved in "${RESERVED_NAMES[@]}"; do
+      [ "$folder" = "$reserved" ] &&
+        fail "$path: '$reserved' is a reserved, unbuilt name (see $ADR_PIXEL_DIFF)"
+    done
+  done < <(git ls-files '*/SKILL.md' | grep -v '^deprecated/')
+}
+
 check_format_specs
 check_asset_export
 check_registries
@@ -472,6 +531,7 @@ check_phase4_shape
 check_producer_header
 check_registry_entries
 check_asset_export_rules
+check_skill_layout
 
 if [ "$FAILURES" -ne 0 ]; then
   printf '\n%d check(s) failed.\n' "$FAILURES" >&2
