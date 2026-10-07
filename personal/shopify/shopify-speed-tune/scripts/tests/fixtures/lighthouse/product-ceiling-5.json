@@ -1,0 +1,949 @@
+{
+ "lighthouseVersion": "13.5.0",
+ "requestedUrl": "https://store.example/products/example-product",
+ "mainDocumentUrl": "https://store.example/products/example-product",
+ "finalDisplayedUrl": "https://store.example/products/example-product",
+ "fetchTime": "2026-10-07T23:20:57.430Z",
+ "runWarnings": [
+  "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+ ],
+ "environment": {
+  "hostUserAgent": "Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) HeadlessChrome/154.0.0.0 Safari/537.36",
+  "credits": {
+   "axe-core": "4.14.0"
+  }
+ },
+ "configSettings": {
+  "formFactor": "mobile",
+  "extraHeaders": null,
+  "blockedUrlPatterns": [
+   "https://store.example/cdn/shop/t/23/assets/*.js",
+   "https://store.example/cdn/shop/t/23/compiled_assets/*.js",
+   "https://store.example/cdn/fonts/",
+   "https://store.example/cdn/shop/t/23/assets/*.ttf",
+   "https://store.example/cdn/shop/collections/image-1.png",
+   "https://store.example/cdn/shop/collections/image-2.png",
+   "https://store.example/cdn/shop/collections/image-3.png",
+   "https://store.example/cdn/shop/collections/image-4.png",
+   "https://store.example/cdn/shop/collections/image-5.png",
+   "https://store.example/cdn/shop/collections/image-6.png",
+   "https://store.example/cdn/shop/files/image-8.png",
+   "https://store.example/cdn/shop/files/image-10.jpg",
+   "https://store.example/cdn/shop/files/image-11.jpg",
+   "https://store.example/cdn/shop/files/image-13.png",
+   "https://store.example/cdn/shop/files/image-16.png",
+   "https://store.example/cdn/shop/files/image-17.png",
+   "https://store.example/cdn/shop/files/image-18.png",
+   "https://store.example/cdn/shop/files/image-20.png",
+   "https://store.example/cdn/shop/files/image-21.png",
+   "https://store.example/cdn/shop/files/image-22.png",
+   "https://store.example/cdn/shop/files/image-24.png",
+   "https://store.example/cdn/shop/files/image-25.png",
+   "https://store.example/cdn/shop/files/image-27.png",
+   "https://store.example/cdn/shop/files/image-32.png",
+   "https://store.example/cdn/shop/files/image-33.png",
+   "https://store.example/cdn/shop/files/image-34.png",
+   "https://store.example/cdn/shop/files/image-39.png",
+   "https://store.example/cdn/shop/files/image-40.png",
+   "https://store.example/cdn/shop/files/image-41.png"
+  ]
+ },
+ "categories": {
+  "performance": {
+   "score": 0.66
+  },
+  "accessibility": {
+   "score": 0.94
+  }
+ },
+ "audits": {
+  "first-contentful-paint": {
+   "numericValue": 2239.6540000000005,
+   "numericUnit": "millisecond"
+  },
+  "largest-contentful-paint": {
+   "numericValue": 2671.2928773498547,
+   "numericUnit": "millisecond"
+  },
+  "total-blocking-time": {
+   "numericValue": 1016,
+   "numericUnit": "millisecond"
+  },
+  "cumulative-layout-shift": {
+   "numericValue": 0.002945951879775853,
+   "numericUnit": "unitless"
+  },
+  "speed-index": {
+   "numericValue": 6263.917860078803,
+   "numericUnit": "millisecond"
+  },
+  "network-requests": {
+   "details": {
+    "type": "table",
+    "items": [
+     {
+      "url": "https://store.example/products/example-product",
+      "resourceType": "Document",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-12.jpg?v=1755206410&width=200",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/compiled_assets/snippet-scripts.js?v=85869550152242727121787931995",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-32.png?v=1787732311&width=375",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-32.png?v=1787732311&width=750",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/collections/image-1.png?v=1788002157&width=300",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/collections/image-4.png?v=1789941340&width=300",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/collections/image-3.png?v=1788002213&width=300",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/collections/image-5.png?v=1788002199&width=300",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/collections/image-6.png?v=1788002185&width=300",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/collections/image-2.png?v=1788002171&width=300",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/collections/image-1.png?v=1788002157&width=144",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/collections/image-4.png?v=1789941340&width=144",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/collections/image-3.png?v=1788002213&width=144",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/collections/image-5.png?v=1788002199&width=144",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/collections/image-6.png?v=1788002185&width=144",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/collections/image-2.png?v=1788002171&width=144",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/open_sans/opensans_n4.c32e4d4eca5273f6d4ee95ddf54b5bbb75fc9b61.woff2",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/open_sans/opensans_n4.5f3406f8d94162b37bfa232b486ac93ee892406d.woff",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/open_sans/opensans_n3.b10466eda05a6b2d1ef0f6ba490dcecf7588dd78.woff2",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/open_sans/opensans_n3.056c4b5dddadba7018747bd50fdaa80430e21710.woff",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/open_sans/opensans_n5.500dcf21ddee5bc5855ad3a20394d3bc363c217c.woff2",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/open_sans/opensans_n5.af1a06d824dccfb4d400ba874ef19176651ec834.woff",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/open_sans/opensans_n6.15aeff3c913c3fe570c19cdfeed14ce10d09fb08.woff2",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/open_sans/opensans_n6.14bef14c75f8837a87f70ce22013cb146ee3e9f3.woff",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/open_sans/opensans_n7.a9393be1574ea8606c68f4441806b2711d0d13e4.woff2",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/open_sans/opensans_n7.7b8af34a6ebf52beb1a4c1d8c73ad6910ec2e553.woff",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/crimson_pro/crimsonpro_n4.af7e5f35fb5e103ddb0d48d62eeb24849e95bc7d.woff2",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/crimson_pro/crimsonpro_n4.3fe4f48589996a4db104f3df11cb1025be6f4749.woff",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/crimson_pro/crimsonpro_n5.da9adfdc096b060b0b7a607cad33d945dee21656.woff2",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/crimson_pro/crimsonpro_n5.2458fe196a5bffabc797d872adef111bbe64264c.woff",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/crimson_pro/crimsonpro_n6.9f0b070d25b297bbec03ba5389fca6a5da754317.woff2",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/crimson_pro/crimsonpro_n6.10a1bc84e44a9004ef57b52e09ef5ce93345580a.woff",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/crimson_pro/crimsonpro_n7.3f6def36c6cd2e6095f8b9560fce03a4b80105cd.woff2",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/crimson_pro/crimsonpro_n7.08e31cc6ca54bcba7614c30acf65d3c245be8609.woff",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/playfair_display/playfairdisplay_n4.9980f3e16959dc89137cc1369bfc3ae98af1deb9.woff2",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/playfair_display/playfairdisplay_n4.c562b7c8e5637886a811d2a017f9e023166064ee.woff",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/playfair_display/playfairdisplay_n5.6d96c6c4ac11fa0f6466bea3ceb706b13b60121f.woff2",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/playfair_display/playfairdisplay_n5.243754f603c104a858dcf4ebe73445104040a1bf.woff",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/playfair_display/playfairdisplay_n6.41e9dda2e7301ca861c0ec25a53c1bdf16b6624d.woff2",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/playfair_display/playfairdisplay_n6.3fecbbfefcd2c3e39326078af5db97c0302e18b5.woff",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/playfair_display/playfairdisplay_n7.592b3435e0fff3f50b26d410c73ae7ec893f6910.woff2",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/fonts/playfair_display/playfairdisplay_n7.998b1417dec711058cce2abb61a0b8c59066498f.woff",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/CaviarDreams.ttf?v=168276437267777086351787734478",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/CaviarDreams-Bold.ttf?v=41413591160852340851787734478",
+      "resourceType": "Font",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-20.png?v=1789070487&width=200",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-24.png?v=1789070641&width=200",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-22.png?v=1789070716&width=200",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-16.png?v=1789070986&width=200",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-25.png?v=1789071089&width=200",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-41.png?v=1789071153&width=200",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-17.png?v=1789071878&width=200",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-13.png?v=1789073115&width=200",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-11.jpg?v=1755206383&width=200",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-10.jpg?v=1755206397&width=200",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-20.png?v=1789070487&width=20",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-24.png?v=1789070641&width=20",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-22.png?v=1789070716&width=20",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-16.png?v=1789070986&width=20",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-25.png?v=1789071089&width=20",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-41.png?v=1789071153&width=20",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-17.png?v=1789071878&width=20",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-13.png?v=1789073115&width=20",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-11.jpg?v=1755206383&width=20",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-10.jpg?v=1755206397&width=20",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-13.png?v=1789073115&width=600",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-18.png?v=1789078854&width=192",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-8.png?v=1789079284&width=192",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-27.png?v=1789079688&width=192",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-21.png?v=1789079862&width=192",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-34.png?v=1788744553&width=640",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-12.jpg?v=1755206410&width=20",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/photoswipe-lightbox.esm.min.js?v=13651888854280649141787729509",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-33.png?v=1787938986&width=216",
+      "resourceType": "Image",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/lazysizes.min.js?v=56805471290311245611787729509",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/swiper-bundle.min.js?v=112363457588466789761787729510",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/scroll-shadow.js?v=162336993044809908471787729510",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/video-player.js?v=71619390498859573441787729508",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/collection-tabs.js?v=164872106704507881041787729508",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/product-hotspots.js?v=80035838591906008731787729508",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/monotone-noise.js?v=11897303371095212301787729507",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/image-comparison-slider.js?v=35885581428553668841787729508",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/product-recommendations.js?v=136987283113921345541788198417",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/cart-product-recommendations.js?v=68649323270976239791787987246",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/cart-product-recommendations-desktop.js?v=56536809654439217341789665037",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/product-card-variant-selector.js?v=7907834326361581731790128956",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/variant-selector.js?v=96145598764445464231787729508",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/quantity-selector.js?v=114889446100703748111787743489",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/sticky-add-to-cart.js?v=116883869585675926341787743489",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/nav-panel.js?v=127572039183423446271787729508",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/accordion.js?v=51507151752634891881787729508",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/tabs.js?v=128825151637515804591787729510",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/dialog-menu.js?v=9634694748937200641787729510",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/filters.js?v=24081821513779547321787729508",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/cart.js?v=165544989043064993351787987246",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/tooltip.js?v=128710220612660731311787729511",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/dropdown-menu.js?v=178510553068039488231787729507",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/sheet-menu.js?v=11452747344513105951789664117",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/quick-view.js?v=41379663328432007791789661681",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/side-panel.js?v=103722517322306910711787729507",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/predictive-search.js?v=115120908048467630361787729511",
+      "resourceType": "Script",
+      "statusCode": -1
+     },
+     {
+      "url": "https://store.example/x/custom/x/sandbox/modern/products/example-product",
+      "resourceType": "Document",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/services/login_with_shop/buyer/callback",
+      "resourceType": "Document",
+      "statusCode": 200
+     }
+    ]
+   }
+  },
+  "lcp-breakdown-insight": {
+   "score": 1,
+   "scoreDisplayMode": "informative",
+   "details": {
+    "type": "list",
+    "items": [
+     {
+      "type": "table",
+      "items": [
+       {
+        "subpart": "timeToFirstByte",
+        "duration": 33.286
+       },
+       {
+        "subpart": "elementRenderDelay",
+        "duration": 218.124
+       }
+      ]
+     },
+     {
+      "type": "node",
+      "selector": "form#[object HTMLInputElement] > div#ProductInfo-template--id5__main > div.pdp-title-container > h1.pdp-title",
+      "snippet": "<h1 class=\"pdp-title\">"
+     }
+    ]
+   }
+  },
+  "lcp-discovery-insight": {
+   "score": null,
+   "scoreDisplayMode": "notApplicable",
+   "details": {
+    "type": "list",
+    "items": []
+   }
+  },
+  "render-blocking-insight": {
+   "score": 0.5,
+   "metricSavings": {
+    "FCP": 0,
+    "LCP": 0
+   },
+   "details": {
+    "type": "table",
+    "items": [
+     {
+      "url": "https://store.example/cdn/shop/t/23/compiled_assets/styles.css?v=40070799103536477801791368346",
+      "totalBytes": 9137,
+      "wastedMs": 155
+     },
+     {
+      "url": "https://store.example/cdn/shopifycloud/portable-wallets/latest/accelerated-checkout-backwards-compat.css",
+      "totalBytes": 2181,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/photoswipe.css?v=176742834151000792621787729510",
+      "totalBytes": 1032,
+      "wastedMs": 155
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/photoswipe.min.css?v=25375204382449318101787729510",
+      "totalBytes": 1935,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/gsc-instagram-overrides.css?v=143350410625111438391788558912",
+      "totalBytes": 683,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/input.css?v=135719220095235167071787729509",
+      "totalBytes": 963,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/accordion.css?v=72339561723780080711787729507",
+      "totalBytes": 844,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/quick-view.css?v=72383612429634034071790129707",
+      "totalBytes": 2529,
+      "wastedMs": 309
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/dialog-menu.css?v=114121083340782281421787729510",
+      "totalBytes": 1554,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/sticky-add-to-cart.css?v=172258083435992148281787729508",
+      "totalBytes": 0,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/sheet-menu.css?v=30631438094504123231788002086",
+      "totalBytes": 0,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/video-player.css?v=118666841815353052901787729508",
+      "totalBytes": 0,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/dropdown-menu.css?v=58453767977385003171787729510",
+      "totalBytes": 0,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/scroll-shadow.css?v=30193809147179601081787729509",
+      "totalBytes": 0,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/nav-panel.css?v=36705063307078071761787729508",
+      "totalBytes": 0,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/toast.css?v=123631997579840776401787729510",
+      "totalBytes": 0,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/loader.css?v=167543319965776213751787729509",
+      "totalBytes": 0,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/swiper-bundle.min.css?v=28935635071648937771787729509",
+      "totalBytes": 0,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/critical.css?v=19156505368130484971787729508",
+      "totalBytes": 0,
+      "wastedMs": null
+     }
+    ]
+   }
+  },
+  "layout-shifts": {
+   "scoreDisplayMode": "informative",
+   "details": {
+    "type": "table",
+    "items": [
+     {
+      "node": {
+       "type": "node",
+       "selector": "div.pdp-information__wrapper > form#[object HTMLInputElement] > div#ProductInfo-template--id5__main > div.pdp-title-container",
+       "snippet": "<div class=\"pdp-title-container\">"
+      },
+      "score": 0.002945951879775853
+     },
+     {
+      "node": {
+       "type": "node",
+       "selector": "div.header > div.shopify-page-width > div.header__grid > a.header__logo",
+       "snippet": "<a class=\"header__logo\">"
+      },
+      "score": 0.0002408088183386579
+     }
+    ]
+   }
+  },
+  "long-tasks": {
+   "details": {
+    "type": "table",
+    "items": [
+     {
+      "url": "https://cdn.elements.amazon/elements/amazon-product-rating/x.0/elements.js",
+      "duration": 303,
+      "startTime": 33301.806611633285
+     },
+     {
+      "url": "https://www.googletagmanager.com/gtag/js",
+      "duration": 203,
+      "startTime": 20586.156877349855
+     },
+     {
+      "url": "https://connect.facebook.net/signals/config/x",
+      "duration": 194,
+      "startTime": 21849.353877349855
+     },
+     {
+      "url": "https://store.example/cdn/wpm/x.js",
+      "duration": 172,
+      "startTime": 12514.468877349856
+     },
+     {
+      "url": "https://connect.facebook.net/x/fbevents.js",
+      "duration": 170,
+      "startTime": 18346.79137734986
+     },
+     {
+      "url": "https://store.example/cdn/shopifycloud/perf-kit/shopify-perf-kit-3.9.6.min.js",
+      "duration": 149,
+      "startTime": 12686.468877349856
+     },
+     {
+      "url": "https://store.example/products/example-product",
+      "duration": 144,
+      "startTime": 5420.321733425294
+     },
+     {
+      "url": "https://www.googletagmanager.com/gtag/js",
+      "duration": 138,
+      "startTime": 23825.847877349854
+     },
+     {
+      "url": "https://connect.facebook.net/x/fbevents.js",
+      "duration": 102,
+      "startTime": 22043.353877349855
+     },
+     {
+      "url": "https://cdn.elements.amazon/elements/amazon-product-rating/x.0/elements.js",
+      "duration": 85,
+      "startTime": 33619.806611633285
+     },
+     {
+      "url": "Unattributable",
+      "duration": 54,
+      "startTime": 1234.6040000000005
+     }
+    ]
+   }
+  },
+  "third-parties-insight": {
+   "details": {
+    "type": "table",
+    "isEntityGrouped": true,
+    "items": [
+     {
+      "entity": "Google Tag Manager",
+      "transferSize": 509970,
+      "mainThreadTime": 95.17499989271164
+     },
+     {
+      "entity": "Facebook",
+      "transferSize": 207500,
+      "mainThreadTime": 58.99600000679493
+     },
+     {
+      "entity": "elements.amazon",
+      "transferSize": 2066528,
+      "mainThreadTime": 22.638000026345253
+     },
+     {
+      "entity": "Shopify",
+      "transferSize": 255726,
+      "mainThreadTime": 22.018999934196472,
+      "subItems": {
+       "type": "subitems",
+       "items": [
+        {
+         "url": "https://cdn.shopify.com/extensions/01a11642-41e1-713e-a375-2820e8cde5c7/gsc-instagram-feed-95/assets/gsc-instafeed-widget.js",
+         "transferSize": 64688,
+         "mainThreadTime": 8.153999999165535
+        },
+        {
+         "url": "https://cdn.shopify.com/extensions/01a0c7ca-5010-747b-9d99-9a644250288a/ecomsend-restock-108/assets/product_restore_email.js",
+         "transferSize": 84626,
+         "mainThreadTime": 5.4749999195337296
+        },
+        {
+         "url": "https://cdn.shopify.com/extensions/01a11176-2280-7862-971a-b99c4fd1084c/judgeme-773/assets/loader.js",
+         "transferSize": 3455,
+         "mainThreadTime": 0.9509999752044678
+        },
+        {
+         "url": "https://cdn.shopify.com/extensions/019fdc0d-a3a6-740d-a2c6-267c07342bce/zipifypages-40/assets/theme-helper.js",
+         "transferSize": 2302,
+         "mainThreadTime": 0.24800001084804535
+        },
+        {
+         "url": "https://cdn.shopify.com/extensions/01a0c7ca-5010-747b-9d99-9a644250288a/ecomsend-restock-108/assets/sealapps_email_config.js",
+         "transferSize": 621,
+         "mainThreadTime": 0.04200001060962677
+        }
+       ]
+      }
+     },
+     {
+      "entity": "Klaviyo",
+      "transferSize": 70417,
+      "mainThreadTime": 20.694000080227852
+     },
+     {
+      "entity": "sealapps.com",
+      "transferSize": 4241,
+      "mainThreadTime": 0.1560000479221344
+     },
+     {
+      "entity": "config-security.com",
+      "transferSize": 56443,
+      "mainThreadTime": 0.08100000023841858
+     },
+     {
+      "entity": "shop.app",
+      "transferSize": 3383,
+      "mainThreadTime": 0.03700000047683716
+     },
+     {
+      "entity": "Other Google APIs/SDKs",
+      "transferSize": 21,
+      "mainThreadTime": 0
+     },
+     {
+      "entity": "Google/Doubleclick Ads",
+      "transferSize": 568,
+      "mainThreadTime": 0
+     },
+     {
+      "entity": "Google Analytics",
+      "transferSize": 594,
+      "mainThreadTime": 0
+     },
+     {
+      "entity": "google.com",
+      "transferSize": 408,
+      "mainThreadTime": 0
+     },
+     {
+      "entity": "merchant-center-analytics.goog",
+      "transferSize": 594,
+      "mainThreadTime": 0
+     },
+     {
+      "entity": "aws.dev",
+      "transferSize": 68504,
+      "mainThreadTime": 0
+     },
+     {
+      "entity": "media-amazon.com",
+      "transferSize": 477255,
+      "mainThreadTime": 0
+     },
+     {
+      "entity": "Amazon Web Services",
+      "transferSize": 916,
+      "mainThreadTime": 0
+     }
+    ]
+   }
+  }
+ }
+}

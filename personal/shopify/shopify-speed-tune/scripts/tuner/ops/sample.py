@@ -16,6 +16,7 @@ import re
 
 from tuner import ledger, lighthouse, stats, storefront
 from tuner.output import Failed, Refused, say
+from tuner.probe import check as probe_check
 
 ORDER = 30
 PAGES = ("home", "collection", "product")
@@ -79,7 +80,12 @@ def members(inv, args, url):
     return stats.members(inv.data["samples"], args.label, args.page, url, args.device, args.theme)
 
 
-def take(inv, args, url, theme, wanted):
+def take(inv, args, url, theme, wanted, probe=None):
+    """Take Samples until `wanted` are recorded or the spare attempts run out.
+
+    `probe` (the Ceiling probe: blocked patterns and the LCP image they spare)
+    passes through to Lighthouse and to the check of every report.
+    """
     data = inv.data
     workspace = data["workspace"]
     chrome = data["tools"].get("chrome", {}).get("path", "")
@@ -105,7 +111,8 @@ def take(inv, args, url, theme, wanted):
             if os.path.exists(output):
                 os.remove(output)
             try:
-                report = lighthouse.take(workspace, chrome, url, args.device, flags, output)
+                report = lighthouse.take(workspace, chrome, url, args.device, flags, output,
+                                         blocked=probe["patterns"] if probe else ())
             except lighthouse.Rejected as rejection:
                 reject(inv, args, rejection.reason)
                 continue
@@ -113,7 +120,7 @@ def take(inv, args, url, theme, wanted):
                 if os.path.exists(output):
                     os.remove(output)
             if record(inv, args, url, theme, report, source="lighthouse",
-                      secrets=(cookie.split("=", 1)[1],)) is not None:
+                      secrets=(cookie.split("=", 1)[1],), probe=probe) is not None:
                 taken += 1
         return taken
     finally:
@@ -121,10 +128,13 @@ def take(inv, args, url, theme, wanted):
             os.remove(flags)
 
 
-def record(inv, args, url, theme, report, source, secrets=()):
+def record(inv, args, url, theme, report, source, secrets=(), probe=None):
     try:
         figures = lighthouse.check(report, url, args.device, inv.data["tools"].get("lighthouse"),
-                                   theme.get("asset_path"))
+                                   theme.get("asset_path"),
+                                   blocked=probe["patterns"] if probe else ())
+        if probe:
+            probe_check(report, probe)
     except lighthouse.Rejected as rejection:
         reject(inv, args, rejection.reason)
         return None

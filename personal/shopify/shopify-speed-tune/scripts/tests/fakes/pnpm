@@ -10,6 +10,8 @@
 It holds the program to the same contract the real tools do: the pnpm store and
 cache must be isolated, Chrome must be the invocation's own, the URL comes
 first, error reporting is off, and a preview cookie travels in a flags file.
+Blocked URL patterns fail the requests they match, by Chrome's own rule, and
+are recorded in the report's settings as Lighthouse records them.
 """
 
 import json
@@ -94,6 +96,24 @@ def value(name):
 output_path = value("--output-path")
 if not output_path:
     fail("fake pnpm: no --output-path")
+# --blocked-url-patterns repeats once per pattern; Lighthouse never splits on commas.
+blocked = [f.split("=", 1)[1] for f in flags if f.startswith("--blocked-url-patterns=")]
+
+
+def blocks(url):
+    """Chrome's rule: '*' matches any run, and every pattern is wrapped in '*'."""
+    for pattern in blocked:
+        position = 0
+        for part in pattern.split("*"):
+            position = url.find(part, position)
+            if position < 0:
+                break
+            position += len(part)
+        else:
+            return True
+    return False
+
+
 extra_headers = None
 if value("--cli-flags-path"):
     with open(value("--cli-flags-path"), encoding="utf-8") as f:
@@ -107,10 +127,12 @@ match = re.match(r"_shopify_essential=fake-(\d+)-cookie$", cookie)
 if match and not store["lighthouse"].get("drops_cookie"):
     served = next((t for t in store["themes"] if t["id"] == int(match.group(1))), served)
 
-queue = store["lighthouse"][device]
-count = store["lighthouse"].setdefault("taken", {}).get(device, 0)
+# A Ceiling Sample (any blocked pattern) comes from the "ceiling" queue when there is one.
+key = "ceiling" if blocked and store["lighthouse"].get("ceiling") else device
+queue = store["lighthouse"][key]
+count = store["lighthouse"].setdefault("taken", {}).get(key, 0)
 fixture = queue[count % len(queue)]
-store["lighthouse"]["taken"][device] = count + 1
+store["lighthouse"]["taken"][key] = count + 1
 with open(state_path, "w", encoding="utf-8") as f:
     json.dump(store, f, indent=2)
 
@@ -126,7 +148,10 @@ number = store.get("asset_numbers", {}).get(str(served["id"]), 1)
 for item in report["audits"]["network-requests"]["details"]["items"]:
     item["url"] = re.sub(r"^https://[^/]+", "https://" + host, item["url"])
     item["url"] = re.sub(r"/cdn/shop/t/\d+/", "/cdn/shop/t/%d/" % number, item["url"])
+    if blocks(item["url"]):  # a blocked request fails before any response
+        item.update(statusCode=-1, transferSize=0)
 report.setdefault("configSettings", {})["extraHeaders"] = extra_headers
+report["configSettings"]["blockedUrlPatterns"] = blocked or None  # Lighthouse's default is null
 
 with open(output_path, "w", encoding="utf-8") as f:
     json.dump(report, f)
