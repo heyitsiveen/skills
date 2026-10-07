@@ -24,7 +24,7 @@ Each guardrail below protects something the developer relies on:
 - **Customers see only what the developer publishes.** The program is the only thing that writes to the store, and it writes only to the two themes it created. Leave every `shopify theme` command to it, push no branch, publish nothing.
 - **A refusal is an answer.** On `REFUSED` or `FAILED`, follow the step's instruction for that line, or stop and show the developer the line with its `NOTE`s. The ledger, the lock and the program stay as they are.
 - **The preview cookie stays inside the program.** It fetches every preview itself; leave the workspace's `secrets/` folder unopened.
-- **The developer's other work keeps running.** Stop a process only by a pid the program names, never by name, and leave the Shopify CLI logged in.
+- **The developer's other work keeps running.** Leave stopping processes to the program, which kills only the Chrome it started, and leave the Shopify CLI logged in.
 
 This version runs four steps: Preflight → Baseline → Report → Cleanup. It changes no theme code.
 
