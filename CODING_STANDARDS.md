@@ -19,6 +19,7 @@ The conventions themselves live in [`CLAUDE.md`](CLAUDE.md); this is where they 
 | 9 | Every skill sits at `<bucket>/<domain>/<skill>/SKILL.md` under a known bucket, folder named exactly its `name:` |
 | 10 | Every skill carries a non-empty `name:` and `description:` |
 | 11 | No skill occupies the reserved name `figma-shopify-pixel-match` |
+| 12 | The root glossary is `GLOSSARY.md`, and no tracked doc still names the filename it replaced |
 
 Run `./scripts/check.sh` from anywhere. The script's header comment is the authoritative list; this table is a convenience copy, so trust the script where they disagree.
 
@@ -71,6 +72,14 @@ A model-invoked skill fires on its `description` and nothing else. `check.sh` on
 
 A new skill earns its place only when the behaviour does not compose from existing ones. Prefer extending a skill over adding one, and prefer a shared reference file over a third copy of the same prose — except where the duplication is deliberate, above.
 
-## Known drift
+## Upstream alignment
 
-`CLAUDE.md` names `CONTEXT.md` as the domain-doc convention. Upstream [mattpocock/skills](https://github.com/mattpocock/skills), which this repo credits as its inspiration, renamed that convention to `GLOSSARY.md` in v1.3.0 (2026-10-04). This repo has not followed, which is a legitimate choice — it is noted here only so the divergence is deliberate rather than forgotten.
+This repo borrows its agent-skill conventions from [mattpocock/skills](https://github.com/mattpocock/skills), currently **v1.3.1**. Both halves of that are review material.
+
+**Adopted.** The domain-doc convention is upstream's: a root `GLOSSARY.md` plus `docs/adr/`, renamed in v1.3.0 from the filename it carried before. `docs/agents/domain.md` and `docs/agents/issue-tracker.md` are this repo's copies of the `setup-matt-pocock-skills` templates, so re-running that skill should read as a clean diff against them rather than a rewrite. Assertion 12 holds the rename down; nothing holds the templates in step, so check them by hand when upstream moves.
+
+**Not adopted.** Three divergences, each deliberate:
+
+- Upstream banned em-dashes from its own prose in v1.3.0. This repo keeps them: every `SKILL.md` here is written with them. Don't rewrite one to match upstream's house style.
+- `setup-matt-pocock-skills` writes a `docs/agents/triage-labels.md` whenever `triage` is installed, and it is. This repo has none. `triage` is for issues you did **not** create, and every ticket under `.scratch/` came from `to-tickets`, which `ask-matt` says explicitly not to triage. A label table nothing reads goes stale unread. Write one the day an issue arrives from outside, not before.
+- `GLOSSARY-FORMAT.md` caps a definition at one or two sentences and bans implementation detail. **Welding** and **Pre-flight** break both, and stay: welding is a failure mode whose definition *is* the behaviour it describes, and a pre-flight that doesn't name what it audits can't be checked against. Tighten a glossary entry when it has drifted into spec, not merely when it is long.

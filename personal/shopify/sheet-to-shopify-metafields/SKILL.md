@@ -12,7 +12,7 @@ This skill exists because the obvious approach destroys data silently. Shopify's
 
 So the conversion happens in a program, before the browser is opened, and its output is inspectable before anything is written. Metafields have no version history and no undo, and on a typical Run every target field is already populated — the job is an overwrite, not a fill.
 
-Read `../../../CONTEXT.md` for the vocabulary, and `docs/adr/0006`, `0007` and `0008` for why the Backup, the conversion shape, and the storefront read-back are what they are.
+Read `../../../GLOSSARY.md` for the vocabulary, and `docs/adr/0006`, `0007` and `0008` for why the Backup, the conversion shape, and the storefront read-back are what they are.
 
 ## Required inputs (parse from the user's message; ask for any that are missing)
 

@@ -19,6 +19,8 @@
 #      bucket, and its folder is named exactly its `name:` frontmatter
 #  10. every skill carries a non-empty `name:` and `description:`
 #  11. no skill occupies the reserved, unbuilt name `figma-shopify-pixel-match`
+#  12. the root glossary is `GLOSSARY.md`, and no tracked Markdown outside
+#      `deprecated/` still names the filename it replaced
 #
 # Run from anywhere; it resolves the repo root itself.
 #   ./scripts/check.sh
@@ -39,6 +41,7 @@ SKILLS_SH=skills.sh.json
 MARKETPLACE=.claude-plugin/marketplace.json
 ADR_PDF=docs/adr/0005-export-ships-through-pdf.md
 ADR_PIXEL_DIFF=docs/adr/0001-design-spec-replaces-pixel-diff.md
+GLOSSARY=GLOSSARY.md
 
 # The five skills that produce the shared knowledge-doc format specs.
 PRODUCERS=(client-theme-onboarding figma-shopify-builder figma-shopify-composer figma-shopify-globals shopify-page-replicate)
@@ -92,6 +95,11 @@ PHASE4_CHAIN='render → data check → capture hygiene → `style-reporter` →
 # The buckets a skill may live in. `deprecated/` is a retained snapshot, not a
 # bucket, so a skill found there is not a layout error.
 BUCKETS=(engineering personal productivity misc)
+
+# The domain-doc filenames mattpocock/skills retired in v1.3.0, as a POSIX ERE.
+# Its skills read only `GLOSSARY.md`/`GLOSSARY-MAP.md` now, so a doc still naming
+# either of these points an agent at a file this repo does not have.
+RETIRED_GLOSSARY_NAMES='CONTEXT\.md|CONTEXT-MAP\.md'
 
 # Reserved, unbuilt skill name: CLAUDE.md forbids creating one under it, and
 # ADR 0001 says why. Nothing else enforces that, so a stray folder would ship.
@@ -523,6 +531,36 @@ check_skill_layout() {
   done < <(git ls-files '*/SKILL.md' | grep -v '^deprecated/')
 }
 
+# ---------------------------------------------------------------------------
+# 12. The domain-doc convention is a root `GLOSSARY.md`.
+#
+# A find-and-replace rename is exactly the kind that leaves one straggler
+# behind, and this straggler is silent: a doc naming the old file sends an agent
+# to a path that does not exist, and nothing says so. `deprecated/` is exempt,
+# because a snapshot is kept byte-identical to what it snapshotted.
+check_glossary_convention() {
+  local file hits status line
+
+  [ -f "$GLOSSARY" ] ||
+    fail "$GLOSSARY: the root glossary is missing, and docs/agents/domain.md sends every skill to it"
+
+  while IFS= read -r file; do
+    # `git ls-files` reads the index, so a staged-but-deleted file is listed.
+    [ -f "$file" ] || continue
+    hits="$(grep -nE -- "$RETIRED_GLOSSARY_NAMES" "$file")"
+    status=$?
+    # 0 = matched, 1 = no match, anything else = grep itself failed.
+    if [ "$status" -gt 1 ]; then
+      fail "cannot scan $file for the retired domain-doc filename (grep exited $status)"
+      continue
+    fi
+    [ "$status" -eq 0 ] || continue
+    while IFS= read -r line; do
+      fail "$file still names the retired domain-doc file, renamed to $GLOSSARY upstream in v1.3.0 — $line"
+    done <<< "$hits"
+  done < <(git ls-files '*.md' | grep -v '^deprecated/')
+}
+
 check_format_specs
 check_asset_export
 check_registries
@@ -532,6 +570,7 @@ check_producer_header
 check_registry_entries
 check_asset_export_rules
 check_skill_layout
+check_glossary_convention
 
 if [ "$FAILURES" -ne 0 ]; then
   printf '\n%d check(s) failed.\n' "$FAILURES" >&2

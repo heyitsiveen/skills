@@ -90,4 +90,4 @@ Issues live as markdown files under `.scratch/<feature-slug>/` in this repo. See
 
 ### Domain docs
 
-Single-context: `CONTEXT.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
+Single-context: `GLOSSARY.md` + `docs/adr/` at the repo root. See `docs/agents/domain.md`.
