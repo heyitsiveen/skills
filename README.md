@@ -37,7 +37,7 @@ Pixel-accurate theme building, app-widget styling, and product-copy operations �
 **User-invoked**
 
 - **[sheet-to-shopify-metafields](./personal/shopify/sheet-to-shopify-metafields/SKILL.md)** — Push product copy from a Google Sheet into Shopify product metafields through the browser, converting the source HTML into the shape Shopify can actually store and taking a restorable backup before it overwrites anything.
-- **[shopify-speed-tune](./personal/shopify/shopify-speed-tune/SKILL.md)** — Measure a client store's home, collection and product pages on unpublished copies of its theme, each figure the median and range of five Lighthouse runs, with a program owning every number and refusing a store that is not the repo's. Run as `/shopify-speed-tune <store-url> [score]`.
+- **[shopify-speed-tune](./personal/shopify/shopify-speed-tune/SKILL.md)** — Measure a client store's home, collection and product pages on unpublished copies of its theme, each figure the median and range of five Lighthouse runs, find each page's Ceiling and target, and stop once for the developer to approve a plan that fixes known Golden theme defects first, with a program owning every number and refusing a store that is not the repo's. Run as `/shopify-speed-tune <store-url> [score]`.
 
 **Model-invoked**
 
