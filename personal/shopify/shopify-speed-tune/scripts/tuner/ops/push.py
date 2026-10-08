@@ -7,11 +7,11 @@ deleted file is deleted from the theme, and nothing else on the theme is
 touched. Before it writes, it reads the theme library back from the store: the
 target must be the invocation's Working theme, still unpublished.
 
-A change that is not theme code, touches the merchant's settings file or adds
-a way to detect the test is refused, and nothing is written. A push whose JSON
-reports errors fails the Round, which `verdict` then removes. The change may be
-pushed again until its first pair or smoke check; after that it is what the
-Round measured.
+A change that is not theme code, touches the merchant's settings file, adds a
+way to detect the test, or names a file the repo's .shopifyignore excludes is
+refused, and nothing is written. A push whose JSON reports errors fails the
+Round, which `verdict` then removes. The change may be pushed again until its
+first pair or smoke check; after that it is what the Round measured.
 """
 
 from tuner import change, ledger, rounds, write
