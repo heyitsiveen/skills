@@ -29,7 +29,7 @@ it keeps must hold kept Rounds only, and a discard waits for the verdict.
 import os
 import shutil
 
-from tuner import awake, browser, ledger, lock, repo, rounds, shopify, tools, write
+from tuner import awake, browser, clock, ledger, lock, repo, rounds, shopify, tools, write
 from tuner.output import Failed, Refused, note, say
 
 ORDER = 90
@@ -47,13 +47,8 @@ def run(args):
     inv = ledger.current("finish")
     data = inv.data
     store = data["store"]["myshopify"]
-    open_round = rounds.current(inv)
-    if open_round is not None:
-        raise Refused("round-open", "Round %d is open, so the Working theme may hold a change no "
-                      "verdict kept" % open_round["n"],
-                      "End it with `verdict`, or with `verdict --remove` when it cannot be "
-                      "measured, then run `finish` again.")
-    kept = [r["n"] for r in data.get("rounds", []) if r["state"] == "kept"]
+    rounds.require_closed(inv, "finish")
+    kept =[r["n"] for r in data.get("rounds", []) if r["state"] == "kept"]
     if args.discard and kept:
         raise Refused("kept-rounds", "%s kept %s, so the Working theme %s and the branch hold "
                       "work to publish" % (
@@ -80,7 +75,7 @@ def run(args):
 
     verify(inv, store, args.discard)
     data["state"] = "finished"
-    data["finished_at"] = ledger.now()
+    data["finished_at"] = clock.now()
     inv.log("finish", "invocation finished")
     inv.save()
     lock.release(inv.id)
@@ -100,7 +95,7 @@ def delete_theme(inv, role):
     theme = inv.data["themes"].get(role)
     if not theme or theme.get("deleted"):
         return
-    theme["deleted"] = ledger.now() if write.delete(inv, role) else "already gone"
+    theme["deleted"] = clock.now() if write.delete(inv, role) else "already gone"
     inv.log("finish", "%s theme %s deleted" % (role, theme["id"]))
     inv.save()
     say("FINISH", "%s-theme deleted" % role, "id=%s" % theme["id"])

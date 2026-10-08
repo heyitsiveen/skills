@@ -7,7 +7,7 @@ operation that acts on the open Round first checks the repo is still where the
 Round left it.
 """
 
-from tuner import change, ledger, planning, repo, smoke, stats
+from tuner import change, clock, planning, repo, smoke, stats
 from tuner.output import Refused
 
 PAIRS_PER_PAGE = 5
@@ -45,6 +45,16 @@ def require_open(inv):
     if found is None:
         raise Refused("no-round", "no Round is open", "Open one with `round`.")
     return found
+
+
+def require_closed(inv, op):
+    """Refuse `op` while a Round is open: the Working theme may hold a change no verdict kept."""
+    found = current(inv)
+    if found is not None:
+        raise Refused("round-open", "Round %d is open, so the Working theme may hold a change no "
+                      "verdict kept" % found["n"],
+                      "End it with `verdict`, or with `verdict --remove` when it cannot be "
+                      "measured, then run `%s` again." % op)
 
 
 def require_branch(inv):
@@ -250,7 +260,7 @@ def stop_check(inv):
 
 def record_stop(inv, reason):
     if not inv.data.get("stopped"):
-        inv.data["stopped"] = {"reason": reason, "at": ledger.now()}
+        inv.data["stopped"] = {"reason": reason, "at": clock.now()}
         inv.log("stop", "the Rounds stopped: %s" % reason)
         inv.save()
 

@@ -163,10 +163,10 @@ def prepare(inv, store, published):
 
 
 def live_theme(library):
-    live = [t for t in library if t.get("role") == "live"]
+    live = shopify.published(library)
     if len(live) != 1:
         raise Failed("no-published-theme", "the store lists %d published themes" % len(live))
-    return {"id": int(live[0]["id"]), "name": live[0].get("name")}
+    return live[0]
 
 
 def new_id(root):

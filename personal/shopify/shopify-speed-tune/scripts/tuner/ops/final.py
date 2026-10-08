@@ -12,7 +12,6 @@ Lighthouse report files instead: the same checks, no Lighthouse run.
 """
 
 from tuner import ledger, rounds, samples, stats
-from tuner.output import Refused
 
 ORDER = 70
 
@@ -29,10 +28,6 @@ def register(sub):
 
 def run(args):
     inv = ledger.current("final")
-    open_round = rounds.current(inv)
-    if open_round is not None:
-        raise Refused("round-open", "Round %d is open, so the Working theme may hold a change no "
-                      "verdict kept" % open_round["n"],
-                      "End it with `verdict`, or `verdict --remove`, first.")
-    target = stats.Measurement.of(inv, stats.FINAL, args.page, "desktop", "working")
+    rounds.require_closed(inv, "final")
+    target =stats.Measurement.of(inv, stats.FINAL, args.page, "desktop", "working")
     return samples.fill(inv, target, args.count, args.report)

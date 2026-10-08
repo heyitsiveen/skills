@@ -15,7 +15,7 @@ tracked file, and records its base commit and the untracked files already
 there: its change is then exactly what is edited until its verdict.
 """
 
-from tuner import change, ledger, planning, repo, rounds
+from tuner import change, clock, ledger, planning, repo, rounds
 from tuner.output import Refused, say
 
 ORDER = 60
@@ -47,7 +47,7 @@ def run(args):
     repo.require_clean(root)
     base = repo.head(root)
     entry = {"n": len(inv.data.get("rounds", [])) + 1, "item": item["id"], "state": "open",
-             "opened_at": ledger.now(), "base": base, "untracked": change.untracked(root)}
+             "opened_at": clock.now(), "base": base, "untracked": change.untracked(root)}
     inv.data.setdefault("rounds", []).append(entry)
     inv.log("round", "Round %d opened for %s at %s" % (entry["n"], item["id"], base[:12]))
     inv.save()

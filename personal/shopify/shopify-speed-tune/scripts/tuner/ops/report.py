@@ -20,8 +20,8 @@ The store's setup is read from the repo, and its published theme from the
 theme library, at the time of the report: how to go live depends on both.
 """
 
-from tuner import detail, findings, golive, ledger, outcome, planning, rounds, stats
-from tuner.output import Refused, note, say
+from tuner import clock, detail, findings, golive, ledger, outcome, planning, rounds, stats
+from tuner.output import note, say
 from tuner.text import PAGE_NAMES, psi_table, score, theme_name, when
 
 ORDER = 85
@@ -38,11 +38,7 @@ def register(sub):
 
 def run(args):
     inv = ledger.find(args.invocation)
-    open_round = rounds.current(inv)
-    if open_round is not None:
-        raise Refused("round-open", "Round %d is open, so the Working theme may hold a change no "
-                      "verdict kept" % open_round["n"],
-                      "End it with `verdict`, or `verdict --remove`, then write the report.")
+    rounds.require_closed(inv, "report")
     if args.missed:
         outcome.record_missed(inv, outcome.read_missed(args.missed))
     results = outcome.results(inv)
@@ -51,7 +47,7 @@ def run(args):
     path = inv.file("report.md")
     with open(path, "w", encoding="utf-8") as f:
         f.write(render(inv, results, setup, live))
-    inv.data.setdefault("report", {})["written_at"] = ledger.now()
+    inv.data.setdefault("report", {})["written_at"] = clock.now()
     inv.log("report", "report written")
     inv.save()
     if unread:

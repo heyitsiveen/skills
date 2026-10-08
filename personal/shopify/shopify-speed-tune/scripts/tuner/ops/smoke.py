@@ -15,7 +15,7 @@ it runs only once the Working theme holds the Round's change as the tree has it.
 import json
 import os
 
-from tuner import ledger, rounds, smoke, storefront
+from tuner import clock, ledger, rounds, smoke, storefront
 from tuner.output import Failed, Refused, say
 
 ORDER = 40
@@ -55,7 +55,7 @@ def run(args):
     pages = results.get("pages") or {}
     smoke.validate(pages, themes, urls, stop=stop)
     inv.data.setdefault("smoke", []).append({
-        "label": args.label, "taken_at": ledger.now(), "source": source,
+        "label": args.label, "taken_at": clock.now(), "source": source,
         "browser": results.get("browser"), "pages": pages})
     inv.log("smoke", "%s results recorded" % args.label)
     inv.save()

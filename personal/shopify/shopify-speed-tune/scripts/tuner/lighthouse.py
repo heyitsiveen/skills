@@ -43,6 +43,12 @@ class Rejected(Exception):
         self.reason = reason
 
 
+def items(report, audit_id):
+    """The rows of one audit's details in a report, or [] when it has none."""
+    audit = (report.get("audits") or {}).get(audit_id) or {}
+    return (audit.get("details") or {}).get("items") or []
+
+
 def metrics(report):
     """The seven figures: scores as 0-100 integers, times in ms, CLS unitless."""
     out = {}
@@ -83,9 +89,8 @@ def check(report, url, device, pinned, asset_path=None, blocked=()):
     if report.get("mainDocumentUrl") != url:
         raise Rejected("redirected %s" % report.get("mainDocumentUrl"))
     if asset_path:
-        requests = (((report.get("audits") or {}).get("network-requests") or {})
-                    .get("details") or {}).get("items") or []
-        if not any(asset_path in (item.get("url") or "") for item in requests):
+        if not any(asset_path in (item.get("url") or "")
+                   for item in items(report, "network-requests")):
             raise Rejected("wrong-theme no request under %s" % asset_path)
     return metrics(report)
 

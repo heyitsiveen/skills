@@ -16,17 +16,12 @@ Every write replaces the file atomically, so a crash leaves the last good copy.
 
 import json
 import os
-from datetime import datetime
 
-from tuner import lock, repo
+from tuner import clock, lock, repo
 from tuner.output import Refused
 
 AGENT_DIR = os.path.join(".agent", "shopify-speed-tune")
 SCHEMA = 1
-
-
-def now():
-    return datetime.now().astimezone().isoformat(timespec="seconds")
 
 
 class Invocation:
@@ -53,7 +48,7 @@ class Invocation:
         return self.data["store"]["url"].rstrip("/") + path
 
     def log(self, op, text):
-        self.data.setdefault("events", []).append({"at": now(), "op": op, "text": text})
+        self.data.setdefault("events", []).append({"at": clock.now(), "op": op, "text": text})
 
     def save(self):
         tmp = self.path + ".tmp"
@@ -70,7 +65,7 @@ def folder_for(repo_root, invocation_id):
 def create(repo_root, invocation_id, data):
     folder = folder_for(repo_root, invocation_id)
     os.makedirs(folder)
-    data = dict(data, schema=SCHEMA, invocation=invocation_id, created_at=now(), events=[])
+    data = dict(data, schema=SCHEMA, invocation=invocation_id, created_at=clock.now(), events=[])
     inv = Invocation(folder, data)
     inv.save()
     return inv

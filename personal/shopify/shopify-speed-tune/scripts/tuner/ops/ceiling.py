@@ -15,7 +15,7 @@ emitted. --report records existing Lighthouse report files instead.
 
 import json
 
-from tuner import findings, ledger, planning, probe, samples, stats
+from tuner import clock, findings, ledger, planning, probe, samples, stats
 from tuner.output import Refused, note, say
 
 ORDER = 35
@@ -120,7 +120,7 @@ def probe_for(inv, page, url):
                       "built from what those Samples requested." % page)
     built = probe.build(_reports(inv, baseline), inv.data["store"]["url"],
                         inv.data["themes"]["control"]["asset_path"])
-    built.update(url=url, built_from=[s["id"] for s in baseline], built_at=ledger.now())
+    built.update(url=url, built_from=[s["id"] for s in baseline], built_at=clock.now())
     inv.data["ceilings"][page] = built
     inv.log("ceiling", "%s probe: %d patterns, %d protected" % (page, len(built["patterns"]),
                                                                len(built["protect"])))

@@ -14,7 +14,7 @@ invocation's folder, so it takes no Sample. It prints:
 The defect check is kept in the ledger, where `plan` reads it.
 """
 
-from tuner import defects, findings, ledger, stats
+from tuner import clock, defects, findings, ledger, stats
 from tuner.output import say
 
 ORDER = 40
@@ -30,7 +30,7 @@ def run(args):
     inv = ledger.current("diagnose")
     reports = {page: [r for _, r in findings.baseline(inv, page)] for page in stats.PAGE_ORDER}
     checked = defects.check(inv.data["repo"]["root"], reports)
-    inv.data["defects"] = dict(checked, checked_at=ledger.now())
+    inv.data["defects"] = dict(checked, checked_at=clock.now())
     inv.log("diagnose", "known defects: %s" % (", ".join(
         r["id"] for r in checked["results"] if r["state"] == "found") or "none"))
     inv.save()

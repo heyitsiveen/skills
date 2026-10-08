@@ -23,7 +23,7 @@ pairs or smoke check cannot be taken. A measured, checked Round is decided by
 the rule alone.
 """
 
-from tuner import change, hook, ledger, rounds, smoke, stats, write
+from tuner import change, clock, hook, ledger, rounds, smoke, stats, write
 from tuner.output import Failed, Refused, note, say
 
 ORDER = 66
@@ -44,7 +44,7 @@ def run(args):
         rnd["verdict"] = judge(inv, rnd, args.remove)
         if rnd["verdict"]["decision"] == "keep":
             commit(inv, rnd)
-        rnd["verdict"]["at"] = ledger.now()
+        rnd["verdict"]["at"] = clock.now()
         inv.log("verdict", "Round %d: %s" % (rnd["n"], rounds.verdict_line(rnd)))
         inv.save()
     show(inv, rnd)
@@ -137,7 +137,7 @@ def push(inv, rnd, role, paths, step):
                      % (role, theme["id"], rnd["n"], pushed.warning or pushed.failure), *detail,
                      "Run `verdict` again to retry it; when it fails twice, stop and show the "
                      "developer.")
-    rnd[step] = ledger.now()
+    rnd[step] = clock.now()
     inv.log("verdict", "Round %d: pushed %d paths to the %s theme %s"
             % (rnd["n"], len(paths), role, theme["id"]))
     inv.save()
@@ -160,7 +160,7 @@ def remove(inv, rnd):
         entries = change.compute(root, rnd["base"], set(rnd["untracked"]))
         paths = sorted({p for _, p in entries} | set(rnd.get("pushed_paths", [])))
         change.restore(root, rnd["base"], paths)
-        rnd["restored"] = ledger.now()
+        rnd["restored"] = clock.now()
         inv.log("verdict", "Round %d: working tree restored for %s" % (rnd["n"], ", ".join(paths)))
         inv.save()
     if rnd.get("pushes"):
@@ -171,6 +171,6 @@ def remove(inv, rnd):
 
 def close(inv, rnd, state):
     rnd["state"] = state
-    rnd["closed_at"] = ledger.now()
+    rnd["closed_at"] = clock.now()
     inv.log("verdict", "Round %d %s" % (rnd["n"], state))
     inv.save()

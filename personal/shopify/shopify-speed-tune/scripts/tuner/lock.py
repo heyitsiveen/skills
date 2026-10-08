@@ -12,8 +12,8 @@ two Claude sessions see the same lock. SPEED_TUNE_LOCK moves it (tests do).
 import json
 import os
 import sys
-from datetime import datetime
 
+from tuner import clock
 from tuner.output import Refused
 
 
@@ -26,10 +26,6 @@ def path():
     else:
         base = os.environ.get("XDG_CACHE_HOME") or os.path.expanduser("~/.cache")
     return os.path.join(base, "shopify-speed-tune.lock")
-
-
-def now():
-    return datetime.now().astimezone().isoformat(timespec="seconds")
 
 
 def read():
@@ -60,7 +56,7 @@ def refuse_if_held():
 def acquire(info):
     target = path()
     os.makedirs(os.path.dirname(target), exist_ok=True)
-    record = dict(info, started_at=now(), last_op="start", last_op_at=now())
+    record = dict(info, started_at=clock.now(), last_op="start", last_op_at=clock.now())
     try:
         fd = os.open(target, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
     except FileExistsError:
@@ -71,7 +67,7 @@ def acquire(info):
 
 
 def touch(invocation, op):
-    update(invocation, last_op=op, last_op_at=now())
+    update(invocation, last_op=op, last_op_at=clock.now())
 
 
 def update(invocation, **fields):

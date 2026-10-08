@@ -18,7 +18,7 @@ import html
 import re
 from urllib.parse import urlsplit
 
-from tuner.lighthouse import Rejected
+from tuner.lighthouse import Rejected, items
 
 THEME_IMAGE_ROOT = "/cdn/shop/"
 FONT_LIBRARY = "/cdn/fonts/"
@@ -39,19 +39,12 @@ def matches(pattern, url):
 
 
 def requests(report):
-    items = ((((report.get("audits") or {}).get("network-requests") or {})
-              .get("details") or {}).get("items") or [])
-    return [i for i in items if isinstance(i.get("url"), str)]
-
-
-def _items(report, audit_id):
-    audit = (report.get("audits") or {}).get(audit_id) or {}
-    return (audit.get("details") or {}).get("items") or []
+    return [i for i in items(report, "network-requests") if isinstance(i.get("url"), str)]
 
 
 def _node(report):
     for audit_id in ("lcp-breakdown-insight", "lcp-discovery-insight"):
-        for item in _items(report, audit_id):
+        for item in items(report, audit_id):
             if isinstance(item, dict) and item.get("type") == "node":
                 return item
     return None
@@ -65,7 +58,7 @@ def lcp(report):
     """
     node = _node(report)
     selector = node.get("selector") if node else None
-    table = next((i for i in _items(report, "lcp-breakdown-insight")
+    table = next((i for i in items(report, "lcp-breakdown-insight")
                   if isinstance(i, dict) and i.get("type") == "table"), None)
     if table is None:
         return {"kind": "none", "url": None, "selector": selector}
@@ -79,9 +72,9 @@ def lazy_lcp(report):
     """True when the report's LCP image waits for a lazy-loader script: Lighthouse's
     LCP request discovery check fails, and the element carries a lazysizes class
     with a `data-src` or `data-srcset` the script swaps in."""
-    items = _items(report, "lcp-discovery-insight")
+    found = items(report, "lcp-discovery-insight")
     audit = (report.get("audits") or {}).get("lcp-discovery-insight") or {}
-    checks = next((i.get("items") or {} for i in items if i.get("type") == "checklist"), {})
+    checks = next((i.get("items") or {} for i in found if i.get("type") == "checklist"), {})
     failed = audit.get("score") == 0 or any(c.get("value") is False for c in checks.values())
     snippet = (_node(report) or {}).get("snippet") or ""
     return failed and bool(LAZY_CLASS.search(snippet)) and bool(LAZY_SOURCE.search(snippet))

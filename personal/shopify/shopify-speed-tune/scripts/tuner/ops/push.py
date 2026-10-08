@@ -15,7 +15,7 @@ smoke check, which comes before the pairs; after that it is what the Round
 measured.
 """
 
-from tuner import change, ledger, rounds, write
+from tuner import change, clock, ledger, rounds, write
 from tuner.output import Failed, Refused, say
 
 ORDER = 62
@@ -51,7 +51,7 @@ def run(args):
     # Recorded before the CLI runs: a push cut off part-way may have written some
     # files, and removing the Round pushes every one of these paths back.
     rnd["pushed_paths"] = paths
-    attempt = {"theme": "working", "id": theme["id"], "paths": paths, "at": ledger.now(),
+    attempt = {"theme": "working", "id": theme["id"], "paths": paths, "at": clock.now(),
                "result": "sent"}
     rnd.setdefault("pushes", []).append(attempt)
     rnd.pop("change", None)

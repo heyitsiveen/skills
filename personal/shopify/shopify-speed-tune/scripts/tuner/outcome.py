@@ -10,7 +10,7 @@ report can be written whichever step the invocation stopped in.
 
 import json
 
-from tuner import ledger, planning, rounds, stats
+from tuner import clock, planning, rounds, stats
 from tuner.output import Refused
 
 
@@ -83,8 +83,7 @@ def results(inv):
 
 # -- why a target was missed, and what to try next ---------------------------------
 
-ITEM_FIELDS = ("change", "cause", "effect")
-STATE_WORDS = {"reached": "reached its target", "short": "was never tried: no Round ran",
+STATE_WORDS ={"reached": "reached its target", "short": "was never tried: no Round ran",
                "no-target": "has no target", "not-measured": "was not measured"}
 
 
@@ -125,18 +124,16 @@ def record_missed(inv, entries):
             raise Refused("bad-missed", "%s proposes no next plan" % page,
                           "Give at least one next item, as plan items are given.")
         for n, item in enumerate(items, 1):
-            for field in ITEM_FIELDS:
-                if not isinstance(item, dict) or not isinstance(item.get(field), str) \
-                        or not item[field].strip():
-                    raise Refused("bad-missed", "%s proposes next item %d with no %s"
-                                  % (page, n, field),
-                                  "Each next item states its change, its cause and its "
-                                  "expected effect.")
+            field = planning.unstated(item) if isinstance(item, dict) else planning.ITEM_FIELDS[0]
+            if field:
+                raise Refused("bad-missed", "%s proposes next item %d with no %s" % (page, n, field),
+                              "Each next item states its change, its cause and its expected "
+                              "effect.")
         kept[page] = {"reason": entry["reason"].strip(),
-                      "next": [{f: item[f].strip() for f in ITEM_FIELDS} for item in items]}
+                      "next": [{f: item[f].strip() for f in planning.ITEM_FIELDS} for item in items]}
     report = inv.data.setdefault("report", {})
     report["missed"] = kept
-    report["missed_at"] = ledger.now()
+    report["missed_at"] = clock.now()
     inv.log("report", "missed targets explained: %s" % ", ".join(kept))
     inv.save()
 

@@ -17,6 +17,7 @@ import re
 from urllib.parse import urlsplit
 
 from tuner import probe, stats
+from tuner.lighthouse import items
 from tuner.output import Refused
 from tuner.text import PAGE_NAMES, half_up
 
@@ -42,11 +43,6 @@ def baseline(inv, page):
     return out
 
 
-def _items(report, audit_id):
-    audit = (report.get("audits") or {}).get(audit_id) or {}
-    return (audit.get("details") or {}).get("items") or []
-
-
 def _median(values):
     return stats.median(values) if values else 0
 
@@ -61,7 +57,7 @@ def most_common(values):
 def _entities(report):
     """{row name: (main-thread ms, transfer bytes)} for one report."""
     rows = {}
-    for item in _items(report, "third-parties-insight"):
+    for item in items(report, "third-parties-insight"):
         name = item.get("entity")
         if not name:
             continue
@@ -191,7 +187,7 @@ def lcp_line(reports):
         parts[0] += "; it waits for a lazy-loader script"
     durations = {}
     for report in reports:
-        for item in _items(report, "lcp-breakdown-insight"):
+        for item in items(report, "lcp-breakdown-insight"):
             if item.get("type") == "table":
                 for row in item.get("items") or []:
                     durations.setdefault(row.get("subpart"), []).append(row.get("duration") or 0)
@@ -201,7 +197,7 @@ def lcp_line(reports):
         parts.append("%s (medians, unthrottled)" % ", ".join(shown))
     failed = []
     for report in reports:
-        for item in _items(report, "lcp-discovery-insight"):
+        for item in items(report, "lcp-discovery-insight"):
             if item.get("type") == "checklist":
                 for check in (item.get("items") or {}).values():
                     if check.get("value") is False and check.get("label") not in failed:
@@ -218,7 +214,7 @@ def render_blocking_line(reports, owners):
         audit = (report.get("audits") or {}).get("render-blocking-insight") or {}
         for metric in savings:
             savings[metric].append(((audit.get("metricSavings") or {}).get(metric)) or 0)
-        for item in _items(report, "render-blocking-insight"):
+        for item in items(report, "render-blocking-insight"):
             url = item.get("url") or ""
             key = url.split("?")[0]
             largest[key] = max(largest.get(key, 0), item.get("totalBytes") or 0)
@@ -244,7 +240,7 @@ def layout_shift_line(reports):
     elements = {}
     for report in reports:
         seen = {}
-        for item in _items(report, "layout-shifts"):
+        for item in items(report, "layout-shifts"):
             selector = ((item.get("node") or {}).get("selector") or "?").split(" > ")[-1]
             causes = [s.get("cause") for s in ((item.get("subItems") or {}).get("items") or [])
                       if s.get("cause")]
@@ -268,7 +264,7 @@ def long_tasks_line(reports, owners):
     per_sample = []
     for report in reports:
         totals = {}
-        for item in _items(report, "long-tasks"):
+        for item in items(report, "long-tasks"):
             owner = owners(item.get("url"))
             totals[owner] = totals.get(owner, 0) + (item.get("duration") or 0)
         per_sample.append(totals)

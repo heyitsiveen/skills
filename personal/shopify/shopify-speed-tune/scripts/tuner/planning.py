@@ -7,7 +7,7 @@ Samples each time they are read, never stored.
 
 import json
 
-from tuner import ledger, stats
+from tuner import clock, stats
 from tuner.output import Refused
 
 CEILING = "ceiling"
@@ -72,7 +72,7 @@ def record_psi(inv, scores):
         if not 0 <= score <= 100:
             raise Refused("bad-score", "a PageSpeed score is 0-100, not %d (%s)" % (score, page))
     medians = {page: baseline_median(inv, page) for page in scores}
-    inv.data["psi"] = {"scores": dict(scores), "baseline": medians, "recorded_at": ledger.now()}
+    inv.data["psi"] = {"scores": dict(scores), "baseline": medians, "recorded_at": clock.now()}
     inv.log("psi", "PageSpeed %s" % ", ".join("%s %d" % (p, s) for p, s in scores.items()))
     inv.save()
 
@@ -109,6 +109,12 @@ def found_defects(inv):
     return [r["id"] for r in checked.get("results", []) if r["state"] == "found"]
 
 
+def unstated(item):
+    """The first of its change, cause and expected effect an item does not state, or None."""
+    return next((field for field in ITEM_FIELDS
+                 if not isinstance(item.get(field), str) or not item[field].strip()), None)
+
+
 def read_items(path):
     try:
         with open(path, encoding="utf-8") as f:
@@ -133,11 +139,11 @@ def record_plan(inv, items):
     for n, item in enumerate(items, 1):
         if not isinstance(item, dict):
             raise Refused("bad-plan", "item %d is not an object" % n)
-        for field in ITEM_FIELDS:
-            if not isinstance(item.get(field), str) or not item[field].strip():
-                raise Refused("bad-plan", "item %d states no %s" % (n, field),
-                              "Every item states its change, its pages, the cause it addresses "
-                              "and its expected effect.")
+        field = unstated(item)
+        if field:
+            raise Refused("bad-plan", "item %d states no %s" % (n, field),
+                          "Every item states its change, its pages, the cause it addresses "
+                          "and its expected effect.")
         pages = item.get("pages")
         if not isinstance(pages, list) or not pages or \
                 any(p not in stats.PAGE_ORDER for p in pages) or len(set(pages)) != len(pages):
@@ -158,7 +164,7 @@ def record_plan(inv, items):
     ordered = [i for i in checked if i["defects"]] + [i for i in checked if not i["defects"]]
     for n, item in enumerate(ordered, 1):
         item["id"] = "P%d" % n
-    inv.data["plan"] = {"items": ordered, "recorded_at": ledger.now(), "approved_at": None}
+    inv.data["plan"] = {"items": ordered, "recorded_at": clock.now(), "approved_at": None}
     inv.log("plan", "draft plan recorded: %d items" % len(ordered))
     inv.save()
     return ordered
@@ -182,7 +188,7 @@ def approve(inv):
     if plan.get("approved_at"):
         return plan
     pages_ready(inv)
-    plan["approved_at"] = ledger.now()
+    plan["approved_at"] = clock.now()
     inv.log("plan", "plan approved: %s" % ", ".join(i["id"] for i in plan["items"]))
     inv.save()
     return plan

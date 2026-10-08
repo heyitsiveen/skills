@@ -131,11 +131,11 @@ def live_theme(inv):
     except Stop as failure:
         return recorded, "the theme library could not be read (%s), so the published theme " \
                          "recorded at the start stands in for it" % failure.message
-    live = [t for t in library if t.get("role") == "live"]
+    live = shopify.published(library)
     if len(live) != 1:
         return recorded, "the theme library lists %d published themes, so the one recorded at " \
                          "the start stands in" % len(live)
-    return {"id": int(live[0]["id"]), "name": live[0].get("name")}, None
+    return live[0], None
 
 
 def changed(inv, live):

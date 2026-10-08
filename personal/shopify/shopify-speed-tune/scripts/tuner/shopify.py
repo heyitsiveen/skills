@@ -34,6 +34,11 @@ def themes(store):
         raise Failed("shopify-cli", "`shopify theme list --json` printed no JSON")
 
 
+def published(library):
+    """The published themes in a theme list, each {id, name}: one on any store in good order."""
+    return [{"id": int(t["id"]), "name": t.get("name")} for t in library if t.get("role") == "live"]
+
+
 def theme(store, theme_id):
     """The theme with this id, or None when the store has no such theme."""
     proc = _cli(store, "list", "--json", "--id", str(theme_id))
