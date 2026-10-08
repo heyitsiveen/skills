@@ -22,8 +22,7 @@ theme library, at the time of the report: how to go live depends on both.
 
 from tuner import detail, findings, golive, ledger, outcome, planning, rounds, stats
 from tuner.output import Refused, note, say
-# COLUMNS and cell are here for `plan`, which renders its tables as the report does.
-from tuner.text import COLUMNS, PAGE_NAMES, cell, score, theme_name, when  # noqa: F401
+from tuner.text import PAGE_NAMES, score, theme_name, when
 
 ORDER = 85
 

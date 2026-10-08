@@ -12,8 +12,8 @@ item of this plan, and each item once. `plan` alone shows the plan again.
 """
 
 from tuner import findings, ledger, planning, stats
-from tuner.ops.report import COLUMNS, PAGE_NAMES, cell, when
 from tuner.output import Refused, note, say
+from tuner.text import COLUMNS, PAGE_NAMES, cell, when
 
 ORDER = 45
 
