@@ -2,9 +2,10 @@
 
 A report becomes a Sample only when it is a clean measurement of the intended
 page, device and theme: no runtime error, both category scores present, the
-pinned Lighthouse and Chrome, the page it asked for with no redirect, and the
-theme's own asset folder among its requests. Anything else is rejected with a
-short reason, never recorded.
+pinned Lighthouse and Chrome, the page it asked for with no redirect, the
+theme's own asset folder among its requests, and exactly the blocked URL
+patterns its Measurement asked for (none, except for a Ceiling Sample).
+Anything else is rejected with a short reason, never recorded.
 """
 
 import json
@@ -54,11 +55,15 @@ def metrics(report):
     return out
 
 
-def check(report, url, device, pinned, asset_path=None):
-    """Raise Rejected unless the report is a clean Sample of `url` on `device`."""
+def check(report, url, device, pinned, asset_path=None, blocked=()):
+    """Raise Rejected unless the report is a clean Sample of `url` on `device`,
+    taken with exactly the `blocked` URL patterns (none for an ordinary Sample)."""
     error = report.get("runtimeError")
     if error:
         raise Rejected("runtime-error %s" % error.get("code", "unknown"))
+    used = (report.get("configSettings") or {}).get("blockedUrlPatterns") or []
+    if sorted(used) != sorted(blocked):
+        raise Rejected("wrong-blocking %d patterns, not %d" % (len(used), len(blocked)))
     version = report.get("lighthouseVersion")
     if version != pinned:
         raise Rejected("wrong-lighthouse %s" % version)

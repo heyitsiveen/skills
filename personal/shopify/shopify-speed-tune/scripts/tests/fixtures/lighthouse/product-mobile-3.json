@@ -1,9 +1,9 @@
 {
  "lighthouseVersion": "13.5.0",
- "requestedUrl": "https://store.example/?pb=0",
- "mainDocumentUrl": "https://store.example/?pb=0",
- "finalDisplayedUrl": "https://store.example/?pb=0",
- "fetchTime": "2026-10-07T21:28:31.985Z",
+ "requestedUrl": "https://store.example/products/example-product?pb=0",
+ "mainDocumentUrl": "https://store.example/products/example-product?pb=0",
+ "finalDisplayedUrl": "https://store.example/products/example-product?pb=0",
+ "fetchTime": "2026-10-07T21:37:45.157Z",
  "runWarnings": [
   "The page loaded too slowly to finish within the time limit. Results may be incomplete."
  ],
@@ -19,7 +19,7 @@
  },
  "categories": {
   "performance": {
-   "score": 0.56
+   "score": 0.46
   },
   "accessibility": {
    "score": 0.94
@@ -27,23 +27,23 @@
  },
  "audits": {
   "first-contentful-paint": {
-   "numericValue": 3727.8098773498546,
+   "numericValue": 2206.7122928771973,
    "numericUnit": "millisecond"
   },
   "largest-contentful-paint": {
-   "numericValue": 10246.6581116333,
+   "numericValue": 20408.85137734985,
    "numericUnit": "millisecond"
   },
   "total-blocking-time": {
-   "numericValue": 430,
+   "numericValue": 737.0000000000036,
    "numericUnit": "millisecond"
   },
   "cumulative-layout-shift": {
-   "numericValue": 0,
+   "numericValue": 0.004048426252019874,
    "numericUnit": "unitless"
   },
   "speed-index": {
-   "numericValue": 3727.8098773498546,
+   "numericValue": 9747.980005213358,
    "numericUnit": "millisecond"
   },
   "network-requests": {
@@ -51,18 +51,68 @@
     "type": "table",
     "items": [
      {
-      "url": "https://store.example/",
+      "url": "https://store.example/products/example-product",
       "resourceType": "Document",
-      "statusCode": 200
-     },
-     {
-      "url": "https://store.example/cdn/shop/t/23/compiled_assets/scripts.js?v=24523070562085982091791368346",
-      "resourceType": "Script",
       "statusCode": 200
      },
      {
       "url": "https://store.example/cdn/shop/t/23/compiled_assets/snippet-scripts.js?v=85869550152242727121787931995",
       "resourceType": "Script",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-12.jpg?v=1755206410&width=200",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-20.png?v=1789070487&width=200",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-24.png?v=1789070641&width=200",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-22.png?v=1789070716&width=200",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-16.png?v=1789070986&width=200",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-25.png?v=1789071089&width=200",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-41.png?v=1789071153&width=200",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-17.png?v=1789071878&width=200",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-13.png?v=1789073115&width=200",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-11.jpg?v=1755206383&width=200",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-10.jpg?v=1755206397&width=200",
+      "resourceType": "Image",
       "statusCode": 200
      },
      {
@@ -206,6 +256,16 @@
       "statusCode": 200
      },
      {
+      "url": "https://store.example/cdn/fonts/open_sans/opensans_n4.c32e4d4eca5273f6d4ee95ddf54b5bbb75fc9b61.woff2",
+      "resourceType": "Font",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/fonts/open_sans/opensans_n6.15aeff3c913c3fe570c19cdfeed14ce10d09fb08.woff2",
+      "resourceType": "Font",
+      "statusCode": 200
+     },
+     {
       "url": "https://store.example/cdn/shop/t/23/assets/CaviarDreams-Bold.ttf?v=41413591160852340851787734478",
       "resourceType": "Font",
       "statusCode": 200
@@ -256,23 +316,13 @@
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-40.png?v=1789482704&width=60",
-      "resourceType": "Image",
+      "url": "https://store.example/cdn/fonts/open_sans/opensans_n7.a9393be1574ea8606c68f4441806b2711d0d13e4.woff2",
+      "resourceType": "Font",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-39.png?v=1789482703&width=60",
-      "resourceType": "Image",
-      "statusCode": 200
-     },
-     {
-      "url": "https://store.example/cdn/shop/files/image-37.png?v=1787819852&width=3840",
-      "resourceType": "Image",
-      "statusCode": 200
-     },
-     {
-      "url": "https://store.example/cdn/shop/files/image-31.png?v=1787744830&width=20",
-      "resourceType": "Image",
+      "url": "https://store.example/cdn/fonts/open_sans/opensans_n3.b10466eda05a6b2d1ef0f6ba490dcecf7588dd78.woff2",
+      "resourceType": "Font",
       "statusCode": 200
      },
      {
@@ -286,58 +336,53 @@
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-34.png?v=1788744553&width=20",
+      "url": "https://store.example/cdn/shop/files/image-24.png?v=1789070641&width=20",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-9.png?v=1788744529&width=20",
+      "url": "https://store.example/cdn/shop/files/image-22.png?v=1789070716&width=20",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-7.png?v=1790344083&width=20",
+      "url": "https://store.example/cdn/shop/files/image-16.png?v=1789070986&width=20",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-30.png?v=1789572801&width=20",
+      "url": "https://store.example/cdn/shop/files/image-13.png?v=1789073115&width=600",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-28.jpg?v=1755205669&width=20",
+      "url": "https://store.example/cdn/shop/files/image-18.png?v=1789078854&width=192",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-19.png?v=1789048044&width=20",
+      "url": "https://store.example/cdn/shop/files/image-8.png?v=1789079284&width=192",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-23.png?v=1788731470&width=20",
+      "url": "https://store.example/cdn/shop/files/image-27.png?v=1789079688&width=192",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-29.png?v=1789009766&width=20",
+      "url": "https://store.example/cdn/shop/files/image-21.png?v=1789079862&width=192",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-26.jpg?v=1755205958&width=20",
+      "url": "https://store.example/cdn/shop/files/image-34.png?v=1788744553&width=640",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-38.png?v=1789581307&width=20",
-      "resourceType": "Image",
-      "statusCode": 200
-     },
-     {
-      "url": "https://store.example/cdn/shop/files/image-35.png?v=1787748562&width=20",
-      "resourceType": "Image",
+      "url": "https://store.example/cdn/shop/t/23/assets/photoswipe-lightbox.esm.min.js?v=13651888854280649141787729509",
+      "resourceType": "Script",
       "statusCode": 200
      },
      {
@@ -346,17 +391,52 @@
       "statusCode": 200
      },
      {
-      "url": "https://store.example/x/custom/x/sandbox/modern/",
+      "url": "https://store.example/x/custom/x/sandbox/modern/products/example-product",
       "resourceType": "Document",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-31.png?v=1787744830&width=800",
+      "url": "https://store.example/cdn/shop/files/image-25.png?v=1789071089&width=20",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-36.png?v=1787819684&width=96",
+      "url": "https://store.example/cdn/shop/files/image-41.png?v=1789071153&width=20",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-17.png?v=1789071878&width=20",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-13.png?v=1789073115&width=20",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-11.jpg?v=1755206383&width=20",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-10.jpg?v=1755206397&width=20",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-40.png?v=1789482704&width=60",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-39.png?v=1789482703&width=60",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-12.jpg?v=1755206410&width=800",
       "resourceType": "Image",
       "statusCode": 200
      },
@@ -366,32 +446,52 @@
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-20.png?v=1789070487&width=400",
+      "url": "https://store.example/cdn/shop/files/image-20.png?v=1789070487&width=800",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-34.png?v=1788744553&width=400",
+      "url": "https://store.example/cdn/shop/files/image-24.png?v=1789070641&width=800",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-9.png?v=1788744529&width=400",
+      "url": "https://store.example/cdn/shop/files/image-22.png?v=1789070716&width=800",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-7.png?v=1790344083&width=400",
+      "url": "https://store.example/cdn/shop/files/image-16.png?v=1789070986&width=800",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-12.jpg?v=1755206410&width=400",
+      "url": "https://store.example/cdn/shop/files/image-25.png?v=1789071089&width=800",
       "resourceType": "Image",
       "statusCode": 200
      },
      {
-      "url": "https://store.example/cdn/shop/files/image-30.png?v=1789572801&width=400",
+      "url": "https://store.example/cdn/shop/files/image-41.png?v=1789071153&width=800",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-17.png?v=1789071878&width=800",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-13.png?v=1789073115&width=800",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-11.jpg?v=1755206383&width=800",
+      "resourceType": "Image",
+      "statusCode": 200
+     },
+     {
+      "url": "https://store.example/cdn/shop/files/image-10.jpg?v=1755206397&width=800",
       "resourceType": "Image",
       "statusCode": 200
      }
@@ -409,26 +509,26 @@
       "items": [
        {
         "subpart": "timeToFirstByte",
-        "duration": 30.885
+        "duration": 33.641
        },
        {
         "subpart": "resourceLoadDelay",
-        "duration": 397.075
+        "duration": 876.163
        },
        {
         "subpart": "resourceLoadDuration",
-        "duration": 12.194
+        "duration": 17.114
        },
        {
         "subpart": "elementRenderDelay",
-        "duration": 38.926
+        "duration": 10.053
        }
       ]
      },
      {
       "type": "node",
-      "selector": "div.section-bleed > div.section > div#responsive-image-id1__media_hero > img.responsive-image",
-      "snippet": "<img class=\"responsive-image lazyautosizes ls-is-cached lazyloaded\" width=\"1392\" height=\"1440\" src=\"https://store.example/cdn/shop/files/image-31.png?v=1787744830&amp;width=800\" data-src=\"//store.example/cdn/shop/files/image-31.png?v=1787744830&amp;width=1200\" data-srcset=\"//store.example/cdn/shop/files/image-31.png?v=1787744830&amp;width=400 400w,…\" srcset=\"//store.example/cdn/shop/files/image-31.png?v=1787744830&amp;width=400 400w,…\" sizes=\"412px\" data-sizes=\"auto\" loading=\"lazy\" fetchpriority=\"auto\">"
+      "selector": "div.swiper-slide > a.pswp-link > div#responsive-image-id4--id5__main > img.responsive-image",
+      "snippet": "<img class=\"responsive-image lazyautosizes ls-is-cached lazyloaded\" width=\"1000\" height=\"1000\" src=\"https://store.example/cdn/shop/files/image-12.jpg?v=1755206410&amp;width=800\" data-src=\"//store.example/cdn/shop/files/image-12.jpg?v=1755206410&amp;width=1200\" data-srcset=\"//store.example/cdn/shop/files/image-12.jpg?v=1755206410&amp;width=400 400w,…\" srcset=\"//store.example/cdn/shop/files/image-12.jpg?v=1755206410&amp;width=400 400w,…\" sizes=\"412px\" data-sizes=\"auto\" loading=\"lazy\" fetchpriority=\"auto\">"
      }
     ]
    }
@@ -458,88 +558,68 @@
      },
      {
       "type": "node",
-      "selector": "div.section-bleed > div.section > div#responsive-image-id1__media_hero > img.responsive-image",
-      "snippet": "<img class=\"responsive-image lazyautosizes ls-is-cached lazyloaded\" width=\"1392\" height=\"1440\" src=\"https://store.example/cdn/shop/files/image-31.png?v=1787744830&amp;width=800\" data-src=\"//store.example/cdn/shop/files/image-31.png?v=1787744830&amp;width=1200\" data-srcset=\"//store.example/cdn/shop/files/image-31.png?v=1787744830&amp;width=400 400w,…\" srcset=\"//store.example/cdn/shop/files/image-31.png?v=1787744830&amp;width=400 400w,…\" sizes=\"412px\" data-sizes=\"auto\" loading=\"lazy\" fetchpriority=\"auto\">"
+      "selector": "div.swiper-slide > a.pswp-link > div#responsive-image-id4--id5__main > img.responsive-image",
+      "snippet": "<img class=\"responsive-image lazyautosizes ls-is-cached lazyloaded\" width=\"1000\" height=\"1000\" src=\"https://store.example/cdn/shop/files/image-12.jpg?v=1755206410&amp;width=800\" data-src=\"//store.example/cdn/shop/files/image-12.jpg?v=1755206410&amp;width=1200\" data-srcset=\"//store.example/cdn/shop/files/image-12.jpg?v=1755206410&amp;width=400 400w,…\" srcset=\"//store.example/cdn/shop/files/image-12.jpg?v=1755206410&amp;width=400 400w,…\" sizes=\"412px\" data-sizes=\"auto\" loading=\"lazy\" fetchpriority=\"auto\">"
      }
     ]
    }
   },
   "render-blocking-insight": {
-   "score": 0,
+   "score": 0.5,
    "metricSavings": {
-    "FCP": 1300,
+    "FCP": 0,
     "LCP": 0
    },
    "details": {
     "type": "table",
     "items": [
      {
-      "url": "https://cdn.shopify.com/extensions/01a11642-41e1-713e-a375-2820e8cde5c7/gsc-instagram-feed-95/assets/gsc-instafeed-widget.css",
-      "totalBytes": 7002,
-      "wastedMs": 919
-     },
-     {
       "url": "https://store.example/cdn/shop/t/23/compiled_assets/styles.css?v=40070799103536477801791368346",
-      "totalBytes": 9092,
-      "wastedMs": null
+      "totalBytes": 9030,
+      "wastedMs": 155
      },
      {
-      "url": "https://cdn03.zipify.com/css/zipifypages.css",
-      "totalBytes": 39252,
-      "wastedMs": 1357
-     },
-     {
-      "url": "https://store.example/cdn/shopifycloud/portable-wallets/latest/accelerated-checkout-backwards-compat.css",
-      "totalBytes": 2183,
+      "url": "https://store.example/cdn/shop/t/23/assets/accordion.css?v=72339561723780080711787729507",
+      "totalBytes": 859,
       "wastedMs": null
      },
      {
       "url": "https://store.example/cdn/shop/t/23/assets/gsc-instagram-overrides.css?v=143350410625111438391788558912",
-      "totalBytes": 678,
-      "wastedMs": null
-     },
-     {
-      "url": "https://store.example/cdn/shop/t/23/assets/accordion.css?v=72339561723780080711787729507",
-      "totalBytes": 839,
-      "wastedMs": null
-     },
-     {
-      "url": "https://store.example/cdn/shop/t/23/assets/quick-view.css?v=72383612429634034071790129707",
-      "totalBytes": 2584,
+      "totalBytes": 642,
       "wastedMs": null
      },
      {
       "url": "https://store.example/cdn/shop/t/23/assets/input.css?v=135719220095235167071787729509",
-      "totalBytes": 914,
+      "totalBytes": 993,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/quick-view.css?v=72383612429634034071790129707",
+      "totalBytes": 2530,
+      "wastedMs": 309
+     },
+     {
+      "url": "https://store.example/cdn/shopifycloud/portable-wallets/latest/accelerated-checkout-backwards-compat.css",
+      "totalBytes": 2265,
       "wastedMs": null
      },
      {
       "url": "https://store.example/cdn/shop/t/23/assets/dialog-menu.css?v=114121083340782281421787729510",
-      "totalBytes": 1551,
+      "totalBytes": 1554,
       "wastedMs": null
      },
      {
-      "url": "https://t.contentsquare.net/uxa/x.js",
-      "totalBytes": 3025,
-      "wastedMs": 758
-     },
-     {
-      "url": "https://cdn03.zipify.com/x/stylesheet/pages/x.css",
-      "totalBytes": 8895,
+      "url": "https://store.example/cdn/shop/t/23/assets/photoswipe.css?v=176742834151000792621787729510",
+      "totalBytes": 1100,
       "wastedMs": null
      },
      {
-      "url": "https://cdn16.zipify.com/x/gs/x.css",
-      "totalBytes": 3814,
-      "wastedMs": 906
+      "url": "https://store.example/cdn/shop/t/23/assets/photoswipe.min.css?v=25375204382449318101787729510",
+      "totalBytes": 1865,
+      "wastedMs": 155
      },
      {
       "url": "https://store.example/cdn/shop/t/23/assets/sheet-menu.css?v=30631438094504123231788002086",
-      "totalBytes": 0,
-      "wastedMs": null
-     },
-     {
-      "url": "https://store.example/cdn/shop/t/23/assets/sticky-add-to-cart.css?v=172258083435992148281787729508",
       "totalBytes": 0,
       "wastedMs": null
      },
@@ -549,12 +629,17 @@
       "wastedMs": null
      },
      {
-      "url": "https://store.example/cdn/shop/t/23/assets/video-player.css?v=118666841815353052901787729508",
+      "url": "https://store.example/cdn/shop/t/23/assets/nav-panel.css?v=36705063307078071761787729508",
       "totalBytes": 0,
       "wastedMs": null
      },
      {
-      "url": "https://store.example/cdn/shop/t/23/assets/nav-panel.css?v=36705063307078071761787729508",
+      "url": "https://store.example/cdn/shop/t/23/assets/sticky-add-to-cart.css?v=172258083435992148281787729508",
+      "totalBytes": 0,
+      "wastedMs": null
+     },
+     {
+      "url": "https://store.example/cdn/shop/t/23/assets/video-player.css?v=118666841815353052901787729508",
       "totalBytes": 0,
       "wastedMs": null
      },
@@ -564,12 +649,12 @@
       "wastedMs": null
      },
      {
-      "url": "https://store.example/cdn/shop/t/23/assets/loader.css?v=167543319965776213751787729509",
+      "url": "https://store.example/cdn/shop/t/23/assets/toast.css?v=123631997579840776401787729510",
       "totalBytes": 0,
       "wastedMs": null
      },
      {
-      "url": "https://store.example/cdn/shop/t/23/assets/toast.css?v=123631997579840776401787729510",
+      "url": "https://store.example/cdn/shop/t/23/assets/loader.css?v=167543319965776213751787729509",
       "totalBytes": 0,
       "wastedMs": null
      },
@@ -587,10 +672,27 @@
    }
   },
   "layout-shifts": {
-   "scoreDisplayMode": "notApplicable",
+   "scoreDisplayMode": "informative",
    "details": {
     "type": "table",
-    "items": []
+    "items": [
+     {
+      "node": {
+       "type": "node",
+       "selector": "div.pdp-information__wrapper > form#[object HTMLInputElement] > div#ProductInfo-template--id5__main > div.pdp-title-container",
+       "snippet": "<div class=\"pdp-title-container\">"
+      },
+      "score": 0.002618623893134092
+     },
+     {
+      "node": {
+       "type": "node",
+       "selector": "section#shopify-section-template--id5__main > div.pdp-page > div.pdp > div.pdp-information__wrapper",
+       "snippet": "<div class=\"pdp-information__wrapper\">"
+      },
+      "score": 0.001429802358885782
+     }
+    ]
    }
   },
   "long-tasks": {
@@ -598,64 +700,64 @@
     "type": "table",
     "items": [
      {
+      "url": "https://cdn.elements.amazon/elements/amazon-product-rating/x.0/elements.js",
+      "duration": 325.0000000000073,
+      "startTime": 38893.45037734986
+     },
+     {
       "url": "https://www.googletagmanager.com/gtag/js",
-      "duration": 203,
-      "startTime": 19498.0881116333
+      "duration": 249,
+      "startTime": 28467.389377349875
      },
      {
       "url": "https://connect.facebook.net/x/fbevents.js",
-      "duration": 174,
-      "startTime": 15913.0926116333
+      "duration": 202,
+      "startTime": 23665.97237734987
      },
      {
-      "url": "https://store.example/cdn/wpm/x.js",
-      "duration": 165,
-      "startTime": 11298.154111633303
+      "url": "https://store.example/products/example-product",
+      "duration": 163,
+      "startTime": 5062.322073425293
      },
      {
-      "url": "https://store.example/",
-      "duration": 147,
-      "startTime": 5511.338818756104
+      "url": "https://connect.facebook.net/x/fbevents.js",
+      "duration": 117,
+      "startTime": 26745.319377349868
+     },
+     {
+      "url": "https://www.googletagmanager.com/gtag/js",
+      "duration": 111,
+      "startTime": 28325.389377349875
      },
      {
       "url": "https://connect.facebook.net/signals/config/x",
-      "duration": 111,
-      "startTime": 18292.3461116333
+      "duration": 102,
+      "startTime": 26643.319377349868
+     },
+     {
+      "url": "https://store.example/cdn/wpm/x.js",
+      "duration": 94,
+      "startTime": 17669.98437734985
+     },
+     {
+      "url": "https://cdn.elements.amazon/elements/amazon-product-rating/x.0/elements.js",
+      "duration": 74,
+      "startTime": 39218.450377349865
      },
      {
       "url": "https://www.googletagmanager.com/gtag/js",
-      "duration": 96,
-      "startTime": 19402.0881116333
-     },
-     {
-      "url": "https://store.example/cdn/shop/t/23/assets/lazysizes.min.js?v=56805471290311245611787729509",
-      "duration": 65,
-      "startTime": 22374.4981116333
+      "duration": 71,
+      "startTime": 32165.816377349878
      },
      {
       "url": "https://store.example/cdn/shopifycloud/perf-kit/shopify-perf-kit-3.9.6.min.js",
-      "duration": 61,
-      "startTime": 7710.7281116333
-     },
-     {
-      "url": "https://cdn.shopify.com/extensions/01a11642-41e1-713e-a375-2820e8cde5c7/gsc-instagram-feed-95/assets/gsc-instafeed-widget.js",
-      "duration": 55,
-      "startTime": 6517.091818756103
-     },
-     {
-      "url": "https://www.googletagmanager.com/gtag/js",
-      "duration": 55,
-      "startTime": 22319.4981116333
-     },
-     {
-      "url": "https://store.example/",
-      "duration": 53,
-      "startTime": 2617.0918187561037
+      "duration": 69,
+      "startTime": 17786.98437734985
      },
      {
       "url": "Unattributable",
-      "duration": 53,
-      "startTime": 1732.2290000000003
+      "duration": 58,
+      "startTime": 1362.2205000000001
      }
     ]
    }
@@ -666,118 +768,93 @@
     "isEntityGrouped": true,
     "items": [
      {
-      "entity": "ContentSquare",
-      "transferSize": 162798,
-      "mainThreadTime": 113.99199971556664
-     },
-     {
       "entity": "Google Tag Manager",
-      "transferSize": 552775,
-      "mainThreadTime": 86.16299992799759
+      "transferSize": 552803,
+      "mainThreadTime": 103.49700002372265
      },
      {
       "entity": "Facebook",
-      "transferSize": 207518,
-      "mainThreadTime": 56.861000046133995
+      "transferSize": 207528,
+      "mainThreadTime": 69.89099997282028
+     },
+     {
+      "entity": "Klaviyo",
+      "transferSize": 70446,
+      "mainThreadTime": 25.403999909758568
      },
      {
       "entity": "Shopify",
-      "transferSize": 381948,
-      "mainThreadTime": 33.16600005328655,
+      "transferSize": 252396,
+      "mainThreadTime": 23.685000017285347,
       "subItems": {
        "type": "subitems",
        "items": [
         {
          "url": "https://cdn.shopify.com/extensions/01a11642-41e1-713e-a375-2820e8cde5c7/gsc-instagram-feed-95/assets/gsc-instafeed-widget.js",
-         "transferSize": 64857,
-         "mainThreadTime": 16.854999989271164
+         "transferSize": 64317,
+         "mainThreadTime": 8.446000009775162
         },
         {
          "url": "https://cdn.shopify.com/extensions/01a0c7ca-5010-747b-9d99-9a644250288a/ecomsend-restock-108/assets/product_restore_email.js",
-         "transferSize": 85034,
-         "mainThreadTime": 4.641000032424927
+         "transferSize": 84240,
+         "mainThreadTime": 5.8889999985694885
         },
         {
          "url": "https://cdn.shopify.com/extensions/01a11176-2280-7862-971a-b99c4fd1084c/judgeme-773/assets/loader.js",
-         "transferSize": 3556,
-         "mainThreadTime": 2.638000011444092
+         "transferSize": 3127,
+         "mainThreadTime": 0.9479999989271164
         },
         {
          "url": "https://cdn.shopify.com/extensions/019fdc0d-a3a6-740d-a2c6-267c07342bce/zipifypages-40/assets/theme-helper.js",
-         "transferSize": 2096,
-         "mainThreadTime": 0.2590000033378601
+         "transferSize": 1655,
+         "mainThreadTime": 0.21800000965595245
         },
         {
          "url": "https://cdn.shopify.com/extensions/01a0c7ca-5010-747b-9d99-9a644250288a/ecomsend-restock-108/assets/sealapps_email_config.js",
-         "transferSize": 722,
-         "mainThreadTime": 0.05800001323223114
-        },
-        {
-         "url": "https://cdn.shopify.com/extensions/01a11176-2280-7862-971a-b99c4fd1084c/judgeme-773/assets/widget_main.js",
-         "transferSize": 7679,
-         "mainThreadTime": 0.05299997329711914
-        },
-        {
-         "url": "https://cdn.shopify.com/extensions/01a11176-2280-7862-971a-b99c4fd1084c/judgeme-773/assets/widget_base.js",
-         "transferSize": 45936,
-         "mainThreadTime": 0.04199998080730438
-        },
-        {
-         "url": "https://cdn.shopify.com/extensions/01a11176-2280-7862-971a-b99c4fd1084c/judgeme-773/assets/widget_common.js",
-         "transferSize": 19102,
-         "mainThreadTime": 0.03300003707408905
-        },
-        {
-         "url": "https://cdn.shopify.com/extensions/01a11176-2280-7862-971a-b99c4fd1084c/judgeme-773/assets/widget_form.js",
-         "transferSize": 27489,
-         "mainThreadTime": 0
-        },
-        {
-         "url": "https://cdn.shopify.com/extensions/01a11176-2280-7862-971a-b99c4fd1084c/judgeme-773/assets/widget_v3_base.css",
-         "transferSize": 12067,
-         "mainThreadTime": 0
-        },
-        {
-         "url": "https://cdn.shopify.com/extensions/01a11642-41e1-713e-a375-2820e8cde5c7/gsc-instagram-feed-95/assets/gsc-instafeed-widget.css",
-         "transferSize": 7002,
-         "mainThreadTime": 0
-        },
-        {
-         "url": "https://cdn.shopify.com/extensions/01a11176-2280-7862-971a-b99c4fd1084c/judgeme-773/assets/widget_v3_form.css",
-         "transferSize": 5813,
-         "mainThreadTime": 0
+         "transferSize": 270,
+         "mainThreadTime": 0.03300000727176666
         }
        ]
       }
      },
      {
-      "entity": "Klaviyo",
-      "transferSize": 70416,
-      "mainThreadTime": 27.624999940395355
-     },
-     {
-      "entity": "zipify.com",
-      "transferSize": 260255,
-      "mainThreadTime": 0.43299999833106995
+      "entity": "elements.amazon",
+      "transferSize": 2066002,
+      "mainThreadTime": 17.22999981045723
      },
      {
       "entity": "config-security.com",
-      "transferSize": 56434,
-      "mainThreadTime": 0.08500005304813385
+      "transferSize": 56458,
+      "mainThreadTime": 0.15799997746944427
+     },
+     {
+      "entity": "sealapps.com",
+      "transferSize": 4253,
+      "mainThreadTime": 0.1560000330209732
      },
      {
       "entity": "shop.app",
-      "transferSize": 3464,
-      "mainThreadTime": 0.04200001060962677
+      "transferSize": 3378,
+      "mainThreadTime": 0.062000006437301636
      },
      {
-      "entity": "Google Analytics",
-      "transferSize": 546,
+      "entity": "aws.dev",
+      "transferSize": 67320,
       "mainThreadTime": 0
      },
      {
-      "entity": "Other Google APIs/SDKs",
-      "transferSize": 21,
+      "entity": "media-amazon.com",
+      "transferSize": 477250,
+      "mainThreadTime": 0
+     },
+     {
+      "entity": "merchant-center-analytics.goog",
+      "transferSize": 594,
+      "mainThreadTime": 0
+     },
+     {
+      "entity": "Google Analytics",
+      "transferSize": 594,
       "mainThreadTime": 0
      },
      {
@@ -786,18 +863,18 @@
       "mainThreadTime": 0
      },
      {
+      "entity": "Other Google APIs/SDKs",
+      "transferSize": 21,
+      "mainThreadTime": 0
+     },
+     {
       "entity": "Google/Doubleclick Ads",
-      "transferSize": 577,
+      "transferSize": 568,
       "mainThreadTime": 0
      },
      {
-      "entity": "merchant-center-analytics.goog",
-      "transferSize": 546,
-      "mainThreadTime": 0
-     },
-     {
-      "entity": "getsitectrl.com",
-      "transferSize": 187,
+      "entity": "Amazon Web Services",
+      "transferSize": 515,
       "mainThreadTime": 0
      }
     ]

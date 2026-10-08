@@ -3,7 +3,8 @@
 With no flags it proposes, reading the published storefront: the first
 collection in the header's main navigation, and the first available product in
 the store's best-selling order. The developer confirms them at the plan stop;
---collection and --product set a page by its path. Home is always `/`.
+--collection and --product set a page by its path, until the plan is approved.
+Home is always `/`.
 """
 
 import json
@@ -27,6 +28,9 @@ def register(sub):
 
 def run(args):
     inv = ledger.current("pages")
+    if (inv.data.get("plan") or {}).get("approved_at"):
+        raise Refused("plan-approved", "the plan approved at %s was measured on these pages, so "
+                      "they stay" % inv.data["plan"]["approved_at"])
     pages = inv.data.setdefault("pages", {"home": "/"})
     store_url = inv.data["store"]["url"]
     sources = {}

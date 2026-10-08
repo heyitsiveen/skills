@@ -166,11 +166,11 @@ class Sandbox:
         })
         return env
 
-    def run(self, *args, cwd=None):
+    def run(self, *args, cwd=None, env=None):
         completed = subprocess.run(
             [sys.executable, str(PROGRAM), *[str(a) for a in args]],
-            cwd=cwd or self.repo, env=self.env(), capture_output=True, text=True,
-            stdin=subprocess.DEVNULL, timeout=120)
+            cwd=cwd or self.repo, env=dict(self.env(), **(env or {})), capture_output=True,
+            text=True, stdin=subprocess.DEVNULL, timeout=120)
         return Result(completed)
 
     def start(self, *extra, cwd=None):

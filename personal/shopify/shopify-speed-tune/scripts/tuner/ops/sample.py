@@ -18,6 +18,7 @@ import re
 
 from tuner import browser, ledger, lighthouse, stats, storefront
 from tuner.output import Failed, Refused, say
+from tuner.probe import check as probe_check
 
 ORDER = 30
 PAGES = ("home", "collection", "product")
@@ -81,7 +82,12 @@ def members(inv, args, url):
     return stats.members(inv.data["samples"], args.label, args.page, url, args.device, args.theme)
 
 
-def take(inv, args, url, theme, wanted):
+def take(inv, args, url, theme, wanted, probe=None):
+    """Take Samples until `wanted` are recorded or the spare attempts run out.
+
+    `probe` (the Ceiling probe: blocked patterns and the LCP image they spare)
+    passes through to Lighthouse and to the check of every report.
+    """
     data = inv.data
     workspace = data["workspace"]
     chrome = data["tools"].get("chrome", {}).get("path", "")
@@ -106,22 +112,26 @@ def take(inv, args, url, theme, wanted):
             with browser.Chrome(workspace, chrome) as session:
                 session.put_preview_cookie(store_url, cookie)
                 report = lighthouse.take(workspace, chrome, measured, args.device, session.port,
-                                         output)
+                                         output, blocked=probe["patterns"] if probe else ())
         except lighthouse.Rejected as rejection:
             reject(inv, args, rejection.reason)
             continue
         finally:
             if os.path.exists(output):
                 os.remove(output)
-        if record(inv, args, url, theme, report, source="lighthouse", secrets=(secret,)) is not None:
+        if record(inv, args, url, theme, report, source="lighthouse", secrets=(secret,),
+                  probe=probe) is not None:
             taken += 1
     return taken
 
 
-def record(inv, args, url, theme, report, source, secrets=()):
+def record(inv, args, url, theme, report, source, secrets=(), probe=None):
     try:
         figures = lighthouse.check(report, storefront.preview_url(url), args.device,
-                                   inv.data["tools"].get("lighthouse"), theme.get("asset_path"))
+                                   inv.data["tools"].get("lighthouse"), theme.get("asset_path"),
+                                   blocked=probe["patterns"] if probe else ())
+        if probe:
+            probe_check(report, probe)
     except lighthouse.Rejected as rejection:
         reject(inv, args, rejection.reason)
         return None
@@ -131,14 +141,14 @@ def record(inv, args, url, theme, report, source, secrets=()):
     with open(inv.file(stored), "w", encoding="utf-8") as f:
         f.write(lighthouse.keepable(report, secrets))
     agent = (report.get("environment") or {}).get("hostUserAgent", "")
-    browser = re.search(r"HeadlessChrome/[\d.]+", agent)
+    build = re.search(r"HeadlessChrome/[\d.]+", agent)
     sample = {
         "id": sample_id, "label": args.label, "page": args.page, "url": url,
         "device": args.device, "theme": args.theme, "theme_id": theme["id"],
         "metrics": figures, "taken_at": report.get("fetchTime"), "source": source,
         "report": stored, "warnings": report.get("runWarnings") or [],
         "lighthouse": report.get("lighthouseVersion"),
-        "chrome": browser.group(0) if browser else None,
+        "chrome": build.group(0) if build else None,
         "axe": ((report.get("environment") or {}).get("credits") or {}).get("axe-core"),
     }
     inv.data["samples"].append(sample)
