@@ -12,6 +12,8 @@ import sys
 import time
 import unittest
 
+from report_support import ran
+from round_support import CONTROL, WORKING, pushed
 from support import PROGRAM, STORE_URL, Sandbox, running
 
 
@@ -174,6 +176,50 @@ class FinishDiscardsAnInvocationThatStoppedInPreflight(unittest.TestCase):
         self.assertEqual(box.git(box.repo, "branch", "--show-current"), "main")
         box.edit_store(lambda s: s.update(duplicate_errors_after=10 ** 6))
         box.start()
+
+
+class FinishDiscardsOnlyWhatNoRoundKept(unittest.TestCase):
+    """`--discard` deletes the Working theme and the branch, so it waits for an open Round's
+    verdict and refuses once any Round was kept: that work is the developer's to publish."""
+
+    def assert_nothing_discarded(self, box, result, themes_before):
+        self.assertEqual(result.code, 1, result)
+        self.assertEqual(box.theme_ids(), themes_before, "a refused --discard deletes no theme")
+        self.assertNotEqual(box.git(box.repo, "branch", "--list", "speed-tune/*"), "")
+        self.assertEqual(box.run("status").code, 0, "the lock and the ledger stay open")
+
+    def test_while_a_round_is_open_it_is_refused(self):
+        box = pushed(self)
+        themes_before = box.theme_ids()
+
+        result = box.run("finish", "--discard")
+
+        self.assertRegex(result.out, r"(?m)^REFUSED round-open: Round 1 is open")
+        self.assert_nothing_discarded(box, result, themes_before)
+
+    def test_once_a_round_was_kept_it_is_refused(self):
+        box = ran(self, "reached")
+        themes_before = box.theme_ids()
+
+        result = box.run("finish", "--discard")
+
+        self.assertEqual(result.lines("REFUSED"), [
+            "REFUSED kept-rounds: Round 1 kept its change, so the Working theme %d and the branch "
+            "hold work to publish" % WORKING])
+        self.assertIn("NOTE Run `finish` without --discard: it keeps the Working theme and the "
+                      "branch.", result.out)
+        self.assert_nothing_discarded(box, result, themes_before)
+
+    def test_after_rounds_that_were_all_removed_it_discards_both_themes_and_the_branch(self):
+        box = pushed(self)
+        self.assertEqual(box.run("verdict", "--remove").code, 0)
+        themes = {WORKING, CONTROL}
+
+        result = box.run("finish", "--discard")
+
+        self.assertEqual(result.code, 0, result)
+        self.assertEqual(box.theme_ids() & themes, set())
+        self.assertEqual(box.git(box.repo, "branch", "--list", "speed-tune/*"), "")
 
 
 if __name__ == "__main__":

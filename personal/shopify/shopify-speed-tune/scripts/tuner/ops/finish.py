@@ -15,11 +15,13 @@ fails it with `cleanup-incomplete`, keeping the invocation open, so `finish`
 can simply be run again once it is dealt with. Each step is recorded as it
 completes, so a `finish` that stops part-way is finished by running it again.
 
-`--discard` is for an invocation that stopped before any Round: it deletes the
-Working theme too, and the branch when the branch holds no commits.
+`--discard` is for an invocation no Round kept anything in, such as a `start`
+that failed part-way: it deletes the Working theme too, and the branch when the
+branch holds no commits. Once a Round was kept it refuses, since the Working
+theme and the branch then hold work to publish.
 
-Without --discard it refuses while a Round is open: the Working theme it keeps
-must hold kept Rounds only.
+It refuses while a Round is open, with or without --discard: the Working theme
+it keeps must hold kept Rounds only, and a discard waits for the verdict.
 """
 
 import os
@@ -34,7 +36,8 @@ ORDER = 90
 def register(sub):
     p = sub.add_parser("finish", help="delete the Control theme, remove Chrome, release the lock")
     p.add_argument("--discard", action="store_true",
-                   help="also delete the Working theme, and the branch if it has no commits")
+                   help="also delete the Working theme, and the branch if it has no commits; "
+                        "refused once a Round was kept")
     p.set_defaults(run=run)
 
 
@@ -43,11 +46,20 @@ def run(args):
     data = inv.data
     store = data["store"]["myshopify"]
     open_round = rounds.current(inv)
-    if open_round is not None and not args.discard:
+    if open_round is not None:
         raise Refused("round-open", "Round %d is open, so the Working theme may hold a change no "
                       "verdict kept" % open_round["n"],
                       "End it with `verdict`, or with `verdict --remove` when it cannot be "
                       "measured, then run `finish` again.")
+    kept = [r["n"] for r in data.get("rounds", []) if r["state"] == "kept"]
+    if args.discard and kept:
+        raise Refused("kept-rounds", "%s kept %s, so the Working theme %s and the branch hold "
+                      "work to publish" % (
+                          "Round %d" % kept[0] if len(kept) == 1
+                          else "Rounds %s" % ", ".join(str(n) for n in kept),
+                          "its change" if len(kept) == 1 else "their changes",
+                          data["themes"]["working"]["id"]),
+                      "Run `finish` without --discard: it keeps the Working theme and the branch.")
 
     for role in ["control"] + (["working"] if args.discard else []):
         delete_theme(inv, store, role)
