@@ -159,8 +159,9 @@ class Committed:
         self.output = output
 
 
-def commit(root, base, paths, subject, body):
-    """Commit exactly `paths` as one commit on `base`, running the repo's own hooks.
+def commit(root, base, paths, subject, body, verify=True):
+    """Commit exactly `paths` as one commit on `base`, running the repo's own hooks
+    unless `verify` is False (the developer approved --no-verify at start).
 
     Returns Committed(sha) or, when git or a hook refuses, Committed(output=its
     last lines) with nothing committed and the paths unstaged.
@@ -171,7 +172,8 @@ def commit(root, base, paths, subject, body):
         raise Failed("commit-unexpected", "the index also holds %s, which is not the Round's "
                      "change" % ", ".join(sorted(staged - set(paths))),
                      "Unstage it with `git restore --staged <path>` and run `verdict` again.")
-    proc = run(["git", "commit", "-q", "-m", subject, "-m", body], cwd=root, timeout=900)
+    proc = run(["git", "commit", "-q", *([] if verify else ["--no-verify"]), "-m", subject,
+                "-m", body], cwd=root, timeout=900)
     if proc.returncode != 0:
         repo.git(root, "reset", "-q", "--", *paths)
         lines = [l for l in (proc.stderr + "\n" + proc.stdout).splitlines() if l.strip()]

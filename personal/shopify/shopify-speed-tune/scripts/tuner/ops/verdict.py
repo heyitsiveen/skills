@@ -8,18 +8,18 @@ The program decides; nothing here rests on reading a transcript:
 - remove a Round whose push failed, without measuring it
 
 Keep: one Conventional Commit of exactly the Round's change on the invocation's
-branch, running the repo's own commit hooks (a change the hooks refuse is
-removed instead), then the same state pushed to the Control theme. Remove: the
-working tree back at the last commit and the Working theme pushed back to it.
-Each step is recorded as it completes, so a verdict cut off part-way is
-finished by running it again.
+branch, running the repo's own commit hooks unless the developer approved
+--no-verify at `start` (a change the hooks refuse is removed instead), then the
+same state pushed to the Control theme. Remove: the working tree back at the
+last commit and the Working theme pushed back to it. Each step is recorded as
+it completes, so a verdict cut off part-way is finished by running it again.
 
 --remove ends a Round the program cannot judge: one never pushed, or one whose
 pairs or smoke check cannot be taken. A measured, checked Round is decided by
 the rule alone.
 """
 
-from tuner import change, ledger, rounds, smoke, stats, write
+from tuner import change, hook, ledger, rounds, smoke, stats, write
 from tuner.output import Failed, Refused, note, say
 
 ORDER = 66
@@ -89,11 +89,12 @@ def judge(inv, rnd, forced):
 
 
 def commit(inv, rnd):
-    """Commit the kept change once; a commit the repo's hooks refuse turns it into a removal."""
+    """Commit the kept change once; a commit the repo's hooks refuse turns it into a removal.
+    The hooks run unless the developer approved --no-verify for this invocation at start."""
     root = inv.data["repo"]["root"]
     paths = [p for _, p in rnd["change"]["entries"]]
     subject, body = rounds.commit_message(inv, rnd)
-    done = change.commit(root, rnd["base"], paths, subject, body)
+    done = change.commit(root, rnd["base"], paths, subject, body, verify=hook.verifies(inv.data))
     if done.sha is None:
         rnd["verdict"].update(decision="remove", reasons=["commit-refused"])
         rnd["commit_refused"] = done.output

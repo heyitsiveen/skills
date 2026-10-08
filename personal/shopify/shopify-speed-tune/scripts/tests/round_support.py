@@ -48,16 +48,17 @@ PAGE_PATHS = {"home": "/", "collection": COLLECTION, "product": PRODUCT}
 FROZEN = {}
 
 
-def approved(test, items=ITEMS, *start_args):
-    """An invocation over THEME whose plan of `items` the developer approved.
+def approved(test, items=ITEMS, *start_args, pre_commit=None):
+    """An invocation over THEME whose plan of `items` the developer approved, started
+    with `start_args` in a repo whose pre-commit hook is `pre_commit`.
 
     Reaching approval takes some thirty program runs, so it is done once per
     plan and kept as a copy; each test gets that copy put back at the same path,
     a fresh sandbox none of the other tests touched.
     """
-    key = json.dumps([items, start_args])
+    key = json.dumps([items, start_args, pre_commit])
     if key not in FROZEN:
-        box = diagnosed(test, *start_args, theme_files=THEME)
+        box = diagnosed(test, *start_args, theme_files=THEME, pre_commit=pre_commit)
         for args in (("plan", "--items", write_items(box, items)), ("plan", "--approve")):
             result = box.run(*args)
             test.assertEqual(result.code, 0, result)

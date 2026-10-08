@@ -1,8 +1,12 @@
 """start: open an invocation for one store from inside its theme repo.
 
 Refuses, changing nothing, when the store is not the repo's, when another
-invocation is unfinished on this machine, or when the theme library has no
-room for two themes. Then it takes the machine lock, opens the ledger, creates
+invocation is unfinished on this machine, when the theme library has no room
+for two themes, or when the repo's pre-commit hook already fails on the
+unchanged repo: every kept Round is committed through that hook. Only the
+developer's explicit approval, passed as --no-verify-approved, lets a failing
+hook through, and then this invocation commits its kept Rounds with
+--no-verify. Then it takes the machine lock, opens the ledger, creates
 the invocation's branch, duplicates the published theme into the Working theme
 and the Control theme, downloads Chrome for Testing, pins Lighthouse and
 installs puppeteer-core for the browser helpers.
@@ -16,8 +20,8 @@ import tempfile
 import time
 from datetime import datetime
 
-from tuner import awake, ledger, lock, repo, shopify, storefront, tools
-from tuner.output import Failed, Refused, Stop, say
+from tuner import awake, hook, ledger, lock, repo, shopify, storefront, tools
+from tuner.output import Failed, Refused, Stop, note, say
 
 ORDER = 10
 THEME_LIMIT = 20
@@ -30,6 +34,10 @@ def register(sub):
                    help="the requested Performance score, 1-100 (default 80)")
     p.add_argument("--theme-limit", type=int, default=THEME_LIMIT,
                    help="themes the store's plan allows (default 20; Shopify Plus allows 100)")
+    p.add_argument(hook.FLAG, dest="no_verify_approved", action="store_true",
+                   help="the developer approved, for this invocation only, committing kept Rounds "
+                        "with --no-verify past a pre-commit hook that already fails; pass it only "
+                        "on their explicit approval")
     p.set_defaults(run=run)
 
 
@@ -67,6 +75,7 @@ def run(args):
         raise Refused("store-cli-mismatch",
                       "%s serves theme %s, but the CLI's published theme for %s is %s"
                       % (public, served, configured, published["id"]))
+    commit_hook = hook.check(root, args.no_verify_approved)
 
     invocation_id = new_id(root)
     workspace = tempfile.mkdtemp(prefix="shopify-speed-tune-%s-" % invocation_id)
@@ -79,6 +88,7 @@ def run(args):
         "store": {"url": public, "myshopify": configured, "name": shop.get("name"),
                   "published_theme": {"id": published["id"], "name": published.get("name")}},
         "repo": {"root": root, "start_branch": start_branch, "start_commit": repo.head(root)},
+        "hook": commit_hook.record(),
         "workspace": workspace,
         "tools": {},
         "themes": {},
@@ -90,6 +100,9 @@ def run(args):
     say("START", "invocation=%s" % invocation_id, "ledger=%s" % inv.path)
     say("START", "store=%s" % public, "myshopify=%s" % configured,
         "published=%s" % published["id"])
+    say("START", commit_hook.line())
+    for text in commit_hook.notes(args.no_verify_approved):
+        note(text)
     held = awake.hold()
     if held:
         inv.data["awake"] = held

@@ -19,7 +19,8 @@ def run(args):
     inv = ledger.find(args.invocation)
     data = inv.data
     say("INVOCATION", inv.id, "state=%s" % data.get("state"), "store=%s" % data["store"]["url"],
-        "requested_score=%s" % data.get("requested_score"))
+        "requested_score=%s" % data.get("requested_score"),
+        "hook=%s" % data["hook"]["status"] if data.get("hook") else "")
     for role in ("working", "control"):
         theme = data.get("themes", {}).get(role)
         if theme:

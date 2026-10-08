@@ -1,6 +1,7 @@
 """The client theme repo the program runs in: its root, its store, its branch."""
 
 import os
+import re
 import tomllib
 
 from tuner.output import Refused
@@ -38,6 +39,12 @@ def myshopify(value):
 
 def git(path, *args):
     return run(["git", *args], cwd=path)
+
+
+def git_version(path):
+    """(major, minor) of the git on PATH, e.g. (2, 54)."""
+    found = re.search(r"(\d+)\.(\d+)", git(path, "--version").stdout)
+    return (int(found.group(1)), int(found.group(2))) if found else (0, 0)
 
 
 def current_branch(path):

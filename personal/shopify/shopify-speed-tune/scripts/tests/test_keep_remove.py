@@ -9,8 +9,9 @@ commit, and the Working theme pushed back to it.
 import stat
 import unittest
 
-from round_support import (CONTROL, EAGER, LAZY, NEUTRAL, THEME, WIN_4, WORKING, checked, measure,
-                           opened, pushed, write)
+from round_support import (CONTROL, EAGER, ITEMS, LAZY, NEUTRAL, THEME, WIN_4, WORKING, apply_item,
+                           approved, checked, measure, opened, pushed, write)
+from support import FAILING_HOOK
 
 
 def commits_since(box, rev):
@@ -201,6 +202,21 @@ class TheReposOwnCommitHook(unittest.TestCase):
         self.assertEqual(committed, EAGER.rstrip("\n"))
         self.assertEqual(box.theme_files(CONTROL)["snippets/image.liquid"], committed)
         self.assertEqual(box.theme_files(WORKING)["snippets/image.liquid"], committed)
+
+    def test_a_failing_hook_the_developer_approved_bypassing_does_not_refuse_the_keep(self):
+        box = approved(self, ITEMS, "--no-verify-approved", pre_commit=FAILING_HOOK)
+        self.assertEqual(box.run("round", "--item", "P1").code, 0)
+        base = base_of_round(box)
+        apply_item(box, "P1")
+        self.assertEqual(box.run("push").code, 0)
+        checked(box)
+        measure(box, {"home": WIN_4})
+
+        result = box.run("verdict")
+
+        self.assertEqual(result.lines("VERDICT"), ["VERDICT 1 keep item=P1 won=home"])
+        self.assertEqual(commits_since(box, base), "1")
+        self.assertEqual(box.theme_files(CONTROL), box.theme_files(WORKING))
 
 
 if __name__ == "__main__":
