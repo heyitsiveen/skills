@@ -10,15 +10,13 @@ Lighthouse report files instead: the same checks, no Lighthouse run.
 from tuner import ledger, samples, stats
 
 ORDER = 30
-PAGES = ("home", "collection", "product")
-DEVICES = ("mobile", "desktop")
 
 
 def register(sub):
     p = sub.add_parser("sample", help="take a page's baseline Samples, or record them from "
                                       "report files")
-    p.add_argument("--page", required=True, choices=PAGES)
-    p.add_argument("--device", required=True, choices=DEVICES)
+    p.add_argument("--page", required=True, choices=stats.PAGE_ORDER)
+    p.add_argument("--device", required=True, choices=stats.DEVICES)
     p.add_argument("--count", type=int,
                    help="Samples to take (default: as many as the Measurement still needs)")
     p.add_argument("--report", action="append", metavar="FILE",

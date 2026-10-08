@@ -13,7 +13,7 @@ item of this plan, and each item once. `plan` alone shows the plan again.
 
 from tuner import findings, ledger, planning, stats
 from tuner.output import Refused, note, say
-from tuner.text import COLUMNS, PAGE_NAMES, cell, psi_table, score, when
+from tuner.text import COLUMNS, cell, page_name, psi_table, score, when
 
 ORDER = 45
 
@@ -89,7 +89,7 @@ def render(inv, table):
     ]
     for page in stats.PAGE_ORDER:
         lines.append("| %s | %s | %s | %s | %d |" % (
-            PAGE_NAMES[page], inv.page_url(page),
+            page_name(page), inv.page_url(page),
             score(planning.performance(inv, stats.BASELINE, page)),
             score(planning.ceiling(inv, page)), planning.target(inv, page)))
     lines += [
@@ -103,7 +103,7 @@ def render(inv, table):
     ]
     for page in stats.PAGE_ORDER:
         for text in (data.get("ceilings") or {}).get(page, {}).get("findings", []):
-            lines.append("- %s: %s" % (PAGE_NAMES[page], text))
+            lines.append("- %s: %s" % (page_name(page), text))
     if any((data.get("ceilings") or {}).get(p, {}).get("findings") for p in stats.PAGE_ORDER):
         lines.append("")
     lines += [
@@ -115,7 +115,7 @@ def render(inv, table):
     for page in stats.PAGE_ORDER:
         samples = stats.members(data["samples"], stats.Measurement.baseline(inv, page))
         figures = stats.summary(samples)
-        lines.append("| %s | %s |" % (PAGE_NAMES[page],
+        lines.append("| %s | %s |" % (page_name(page),
                                       " | ".join(cell(m, *figures[m]) for m in stats.METRICS)))
     lines += ["", "## Apps and tags", ""] + findings.cost_table(table, stats.PAGE_ORDER)
     lines += ["", "## Plan", ""]

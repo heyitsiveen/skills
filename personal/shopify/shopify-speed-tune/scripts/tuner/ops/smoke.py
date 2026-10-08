@@ -15,7 +15,7 @@ it runs only once the Working theme holds the Round's change as the tree has it.
 import json
 import os
 
-from tuner import clock, ledger, rounds, smoke, storefront
+from tuner import clock, ledger, rounds, smoke, stats, storefront
 from tuner.output import Failed, Refused, say
 
 ORDER = 40
@@ -44,7 +44,7 @@ def run(args):
         raise Refused("smoke-recorded", "the smoke check %s already has its result" % args.label,
                       "A label takes one result, so a failed check is never retried into a pass.")
     themes = {role: theme(inv, role)["id"] for role in smoke.ROLES}
-    urls = {page: storefront.preview_url(inv.page_url(page)) for page in smoke.PAGES}
+    urls = {page: storefront.preview_url(inv.page_url(page)) for page in stats.PAGE_ORDER}
     if args.results:
         with open(args.results, encoding="utf-8") as f:
             results = json.load(f)
@@ -59,7 +59,7 @@ def run(args):
         "browser": results.get("browser"), "pages": pages})
     inv.log("smoke", "%s results recorded" % args.label)
     inv.save()
-    for page in smoke.PAGES:
+    for page in stats.PAGE_ORDER:
         for role in smoke.ROLES:
             say("SMOKE", smoke.page_line(args.label, page, role, pages[page][role]))
     judgement = smoke.judge(pages)

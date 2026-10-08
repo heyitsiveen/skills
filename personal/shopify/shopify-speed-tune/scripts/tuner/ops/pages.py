@@ -11,7 +11,7 @@ import json
 import re
 from urllib.parse import urlsplit
 
-from tuner import ledger, storefront
+from tuner import ledger, stats, storefront
 from tuner.output import Failed, Refused, say
 
 ORDER = 20
@@ -47,7 +47,7 @@ def run(args):
     for page, source in sources.items():
         inv.log("pages", "%s page %s (%s)" % (page, pages[page], source))
     inv.save()
-    for page in ("home", "collection", "product"):
+    for page in stats.PAGE_ORDER:
         if page in pages:
             say("PAGE", page, inv.page_url(page), "(%s)" % sources[page] if page in sources else "")
     return 0

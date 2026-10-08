@@ -8,7 +8,7 @@ the final PageSpeed screenshot can match the report. Running it again replaces
 the scores.
 """
 
-from tuner import ledger, planning
+from tuner import ledger, planning, stats
 from tuner.output import say
 
 ORDER = 50
@@ -16,16 +16,15 @@ ORDER = 50
 
 def register(sub):
     p = sub.add_parser("psi", help="set the developer's PageSpeed mobile scores beside the baseline")
-    p.add_argument("--home", type=int, required=True, help="PageSpeed mobile score of the home page")
-    p.add_argument("--collection", type=int, required=True, help="… of the collection page")
-    p.add_argument("--product", type=int, required=True, help="… of the product page")
+    for page in stats.PAGE_ORDER:
+        p.add_argument("--" + page, type=int, required=True,
+                       help="PageSpeed mobile score of the %s page" % page)
     p.set_defaults(run=run)
 
 
 def run(args):
     inv = ledger.current("psi")
-    planning.record_psi(inv, {"home": args.home, "collection": args.collection,
-                              "product": args.product})
+    planning.record_psi(inv, {page: getattr(args, page) for page in stats.PAGE_ORDER})
     lines, warnings = planning.psi_lines(inv)
     for line in lines:
         say("PSI", line)

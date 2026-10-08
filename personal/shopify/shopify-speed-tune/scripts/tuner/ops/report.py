@@ -22,7 +22,7 @@ theme library, at the time of the report: how to go live depends on both.
 
 from tuner import clock, detail, findings, golive, ledger, outcome, planning, rounds, stats
 from tuner.output import note, say
-from tuner.text import PAGE_NAMES, psi_table, score, theme_name, when
+from tuner.text import page_name, psi_table, score, theme_name, when
 
 ORDER = 85
 
@@ -212,7 +212,7 @@ def performance(inv, results):
             after += ", Round %d" % r.after_from if r.after_from else ", the baseline"
         state = "missed by %d" % r.short_by if r.state == "missed" else RESULT[r.state]
         lines.append("| %s | %s | %s | %s | %s | %s |" % (
-            PAGE_NAMES[r.page], score(r.before), after,
+            page_name(r.page), score(r.before), after,
             "–" if r.target is None else r.target, score(r.ceiling), state))
     lines += [
         "",
@@ -228,14 +228,14 @@ def performance(inv, results):
     ]
     notes = [(page, text) for page in outcome.pages(inv)
              for text in ((inv.data.get("ceilings") or {}).get(page) or {}).get("findings", [])]
-    lines += ["- %s's Ceiling: %s." % (PAGE_NAMES[page], text) for page, text in notes]
+    lines += ["- %s's Ceiling: %s." % (page_name(page), text) for page, text in notes]
     lines += [""] if notes else []
     lines += ["Desktop decides nothing. It is measured at the start, on the Control theme, and at "
               "the end, on the Working theme:", "",
               "| Page | Desktop before | Desktop after |", "|---|---|---|"]
-    lines += ["| %s | %s | %s |" % (PAGE_NAMES[r.page], score(r.desktop[0]), score(r.desktop[1]))
+    lines += ["| %s | %s | %s |" % (page_name(r.page), score(r.desktop[0]), score(r.desktop[1]))
               for r in results]
-    untaken = [PAGE_NAMES[r.page] for r in results if r.desktop[1] is None]
+    untaken = [page_name(r.page) for r in results if r.desktop[1] is None]
     if untaken:
         lines += ["", "The final desktop Measurement was not taken on %s, so %s Desktop after "
                       "reads –." % (listed(untaken), "its" if len(untaken) == 1 else "their")]
@@ -347,7 +347,7 @@ def missed_targets(inv, missed, table):
         return []
     lines = ["### Missed targets", ""]
     for r in missed:
-        lines += ["#### %s: %d against a target of %d" % (PAGE_NAMES[r.page], r.after[0], r.target),
+        lines += ["#### %s: %d against a target of %d" % (page_name(r.page), r.after[0], r.target),
                   ""]
         lines += missed_facts(inv, r, table)
         written = outcome.explanation(inv, r.page)

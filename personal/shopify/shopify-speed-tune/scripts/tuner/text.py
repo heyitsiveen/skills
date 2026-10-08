@@ -4,8 +4,7 @@ plan and the report."""
 import math
 from datetime import datetime
 
-PAGE_NAMES = {"home": "Home", "collection": "Collection", "product": "Product"}
-COLUMNS = ("Performance", "LCP", "TBT", "CLS", "FCP", "Speed Index", "Accessibility")
+COLUMNS =("Performance", "LCP", "TBT", "CLS", "FCP", "Speed Index", "Accessibility")
 
 
 def half_up(value, places=0):
@@ -79,7 +78,7 @@ def psi_table(kept, pages):
     for page in pages:
         if page in kept["scores"]:
             given, median = kept["scores"][page], kept["baseline"][page]
-            lines.append("| %s | %d | %d | %+d |" % (PAGE_NAMES[page], given, median,
+            lines.append("| %s | %d | %d | %+d |" % (page_name(page), given, median,
                                                      given - median))
     return lines
 
@@ -97,3 +96,8 @@ def when(stamp):
 
 def theme_name(theme):
     return "`%s` (#%s)" % (theme.get("name"), theme.get("id"))
+
+
+def page_name(page):
+    """A page as people name it: `home` is Home."""
+    return page.capitalize()

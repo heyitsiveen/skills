@@ -7,7 +7,7 @@ read from the ledger, so any decision can be audited afterwards.
 """
 
 from tuner import outcome, rounds, smoke, stats, tools
-from tuner.text import COLUMNS, PAGE_NAMES, cell, theme_name, when
+from tuner.text import COLUMNS, cell, page_name, theme_name, when
 
 STATUS = {"M": "modified", "A": "added", "D": "deleted"}
 
@@ -116,7 +116,7 @@ def measurements(inv):
              "|---|---|---|---|---|%s" % ("---|" * len(COLUMNS))]
     for measurement, members in stats.measurements(inv.data):
         head = "| %s | %s | %s | %s |" % (measurement.label,
-                                          PAGE_NAMES.get(measurement.page, measurement.page),
+                                          page_name(measurement.page),
                                           measurement.device, measurement.theme.capitalize())
         if len(members) < stats.SAMPLES_PER_MEASUREMENT:
             lines.append("%s %d of %d | %s |" % (head, len(members), stats.SAMPLES_PER_MEASUREMENT,
@@ -145,7 +145,7 @@ def smoke_checks(inv):
             smoke.result_line(record["label"], judgement)))
         lines += ["  - %s" % line for line in judgement.lines(record["label"])]
         lines += ["  - %s" % smoke.page_line(record["label"], page, role, record["pages"][page][role])
-                  for page in smoke.PAGES for role in smoke.ROLES]
+                  for page in stats.PAGE_ORDER for role in smoke.ROLES]
     return lines + [""]
 
 

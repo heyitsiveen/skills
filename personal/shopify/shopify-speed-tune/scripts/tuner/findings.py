@@ -19,7 +19,7 @@ from urllib.parse import urlsplit
 from tuner import probe, stats
 from tuner.lighthouse import items
 from tuner.output import Refused
-from tuner.text import PAGE_NAMES, half_up
+from tuner.text import half_up, page_name
 
 EXTENSION = re.compile(r"^https://cdn\.shopify\.com/extensions/[^/]+/([^/]+?)(?:-\d+)?/")
 SUBPARTS = (("timeToFirstByte", "time to first byte"),
@@ -121,7 +121,7 @@ def cost_text(cell):
 
 def cost_table(table, pages):
     """The cost table as the plan and the report print it, with what its figures are."""
-    return ["| App or tag | %s |" % " | ".join(PAGE_NAMES[p] for p in pages),
+    return ["| App or tag | %s |" % " | ".join(page_name(p) for p in pages),
             "|---|%s" % ("---|" * len(pages))] + [
         "| %s | %s |" % (name, " | ".join(cost_text(cells.get(p)) for p in pages))
         for name, cells in table] + [

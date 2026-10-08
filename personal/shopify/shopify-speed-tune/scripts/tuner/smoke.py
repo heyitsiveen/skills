@@ -10,10 +10,9 @@ import json
 import os
 import re
 
-from tuner import browser
+from tuner import browser, stats
 from tuner.output import Failed, Refused
 
-PAGES = ("home", "collection", "product")
 ROLES = ("control", "working")
 
 
@@ -74,7 +73,7 @@ def judge(pages):
     an app block counts when the Control theme has it and the Working theme not.
     """
     judgement = Judgement()
-    for page in PAGES:
+    for page in stats.PAGE_ORDER:
         control, working = pages[page]["control"], pages[page]["working"]
         for name, check in control["checks"].items():
             theirs = working["checks"].get(name, MISSING)
@@ -149,7 +148,7 @@ def validate(pages, themes, urls, stop=Refused):
     page the store rendered with another theme lost its preview cookie: it says
     nothing about the change.
     """
-    for page in PAGES:
+    for page in stats.PAGE_ORDER:
         for role in ROLES:
             run = (pages.get(page) or {}).get(role)
             if not isinstance(run, dict) or not isinstance(run.get("checks"), dict):
