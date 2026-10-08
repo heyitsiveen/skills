@@ -18,7 +18,7 @@ from urllib.parse import urlsplit
 
 from tuner import probe, stats
 from tuner.output import Refused
-from tuner.text import half_up
+from tuner.text import PAGE_NAMES, half_up
 
 EXTENSION = re.compile(r"^https://cdn\.shopify\.com/extensions/[^/]+/([^/]+?)(?:-\d+)?/")
 SUBPARTS = (("timeToFirstByte", "time to first byte"),
@@ -116,6 +116,24 @@ def cost_cell(cell):
 def cost_line(name, cells, pages):
     return "%s | %s" % (name, " | ".join("%s %s" % (page, cost_cell(cells.get(page)))
                                          for page in pages))
+
+
+def cost_text(cell):
+    """A cell as people read it: `114 ms · 159 KiB`, or – when the page never loaded it."""
+    return "–" if cell is None else cost_cell(cell).replace(" ms ", " ms · ")
+
+
+def cost_table(table, pages):
+    """The cost table as the plan and the report print it, with what its figures are."""
+    return ["| App or tag | %s |" % " | ".join(PAGE_NAMES[p] for p in pages),
+            "|---|%s" % ("---|" * len(pages))] + [
+        "| %s | %s |" % (name, " | ".join(cost_text(cells.get(p)) for p in pages))
+        for name, cells in table] + [
+        "",
+        "Main-thread time on this Mac without throttling, then transfer size: the median of each "
+        "page's five baseline Samples, from Lighthouse's third-party summary. – means the page "
+        "never loaded it. The skill leaves every app and tag as the merchant set them; these "
+        "figures are for the merchant."]
 
 
 # -- one-line digests of the other findings -------------------------------------

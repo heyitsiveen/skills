@@ -13,7 +13,7 @@ item of this plan, and each item once. `plan` alone shows the plan again.
 
 from tuner import findings, ledger, planning, stats
 from tuner.output import Refused, note, say
-from tuner.text import COLUMNS, PAGE_NAMES, cell, when
+from tuner.text import COLUMNS, PAGE_NAMES, cell, psi_table, score, when
 
 ORDER = 45
 
@@ -71,15 +71,6 @@ def page_line(inv, page):
         _figures(planning.ceiling(inv, page)), planning.target(inv, page))
 
 
-def _range(values):
-    median, low, high = values
-    return "%d (%d–%d)" % (median, low, high)
-
-
-def _cost(cost):
-    return "–" if cost is None else findings.cost_cell(cost).replace(" ms ", " ms · ")
-
-
 def render(inv, table):
     data = inv.data
     plan = data["plan"]
@@ -99,8 +90,8 @@ def render(inv, table):
     for page in stats.PAGE_ORDER:
         lines.append("| %s | %s | %s | %s | %d |" % (
             PAGE_NAMES[page], inv.page_url(page),
-            _range(planning.performance(inv, stats.BASELINE, page)),
-            _range(planning.ceiling(inv, page)), planning.target(inv, page)))
+            score(planning.performance(inv, stats.BASELINE, page)),
+            score(planning.ceiling(inv, page)), planning.target(inv, page)))
     lines += [
         "",
         "Mobile Performance scores, each the median of five Samples with their range. The "
@@ -126,25 +117,8 @@ def render(inv, table):
         figures = stats.summary(samples)
         lines.append("| %s | %s |" % (PAGE_NAMES[page],
                                       " | ".join(cell(m, *figures[m]) for m in stats.METRICS)))
-    lines += [
-        "",
-        "## Apps and tags",
-        "",
-        "| App or tag | Home | Collection | Product |",
-        "|---|---|---|---|",
-    ]
-    for name, cells in table:
-        lines.append("| %s | %s |" % (name, " | ".join(_cost(cells.get(p)) for p in stats.PAGE_ORDER)))
-    lines += [
-        "",
-        "Main-thread time measured on this Mac without throttling, then transfer size: the "
-        "median of each page's five baseline Samples, from Lighthouse's third-party summary. "
-        "– means the page never loaded it. The skill leaves every app and tag as it is; these "
-        "figures are for the merchant.",
-        "",
-        "## Plan",
-        "",
-    ]
+    lines += ["", "## Apps and tags", ""] + findings.cost_table(table, stats.PAGE_ORDER)
+    lines += ["", "## Plan", ""]
     for n, item in enumerate(plan["items"], 1):
         known = " *(known defect%s %s)*" % ("s" if len(item["defects"]) > 1 else "",
                                            ", ".join(item["defects"])) if item["defects"] else ""
@@ -156,12 +130,7 @@ def render(inv, table):
         ]
     psi, warnings = planning.psi_lines(inv)
     if psi:
-        lines += ["", "## PageSpeed comparison", "", "| Page | PageSpeed | Baseline | Gap |",
-                  "|---|---|---|---|"]
-        kept = data["psi"]
-        for page in stats.PAGE_ORDER:
-            score, median = kept["scores"][page], kept["baseline"][page]
-            lines.append("| %s | %d | %d | %+d |" % (PAGE_NAMES[page], score, median, score - median))
+        lines += ["", "## PageSpeed comparison", ""] + psi_table(data["psi"], stats.PAGE_ORDER)
         lines += [""] + ["- %s" % w.split(": ", 1)[1] for w in warnings]
     if not plan.get("approved_at"):
         lines += ["", "## Before approving", "",

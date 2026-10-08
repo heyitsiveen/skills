@@ -22,7 +22,7 @@ theme library, at the time of the report: how to go live depends on both.
 
 from tuner import detail, findings, golive, ledger, outcome, planning, rounds, stats
 from tuner.output import Refused, note, say
-from tuner.text import PAGE_NAMES, score, theme_name, when
+from tuner.text import PAGE_NAMES, psi_table, score, theme_name, when
 
 ORDER = 85
 
@@ -102,7 +102,7 @@ def page_line(result):
 
 def render(inv, results, setup, live):
     data = inv.data
-    table = cost_table(inv)
+    table = measured_costs(inv)
     kept = any(r["state"] == "kept" for r in data.get("rounds", []))
     pinned = data.get("tools") or {}
     lines = ["# Speed report: %s" % data["store"]["url"], "",
@@ -256,12 +256,7 @@ def pagespeed(inv):
     kept = inv.data.get("psi")
     if not kept:
         return lines + ["The developer's PageSpeed scores were not recorded.", ""]
-    lines += ["| Page | PageSpeed | Baseline | Gap |", "|---|---|---|---|"]
-    for page in stats.PAGE_ORDER:
-        if page in kept["scores"]:
-            given, median = kept["scores"][page], kept["baseline"][page]
-            lines.append("| %s | %d | %d | %+d |" % (PAGE_NAMES[page], given, median,
-                                                     given - median))
+    lines += psi_table(kept, stats.PAGE_ORDER)
     lines += ["", "The developer's PageSpeed mobile scores, given at the plan stop, beside this "
                   "skill's baseline medians.", ""]
     _, warnings = planning.psi_lines(inv)
@@ -269,34 +264,18 @@ def pagespeed(inv):
     return lines + ([""] if warnings else [])
 
 
-def cost_table(inv):
+def measured_costs(inv):
     """The app and tag cost table over every page whose baseline is complete."""
     reports = {page: [r for _, r in findings.baseline(inv, page)] for page in outcome.pages(inv)
                if outcome.figures(inv, stats.BASELINE, page, "mobile", "control") is not None}
     return findings.costs(reports) if reports else []
 
 
-def cost_text(cost):
-    return "–" if cost is None else findings.cost_cell(cost).replace(" ms ", " ms · ")
-
-
 def apps_and_tags(inv, table):
     lines = ["### Apps and tags", ""]
     if not table:
         return lines + ["Not measured: no page has its baseline.", ""]
-    pages = outcome.pages(inv)
-    lines += ["| App or tag | %s |" % " | ".join(PAGE_NAMES[p] for p in pages),
-              "|---|%s" % ("---|" * len(pages))]
-    lines += ["| %s | %s |" % (name, " | ".join(cost_text(cells.get(p)) for p in pages))
-              for name, cells in table]
-    return lines + [
-        "",
-        "Main-thread time on this Mac without throttling, then transfer size: the median of each "
-        "page's five baseline Samples, from Lighthouse's third-party summary. – means the page "
-        "never loaded it. The skill leaves every app and tag as the merchant set them; these "
-        "figures are for the merchant.",
-        "",
-    ]
+    return lines + findings.cost_table(table, outcome.pages(inv)) + [""]
 
 
 def template_json(inv):

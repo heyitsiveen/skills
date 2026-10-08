@@ -35,6 +35,18 @@ def score(figures):
     return "–" if figures is None else "%d (%d–%d)" % figures
 
 
+def psi_table(kept, pages):
+    """The developer's PageSpeed Insights scores beside the baseline medians, as the plan and
+    the report print them: `kept` is the ledger's `psi` record."""
+    lines = ["| Page | PageSpeed | Baseline | Gap |", "|---|---|---|---|"]
+    for page in pages:
+        if page in kept["scores"]:
+            given, median = kept["scores"][page], kept["baseline"][page]
+            lines.append("| %s | %d | %d | %+d |" % (PAGE_NAMES[page], given, median,
+                                                     given - median))
+    return lines
+
+
 def when(stamp):
     """An ISO timestamp as `2026-10-08 06:00 (UTC+08:00)`."""
     try:
