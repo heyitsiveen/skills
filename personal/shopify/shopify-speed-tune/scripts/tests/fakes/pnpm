@@ -25,6 +25,7 @@ import re
 import shutil
 import stat
 import sys
+import time
 from urllib.parse import urlsplit
 
 state_path = os.environ["FAKE_STORE"]
@@ -150,9 +151,20 @@ if not port:
 registry = os.path.join(os.path.dirname(state_path), "chromes")
 try:
     with open(os.path.join(registry, port), encoding="utf-8") as f:
-        os.kill(json.load(f)["pid"], 0)
+        chrome_pid = json.load(f)["pid"]
+    os.kill(chrome_pid, 0)
 except (OSError, ValueError, KeyError):
     fail("Unable to connect to Chrome")
+
+# hang: a page that never settles holds Lighthouse for as long as its Chrome runs, as a
+# real one does, so a program cut off mid-Sample leaves both running.
+if store["lighthouse"].get("hang"):
+    while True:
+        try:
+            os.kill(chrome_pid, 0)
+        except OSError:
+            fail("Lighthouse lost its connection to Chrome")
+        time.sleep(0.1)
 try:
     with open(os.path.join(registry, port + ".jar"), encoding="utf-8") as f:
         jar = json.load(f)

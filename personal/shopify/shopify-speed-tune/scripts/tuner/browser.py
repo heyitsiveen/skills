@@ -30,6 +30,7 @@ from tuner.proc import require
 
 NODE_SCRIPTS = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
                             "browser")
+PID_FILE = "chrome.pid"
 
 # The flags chrome-launcher 1.2.2 gives every Chrome it starts for Lighthouse
 # (dist/flags.js), so a Sample runs in the browser Lighthouse would have started.
@@ -90,6 +91,10 @@ class Chrome:
         self.proc = subprocess.Popen(argv, env=tools.pnpm_env(self.workspace),
                                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                                      stderr=subprocess.DEVNULL, start_new_session=True)
+        # Deleted with the profile when this Chrome stops; left behind, it is how `finish`
+        # finds a Chrome whose job was cut off before it could stop it.
+        with open(os.path.join(self.profile, PID_FILE), "w", encoding="utf-8") as f:
+            f.write("%d\n" % self.proc.pid)
         self.port = self._debugging_port()
 
     def _debugging_port(self):
@@ -144,6 +149,78 @@ class Chrome:
         if proc.returncode != 0 or not proc.stdout.startswith("JAR "):
             raise Failed("preview-jar", "the preview cookie did not reach Chrome's cookie jar: %s"
                          % last_line(proc.stderr or proc.stdout))
+
+
+def _ps(pid, field):
+    try:
+        return subprocess.run(["ps", "-o", field + "=", "-p", str(pid)], stdin=subprocess.DEVNULL,
+                              capture_output=True, text=True, timeout=10).stdout.strip()
+    except (OSError, subprocess.TimeoutExpired):
+        return ""
+
+
+def _alive(pid):
+    state = _ps(pid, "stat")
+    return bool(state) and not state.startswith("Z")
+
+
+def stop_leftovers(workspace, binary):
+    """Stop each Chrome of this invocation that its job never stopped; return their pids.
+
+    A job cut off part-way, by a timeout or a kill, leaves its Chrome running in a
+    session of its own, with its profile and that profile's pid file behind. Only
+    a recorded pid whose process still runs the invocation's own Chrome binary is
+    stopped, by its process group, as `Chrome.stop` would have: never a process
+    found by name.
+    """
+    profiles = os.path.join(workspace, "profiles")
+    try:
+        names = sorted(os.listdir(profiles))
+    except OSError:
+        return []
+    stopped = []
+    for name in names:
+        try:
+            with open(os.path.join(profiles, name, PID_FILE), encoding="utf-8") as f:
+                pid = int(f.read().strip())
+        except (OSError, ValueError):
+            continue
+        if not binary or not _alive(pid) or binary not in _ps(pid, "command"):
+            continue
+        try:
+            os.killpg(pid, signal.SIGKILL)
+        except OSError:
+            continue
+        deadline = time.monotonic() + 10
+        while _alive(pid) and time.monotonic() < deadline:
+            time.sleep(0.1)
+        stopped.append(pid)
+    return stopped
+
+
+def running_from(folder, wait=5.0):
+    """[(pid, command)] of every process whose command line names `folder`.
+
+    It only looks, and stops nothing. A process that exits within `wait` seconds,
+    such as a Lighthouse whose Chrome was just stopped, does not count.
+    """
+    names = {folder, os.path.realpath(folder)}
+    deadline = time.monotonic() + wait
+    while True:
+        try:
+            listing = subprocess.run(["ps", "-A", "-o", "pid=", "-o", "command="],
+                                     stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                                     timeout=10).stdout
+        except (OSError, subprocess.TimeoutExpired):
+            listing = ""
+        found = []
+        for line in listing.splitlines():
+            pid, _, command = line.strip().partition(" ")
+            if pid.isdigit() and int(pid) != os.getpid() and any(n in command for n in names):
+                found.append((int(pid), command.strip()))
+        if not found or time.monotonic() > deadline:
+            return found
+        time.sleep(0.2)
 
 
 def node(workspace, script, *args, stdin="", timeout=120):

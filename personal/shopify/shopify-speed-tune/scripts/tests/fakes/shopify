@@ -126,6 +126,9 @@ if command == "delete":
             fail('No themes on the store match the ID or name "%s"' % wanted)
         if match[0]["role"] == "live":
             fail("The published theme cannot be deleted")
+        if int(wanted) in store.get("deletes_ignored", []):  # it says so, and the theme stays
+            print("The theme '%s' (#%s) was deleted." % (match[0]["name"], wanted))
+            continue
         themes.remove(match[0])
         store.get("files", {}).pop(wanted, None)
         print("The theme '%s' (#%s) was deleted." % (match[0]["name"], wanted))

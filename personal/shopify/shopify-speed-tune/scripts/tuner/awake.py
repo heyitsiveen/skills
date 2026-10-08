@@ -46,6 +46,11 @@ def hold():
     return {"pid": proc.pid, "started": started}
 
 
+def running(held):
+    """True while the process `hold` started still runs."""
+    return bool(held) and _alive(held["pid"]) and _ps("lstart", held["pid"]) == held["started"]
+
+
 def release(held):
     """Stop the held process by its pid; True when this call stopped it."""
     if not held or held.get("released"):

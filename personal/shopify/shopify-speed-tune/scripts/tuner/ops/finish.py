@@ -1,11 +1,19 @@
 """finish: end the invocation, leaving only the Working theme and the branch.
 
 Deletes the Control theme, puts the repo back on the branch the invocation
-started from, restores Chrome for Testing's preferences, removes the temp
-workspace (Chrome, puppeteer-core, the pnpm store), stops the `caffeinate`
-that kept the Mac awake, marks the ledger finished and releases the machine
-lock. Each step is recorded as it completes, so a `finish` that stops part-way
-can simply be run again.
+started from, restores Chrome for Testing's preferences, stops any Chrome a job
+cut off part-way left running, removes the temp workspace (Chrome,
+puppeteer-core and the smoke checker's project, the pnpm store), stops the
+`caffeinate` that kept the Mac awake, marks the ledger finished and releases
+the machine lock.
+
+Then it reads back what it leaves, rather than trusting its own steps: the
+theme library must list no Control theme and still the Working theme, the repo
+must hold the branch, nothing may run from the workspace, which must be gone,
+and the lock must be free. Only then does it print `FINISH done`. Anything left
+fails it with `cleanup-incomplete`, keeping the invocation open, so `finish`
+can simply be run again once it is dealt with. Each step is recorded as it
+completes, so a `finish` that stops part-way is finished by running it again.
 
 `--discard` is for an invocation that stopped before any Round: it deletes the
 Working theme too, and the branch when the branch holds no commits.
@@ -17,8 +25,8 @@ must hold kept Rounds only.
 import os
 import shutil
 
-from tuner import awake, ledger, lock, repo, rounds, shopify, tools
-from tuner.output import Refused, note, say
+from tuner import awake, browser, ledger, lock, repo, rounds, shopify, tools
+from tuner.output import Failed, Refused, note, say
 
 ORDER = 90
 
@@ -52,20 +60,22 @@ def run(args):
     if tools.restore_chrome_preferences(data["tools"].get("chrome_preferences")):
         inv.save()
         say("FINISH", "chrome-preferences restored")
-    workspace = data.get("workspace")
-    if workspace and os.path.isdir(workspace) and \
-            os.path.basename(workspace).startswith("shopify-speed-tune-"):
-        shutil.rmtree(workspace)
-        say("FINISH", "workspace removed", "(Chrome, puppeteer-core, the pnpm store)")
-
+    remove_workspace(inv)
     if awake.release(data.get("awake")):
         say("FINISH", "awake released")
+
+    verify(inv, store, args.discard)
     data["state"] = "finished"
     data["finished_at"] = ledger.now()
     inv.log("finish", "invocation finished")
     inv.save()
     lock.release(inv.id)
+    if (lock.read() or {}).get("invocation") == inv.id:
+        raise Failed("cleanup-incomplete", "the machine lock %s still names this invocation"
+                     % lock.path(), "Run `finish` again.")
     say("FINISH", "lock released")
+    if not (data.get("report") or {}).get("written_at"):
+        note("no report was written: `report --invocation %s` writes it from the ledger" % inv.id)
     say("FINISH", "done", "invocation=%s" % inv.id)
     return 0
 
@@ -108,3 +118,82 @@ def return_to_start_branch(inv, discard):
         say("FINISH", "branch deleted", branch, "(it held no commits)")
     else:
         say("FINISH", "branch kept", branch, "(repo on %s)" % on_branch)
+
+
+def remove_workspace(inv):
+    """Stop what a cut-off job left running there, then remove the workspace: never from under
+    a process that still runs from it."""
+    data = inv.data
+    workspace = data.get("workspace")
+    if not workspace or not os.path.isdir(workspace) or \
+            not os.path.basename(workspace).startswith("shopify-speed-tune-"):
+        return
+    chrome = (data["tools"].get("chrome") or {}).get("path")
+    for pid in browser.stop_leftovers(workspace, chrome):
+        inv.log("finish", "stopped Chrome %d, left running by a job cut off part-way" % pid)
+        inv.save()
+        say("FINISH", "chrome stopped", "pid=%d" % pid, "(left by a job cut off part-way)")
+    still = browser.running_from(workspace)
+    if still:
+        raise Failed("cleanup-incomplete", "%d process%s still run%s from the invocation's "
+                     "workspace %s" % (len(still), "" if len(still) == 1 else "es",
+                                       "s" if len(still) == 1 else "", workspace),
+                     *["pid %d: %s" % (pid, command[:200]) for pid, command in still],
+                     "These were not started as this invocation's Chrome, so the program leaves "
+                     "them alone: ask the developer to stop them, then run `finish` again.")
+    shutil.rmtree(workspace)
+    say("FINISH", "workspace removed", "(Chrome, puppeteer-core, the pnpm store)")
+
+
+def verify(inv, store, discard):
+    """Read back the theme library, the repo and the machine, printing a `FINISH verified`
+    line for each that holds; refuse `done` while anything the invocation made is still
+    there, other than the Working theme and the branch."""
+    data = inv.data
+    problems = []
+    recorded = [(role, data["themes"][role]) for role in ("control", "working")
+                if data["themes"].get(role)]
+    library = {int(t["id"]): t for t in shopify.themes(store)} if recorded else {}
+    themes = []
+    for role, theme in recorded:
+        found = library.get(int(theme["id"]))
+        if role == "working" and not discard:
+            if found is None:
+                say("WARN", "working-theme-missing: the Working theme %s is no longer in the "
+                            "theme library; whoever deleted it took every kept change on it"
+                    % theme["id"])
+            themes.append("working=%s" % (found.get("role") if found else "missing"))
+        elif found is None:
+            themes.append("%s=gone" % role)
+        else:
+            theme.pop("deleted", None)  # so the next `finish` deletes it again
+            inv.save()
+            problems.append("the %s theme %s is still in the theme library" % (role, theme["id"]))
+    if themes and not problems:
+        say("FINISH", "verified themes", *themes)
+
+    info = data["repo"]
+    if info.get("branch"):
+        here = repo.git(info["root"], "branch", "--show-current").stdout.strip()
+        kept = repo.branch_exists(info["root"], info["branch"])
+        say("FINISH", "verified", "branch=%s" % (info["branch"] if kept else "deleted"),
+            "repo-on=%s" % (here or "detached"))
+
+    machine = []
+    workspace = data.get("workspace")
+    if workspace and os.path.exists(workspace):
+        machine.append("the workspace %s is still there" % workspace)
+    left = browser.running_from(workspace, wait=0) if workspace else []
+    if left:
+        machine.append("process %s still runs from the workspace"
+                       % ", ".join(str(pid) for pid, _ in left))
+    if awake.running(data.get("awake")):
+        machine.append("the caffeinate %d that kept the Mac awake still runs"
+                       % data["awake"]["pid"])
+    if not machine:
+        say("FINISH", "verified", "chrome=none", "workspace=gone",
+            "awake=%s" % ("stopped" if data.get("awake") else "none"))
+    problems += machine
+    if problems:
+        raise Failed("cleanup-incomplete", "; ".join(problems),
+                     "Run `finish` again; when it stops here twice, show the developer this line.")
