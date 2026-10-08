@@ -34,12 +34,13 @@ It runs six steps: Preflight → Baseline → Plan → Rounds → Report → Cle
 
 Run `start --store <store-url>`, adding `--score <n>` when the developer gave one. Allow it 10 minutes.
 
-It refuses, changing nothing, unless the store is the one this repo's `shopify.theme.toml` names, no other invocation is unfinished on this Mac, and the theme library has room for two more themes. Then it takes the machine lock, keeps the Mac from idle sleep until `finish` (a `caffeinate -i` it stops by pid), creates the branch `speed-tune/<invocation>`, duplicates the published theme into the Working theme and the Control theme, checks that both preview, downloads Chrome for Testing into a temp workspace, pins Lighthouse 13.5.0 and installs puppeteer-core beside them.
+It refuses, changing nothing, unless the store is the one this repo's `shopify.theme.toml` names, no other invocation is unfinished on this Mac, the theme library has room for two more themes, and the repo's pre-commit hook passes on the unchanged repo, run the way `git commit` runs it: every kept Round is committed through that hook. Then it takes the machine lock, keeps the Mac from idle sleep until `finish` (a `caffeinate -i` it stops by pid), creates the branch `speed-tune/<invocation>`, duplicates the published theme into the Working theme and the Control theme, checks that both preview, downloads Chrome for Testing into a temp workspace, pins Lighthouse 13.5.0 and installs puppeteer-core beside them.
 
-**Done when** the output ends with `START ready`.
+**Done when** the output ends with `START ready`. Its `START hook=` line says how keep commits run: `passed`, through the hook; `absent`, with no hook; `bypass-approved`, with `--no-verify`.
 
 - `REFUSED invocation-unfinished`: another invocation holds the lock. Show the developer the line. Only when they say it was abandoned, run `unlock --invocation <id>` with the id it names, then `start` again.
 - `REFUSED no-theme-room`: ask the developer to free two theme slots, or rerun with `--theme-limit 100` if they say the store is on Shopify Plus. Deleting themes is the developer's call.
+- `REFUSED pre-commit-fails`: the hook already fails before any change, so it would refuse every keep. Show the developer the line, which names the hook, its exit code and the end of its output, and ask whether they will fix what it reports (commit the fix, then `start` again) or approve committing this invocation's kept Rounds with `--no-verify`. Pass `--no-verify-approved` only when the developer has explicitly approved that in this conversation for this invocation, never on your own judgment.
 - Any other `REFUSED`: show it and stop. Nothing was created.
 - `FAILED`: run `finish --discard`, which deletes whatever `start` created and releases the lock, then show the developer the failure.
 
@@ -91,24 +92,25 @@ Allow each call 10 minutes. A call cut off by the timeout, or ending in `FAILED 
 
 ## 4. Rounds
 
-After approval the Rounds run without the developer until a `STOP` line. Each Round puts one plan item on the Working theme while the Control theme holds every change kept so far, measures the two in pairs, and lets the program keep or remove the change. Work Round after Round:
+After approval the Rounds run without the developer until a `STOP` line. Each Round puts one plan item on the Working theme while the Control theme holds every change kept so far, smoke-checks the two, measures them in pairs, and lets the program keep or remove the change. Work Round after Round:
 
 1. **Open.** Run `round`. **Done when** it prints `ROUND <n> opened item=<id>` with that item's `PLAN item` line. When the Rounds are over it prints a `TARGET` line per page and a `STOP` line instead: go to step 5, Report. On `REFUSED`, stop and show the developer.
 2. **Apply.** Make the change the `PLAN item` line describes, in the theme files, and nothing beyond it. It stays uncommitted until its verdict. Write it so the theme treats every visitor alike:
    - theme files only, with `config/settings_data.json` left as the merchant set it
    - apps, app embeds, app blocks and tags left as they are
-   - no code that reads the user agent, `navigator.platform` or `navigator.webdriver`, and no theme file that names Lighthouse, PageSpeed or a test device, comments included: `push` refuses the change
+   - no code that reads the user agent, `navigator.platform` or `navigator.webdriver`, and no theme file that names Lighthouse, PageSpeed or a test device, comments included: `push` refuses the change. Vendored libraries get no exception: a change that adds, updates or moves one that reads the user agent, such as a slider bundle, is refused like the theme's own code, so leave it as it is, or delete it when the item removes it
+   - files the repo's `.shopifyignore` matches left alone: the CLI skips them without a word, so `push` refuses them
    - template JSON only when the item needs it; the program flags each template JSON change for the report
 
-   When the repo has a commit hook (`.husky/pre-commit`, or one in `.git/hooks`), run the formatter and checks it runs on the files you changed: the keep commit runs that hook, and a change it refuses is removed. **Done when** the change is in the tree and those checks pass, or the repo has no hook.
+   With `START hook=passed`, run the formatter and checks the hook runs on the files you changed: the keep commit runs that hook, and a change it refuses is removed. With `bypass-approved`, the keep commit skips the hook; run its formatter on the files you changed. **Done when** the change is in the tree, and with `hook=passed` those checks pass.
 3. **Push.** Run `push`. **Done when** it prints `PUSH working theme=<id> paths=<n> ok`; its `CHANGE` lines list the change, `template-json` marking each template JSON file.
-   - `REFUSED settings-file`, `detection`, `outside-theme` or `odd-path`: take that part out of the change and push again. When the item cannot be made without it, run `verdict --remove`.
+   - `REFUSED settings-file`, `detection`, `outside-theme`, `odd-path` or `shopifyignore`: take that part out of the change and push again. When the item cannot be made without it, run `verdict --remove`.
    - `FAILED push-errors`: the store refused the change, so the Round failed; its `NOTE`s name each file's error. Go to **Decide**.
    - `FAILED push-failed`: run `push` once more; when it fails again, stop and show the developer.
    - Any other `REFUSED`: stop and show the developer. Nothing was written.
-4. **Measure.** Run `pairs`, allowing it 10 minutes, until it prints `PAIRS <n> complete`. It takes five pairs on each page, each a Control theme Sample then a Working theme Sample, with a `PAIR` line per pair; a call stops between pairs after about six minutes and the next carries on. When two calls in a row end in `FAILED samples-rejected`, run `verdict --remove`.
-5. **Check.** Run `smoke`, allowing it 10 minutes. **Done when** it prints `SMOKE round-<n> result`. When it ends in `FAILED` twice, run `verdict --remove`.
-6. **Decide.** Run `verdict`. It prints each page's `PAIRS` line, then `VERDICT <n> keep item=<id> won=<pages>` or `VERDICT <n> remove item=<id> reasons=<reasons>`, and carries it out: a kept change becomes one commit and is pushed to the Control theme; a removed one leaves the working tree and the Working theme at the last commit. It ends with a `TARGET` line per page, then `NEXT item=<id>`, or `STOP targets-reached` or `STOP plan-exhausted`. On `FAILED`, run `verdict` again, which carries on where it stopped; when it fails twice, stop and show the developer.
+4. **Check.** Run `smoke`, allowing it 10 minutes. It comes before the pairs: it warms the store's cache with the changed files, and it catches a broken change before 15 minutes of pairs. **Done when** it prints `SMOKE round-<n> result`. On `result fail`, go to **Decide**, which removes the Round without pairs. When it ends in `FAILED` twice, run `verdict --remove`.
+5. **Measure.** Run `pairs`, allowing it 10 minutes, until it prints `PAIRS <n> complete`. It takes five pairs on each page, each a Control theme Sample then a Working theme Sample, with a `PAIR` line per pair; a call stops between pairs after about six minutes and the next carries on. When two calls in a row end in `FAILED samples-rejected`, run `verdict --remove`.
+6. **Decide.** Run `verdict`. It prints each page's `PAIRS` line and the `SMOKE` result, then `VERDICT <n> keep item=<id> won=<pages>` or `VERDICT <n> remove item=<id> reasons=<reasons>`, and carries it out: a kept change becomes one commit and is pushed to the Control theme; a removed one leaves the working tree and the Working theme at the last commit. A Round whose smoke check failed is removed with no `PAIRS` lines, on `smoke-regression` or `new-error`. It ends with a `TARGET` line per page, then `NEXT item=<id>`, or `STOP targets-reached` or `STOP plan-exhausted`. On `FAILED`, run `verdict` again, which carries on where it stopped; when it fails twice, stop and show the developer.
 
 After a `NEXT` line, open the next Round.
 
