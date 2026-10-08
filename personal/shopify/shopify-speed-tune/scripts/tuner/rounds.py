@@ -225,18 +225,24 @@ def smoke_reasons(judgement):
     return reasons
 
 
+def kept_side(rnd):
+    """The theme whose Samples in closed Round `rnd` measured the state both themes then
+    hold: the Working theme when the Round was kept, the Control theme when removed."""
+    return "working" if rnd["state"] == "kept" else "control"
+
+
 def kept_state(inv):
-    """{page: (median, source)}: each page's latest Performance median of the state both
-    themes now hold. A kept Round's Working theme Samples measured it, a removed
-    Round's Control theme Samples did, and before any Round the baseline."""
-    out = {page: (planning.baseline_median(inv, page), "baseline") for page in stats.PAGE_ORDER}
+    """{page: (median, Round)}: each page's latest Performance median of the state both
+    themes now hold, with the closed Round whose pairs measured it (kept_side says on
+    which theme), or None while the baseline still does."""
+    out = {page: (planning.baseline_median(inv, page), None) for page in stats.PAGE_ORDER}
     for rnd in inv.data.get("rounds", []):
         if rnd["state"] not in ("kept", "removed"):
             continue
-        side = 1 if rnd["state"] == "kept" else 0
+        side = ("control", "working").index(kept_side(rnd))
         for page in stats.PAGE_ORDER:
             if len(pairs(inv, rnd, page)) == PAIRS_PER_PAGE:
-                out[page] = (page_summary(inv, rnd, page)["performance"][side], label(rnd["n"]))
+                out[page] = (page_summary(inv, rnd, page)["performance"][side], rnd)
     return out
 
 
@@ -244,11 +250,12 @@ def stop_check(inv):
     """([(tag, text)], reason): a TARGET line per page, then STOP with its reason
     (targets-reached, plan-exhausted) or NEXT with the next unused plan item."""
     lines, reached = [], True
-    for page, (median, source) in kept_state(inv).items():
+    for page, (median, measured_in) in kept_state(inv).items():
         target = planning.target(inv, page)
         reached = reached and median >= target
         lines.append(("TARGET", "%s kept=%d target=%d %s from=%s" % (
-            page, median, target, "reached" if median >= target else "short", source)))
+            page, median, target, "reached" if median >= target else "short",
+            "baseline" if measured_in is None else label(measured_in["n"]))))
     left = planning.unused(inv)
     reason = "targets-reached" if reached else None if left else "plan-exhausted"
     if reason:

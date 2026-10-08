@@ -48,10 +48,13 @@ class Page:
         self.target = planning.target(inv, page)
         self.after, self.after_from = None, None
         if rounds_ran(inv):
-            _, source = rounds.kept_state(inv)[page]
-            self.after_from = None if source == "baseline" else int(source.split("-")[1])
-            self.after = self.before if self.after_from is None else \
-                figures(inv, source, page, "mobile", side(inv, self.after_from))
+            _, measured_in = rounds.kept_state(inv)[page]
+            if measured_in is None:
+                self.after = self.before
+            else:
+                self.after_from = measured_in["n"]
+                self.after = figures(inv, rounds.label(measured_in["n"]), page, "mobile",
+                                     rounds.kept_side(measured_in))
 
     @property
     def state(self):
@@ -68,13 +71,6 @@ class Page:
     @property
     def short_by(self):
         return self.target - self.after[0] if self.state == "missed" else None
-
-
-def side(inv, n):
-    """The theme whose Samples measured the kept state in Round n: the Working theme
-    when it was kept, the Control theme when it was removed."""
-    found = next(r for r in inv.data.get("rounds", []) if r["n"] == n)
-    return "working" if found["state"] == "kept" else "control"
 
 
 def results(inv):
