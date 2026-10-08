@@ -1,4 +1,5 @@
-"""Figures and names as the plan and the report print them for people."""
+"""Figures and names as the program prints them: on its fixed lines, and for people in the
+plan and the report."""
 
 import math
 from datetime import datetime
@@ -14,20 +15,56 @@ def half_up(value, places=0):
     return int(rounded) if places == 0 else rounded / factor
 
 
-def human(metric, value):
-    """A figure as PageSpeed shows it: seconds for paint times, ms for TBT."""
-    if metric in ("performance", "accessibility"):
-        return "%d" % half_up(value)
-    if metric == "cls":
-        return "%.3f" % value
-    if metric == "tbt":
-        return "{:,}".format(half_up(value))
+class Form:
+    """How one metric prints: as a number with `line_unit` on the program's lines (`10157ms`),
+    and as PageSpeed shows it, with `unit`, for people (`10.2 s`)."""
+
+    def __init__(self, line, human, unit="", line_unit=""):
+        self.number, self.human, self.unit, self.line_unit = line, human, unit, line_unit
+
+    def line(self, value):
+        return self.number(value) + self.line_unit
+
+    def line_range(self, low, high):
+        """`3567-5208ms`: one unit for the pair."""
+        return "%s-%s%s" % (self.number(low), self.number(high), self.line_unit)
+
+    def cell(self, median, low, high):
+        """`10.2 s (9.4–11.0)`"""
+        return "%s%s (%s–%s)" % (self.human(median), self.unit, self.human(low), self.human(high))
+
+
+def _whole(value):
+    return "%d" % half_up(value)
+
+
+def _shift(value):
+    return "%.3f" % value
+
+
+def _grouped(value):
+    return "{:,}".format(half_up(value))
+
+
+def _seconds(value):
     return "%.1f" % half_up(value / 1000.0, 1)
 
 
+# Scores are 0-100; times are ms, which people read in seconds, but for TBT.
+FORMS = {
+    "performance": Form(_whole, _whole),
+    "lcp": Form(_whole, _seconds, " s", "ms"),
+    "tbt": Form(_whole, _grouped, " ms", "ms"),
+    "cls": Form(_shift, _shift),
+    "fcp": Form(_whole, _seconds, " s", "ms"),
+    "si": Form(_whole, _seconds, " s", "ms"),
+    "accessibility": Form(_whole, _whole),
+}
+
+
 def cell(metric, median, low, high):
-    unit = {"tbt": " ms", "lcp": " s", "fcp": " s", "si": " s"}.get(metric, "")
-    return "%s%s (%s–%s)" % (human(metric, median), unit, human(metric, low), human(metric, high))
+    """A Measurement's figure for people: its median, then its range."""
+    return FORMS[metric].cell(median, low, high)
 
 
 def score(figures):

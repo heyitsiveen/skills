@@ -7,7 +7,7 @@ time it is read, so there is one source of truth for every figure.
 from collections import namedtuple
 
 from tuner.lighthouse import METRICS
-from tuner.text import half_up
+from tuner.text import FORMS
 
 SAMPLES_PER_MEASUREMENT = 5
 
@@ -54,22 +54,6 @@ def summary(samples):
     return out
 
 
-def show(metric, value):
-    """One figure the way every line and report prints it."""
-    if metric == "cls":
-        return "%.3f" % value
-    if metric in ("performance", "accessibility"):
-        return str(half_up(value))
-    return "%dms" % half_up(value)
-
-
-def show_range(metric, low, high):
-    low_text, high_text = show(metric, low), show(metric, high)
-    if metric not in ("cls", "performance", "accessibility"):
-        low_text = low_text[:-2]  # one unit for the pair: 3567-5208ms
-    return "%s-%s" % (low_text, high_text)
-
-
 def members(samples, measurement):
     """The Samples that make up one Measurement, in the order they were taken.
 
@@ -106,8 +90,7 @@ def measurements(data):
 
 
 def sample_line(sample):
-    figures = " | ".join("%s %s" % (m, show(m, sample["metrics"][m]))
-                         for m in METRICS)
+    figures = " | ".join("%s %s" % (m, FORMS[m].line(sample["metrics"][m])) for m in METRICS)
     return "%s %s %s %s %s | %s" % (sample["id"], sample["label"], sample["page"],
                                     sample["device"], sample["theme"], figures)
 
@@ -117,7 +100,7 @@ def measurement_line(measurement, samples):
     if len(samples) < SAMPLES_PER_MEASUREMENT:
         return "%s incomplete %d/%d" % (head, len(samples), SAMPLES_PER_MEASUREMENT)
     figures = summary(samples)
-    parts = ["%s %s [%s]" % (m, show(m, figures[m][0]),
-                             show_range(m, figures[m][1], figures[m][2]))
+    parts = ["%s %s [%s]" % (m, FORMS[m].line(figures[m][0]),
+                             FORMS[m].line_range(figures[m][1], figures[m][2]))
              for m in METRICS]
     return "%s n=%d | %s" % (head, len(samples), " | ".join(parts))
