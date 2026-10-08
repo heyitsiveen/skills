@@ -1,0 +1,220 @@
+{
+ "checker": 1,
+ "browser": "Chrome/154.0.8037.57",
+ "pages": {
+  "home": {
+   "control": {
+    "url": "https://store.example/?pb=0",
+    "status": 200,
+    "theme": 201,
+    "served_by": {
+     "201": 1
+    },
+    "preview_bar": false,
+    "checks": {
+     "load": {
+      "status": "pass"
+     },
+     "menu-open": {
+      "status": "pass",
+      "detail": "button \"Open menu\""
+     },
+     "menu-close": {
+      "status": "pass"
+     }
+    },
+    "app_blocks": [
+     "shopify-block-AExampleBlock1Q__example_app_block_1",
+     "shopify-block-AExampleBlock2Q__example_app_block_2",
+     "shopify-block-AExampleBlock3Q__example_app_block_3"
+    ],
+    "console_errors": [
+     {
+      "text": "Uncaught Identifier 'AutoplaySlider' has already been declared",
+      "url": ""
+     },
+     {
+      "text": "Uncaught Identifier 'AutoplaySlider' has already been declared",
+      "url": ""
+     }
+    ],
+    "liquid_errors": []
+   },
+   "working": {
+    "url": "https://store.example/?pb=0",
+    "status": 200,
+    "theme": 200,
+    "served_by": {
+     "200": 1
+    },
+    "preview_bar": false,
+    "checks": {
+     "load": {
+      "status": "pass"
+     },
+     "menu-open": {
+      "status": "pass",
+      "detail": "button \"Open menu\""
+     },
+     "menu-close": {
+      "status": "pass"
+     }
+    },
+    "app_blocks": [
+     "shopify-block-AExampleBlock1Q__example_app_block_1",
+     "shopify-block-AExampleBlock2Q__example_app_block_2",
+     "shopify-block-AExampleBlock3Q__example_app_block_3"
+    ],
+    "console_errors": [
+     {
+      "text": "Uncaught Identifier 'AutoplaySlider' has already been declared",
+      "url": ""
+     },
+     {
+      "text": "Uncaught Identifier 'AutoplaySlider' has already been declared",
+      "url": ""
+     }
+    ],
+    "liquid_errors": []
+   }
+  },
+  "collection": {
+   "control": {
+    "url": "https://store.example/collections/example-collection?pb=0",
+    "status": 200,
+    "theme": 201,
+    "served_by": {
+     "201": 1
+    },
+    "preview_bar": false,
+    "checks": {
+     "load": {
+      "status": "pass"
+     },
+     "menu-open": {
+      "status": "pass",
+      "detail": "button \"Open menu\""
+     },
+     "menu-close": {
+      "status": "pass"
+     }
+    },
+    "app_blocks": [
+     "shopify-block-AExampleBlock2Q__example_app_block_2",
+     "shopify-block-AExampleBlock3Q__example_app_block_3"
+    ],
+    "console_errors": [],
+    "liquid_errors": []
+   },
+   "working": {
+    "url": "https://store.example/collections/example-collection?pb=0",
+    "status": 200,
+    "theme": 200,
+    "served_by": {
+     "200": 1
+    },
+    "preview_bar": false,
+    "checks": {
+     "load": {
+      "status": "pass"
+     },
+     "menu-open": {
+      "status": "pass",
+      "detail": "button \"Open menu\""
+     },
+     "menu-close": {
+      "status": "pass"
+     }
+    },
+    "app_blocks": [
+     "shopify-block-AExampleBlock3Q__example_app_block_3",
+     "shopify-block-AExampleBlock2Q__example_app_block_2"
+    ],
+    "console_errors": [],
+    "liquid_errors": []
+   }
+  },
+  "product": {
+   "control": {
+    "url": "https://store.example/products/example-product?pb=0",
+    "status": 200,
+    "theme": 201,
+    "served_by": {
+     "201": 5
+    },
+    "preview_bar": false,
+    "checks": {
+     "load": {
+      "status": "pass"
+     },
+     "menu-open": {
+      "status": "pass",
+      "detail": "button \"Open menu\""
+     },
+     "menu-close": {
+      "status": "pass"
+     },
+     "variant": {
+      "status": "pass",
+      "detail": "5 pack -> 4 pack"
+     },
+     "add-to-cart": {
+      "status": "pass",
+      "detail": "0 -> 1 item(s)"
+     },
+     "cart-count": {
+      "status": "pass",
+      "detail": "0 -> 1"
+     }
+    },
+    "app_blocks": [
+     "shopify-block-AExampleBlock4Q__example_app_block_4",
+     "shopify-block-AExampleBlock3Q__example_app_block_3",
+     "shopify-block-AExampleBlock2Q__example_app_block_2"
+    ],
+    "console_errors": [],
+    "liquid_errors": []
+   },
+   "working": {
+    "url": "https://store.example/products/example-product?pb=0",
+    "status": 200,
+    "theme": 200,
+    "served_by": {
+     "200": 5
+    },
+    "preview_bar": false,
+    "checks": {
+     "load": {
+      "status": "pass"
+     },
+     "menu-open": {
+      "status": "pass",
+      "detail": "button \"Open menu\""
+     },
+     "menu-close": {
+      "status": "pass"
+     },
+     "variant": {
+      "status": "pass",
+      "detail": "5 pack -> 4 pack"
+     },
+     "add-to-cart": {
+      "status": "pass",
+      "detail": "0 -> 1 item(s)"
+     },
+     "cart-count": {
+      "status": "pass",
+      "detail": "0 -> 1"
+     }
+    },
+    "app_blocks": [
+     "shopify-block-AExampleBlock4Q__example_app_block_4",
+     "shopify-block-AExampleBlock3Q__example_app_block_3",
+     "shopify-block-AExampleBlock2Q__example_app_block_2"
+    ],
+    "console_errors": [],
+    "liquid_errors": []
+   }
+  }
+ }
+}

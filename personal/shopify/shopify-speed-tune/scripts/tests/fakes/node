@@ -1,8 +1,11 @@
 #!/usr/bin/env python3
-"""Fake `node` for the decision program's tests: the browser helper.
+"""Fake `node` for the decision program's tests: the two browser helpers.
 
 - `jar.mjs --port <p> --store <url>` puts the cookie it reads on stdin in the
   jar of the stand-in Chrome at that port, for the store's host.
+- `smoke.mjs --port <p> --spec <file> --out <file>` writes the smoke checker's
+  results: the real results fixture FAKE_STORE names, each page and response
+  rendered by the theme whose cookie it was given for that role.
 
 It holds the program to the contract: puppeteer-core installed in the
 workspace project, a running Chrome at the port, and the cookie on stdin, never
@@ -57,6 +60,27 @@ if script == "jar.mjs":
     with open(os.path.join(registry, port + ".jar"), "w", encoding="utf-8") as f:
         json.dump({"host": host, "cookie": cookie}, f)
     print("JAR %s" % host)
+    sys.exit(0)
+
+if script == "smoke.mjs":
+    with open(options["--spec"], encoding="utf-8") as f:
+        spec = json.load(f)
+    cookies = json.loads(sys.stdin.read())
+    with open(store["smoke_results"], encoding="utf-8") as f:
+        results = json.load(f)
+    live = next(t["id"] for t in store["themes"] if t["role"] == "live")
+    for page, roles in results["pages"].items():
+        for role, run in roles.items():
+            # lost_cookie: the store stopped honouring that theme's preview mid-page.
+            theme = theme_of(cookies.get(role)) or live
+            run["url"] = spec["pages"][page]
+            run["theme"] = theme
+            served = sum(run["served_by"].values())
+            run["served_by"] = {str(theme): served}
+            if store.get("lost_cookie") == [page, role]:
+                run["served_by"][str(live)] = 1
+    with open(options["--out"], "w", encoding="utf-8") as f:
+        json.dump(results, f)
     sys.exit(0)
 
 fail("fake node: unexpected script %r" % script)

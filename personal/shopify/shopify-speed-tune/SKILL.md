@@ -17,7 +17,7 @@ A small program owns every number, every write to the store and every guard: `sc
 
     python3 <skill>/scripts/speed_tune.py <operation> [flags]
 
-It prints one fact per line, each starting with a fixed tag: `START`, `PAGE`, `SAMPLE`, `MEASUREMENT`, `REPORT`, `FINISH`, `NOTE`, and `REFUSED` or `FAILED` when it stops. Those lines are the verdict: act on what they say, and quote them rather than paraphrase. `--help` after any operation lists its flags.
+It prints one fact per line, each starting with a fixed tag: `START`, `PAGE`, `SAMPLE`, `MEASUREMENT`, `SMOKE`, `REPORT`, `FINISH`, `NOTE`, and `REFUSED` or `FAILED` when it stops. Those lines are the verdict: act on what they say, and quote them rather than paraphrase. `--help` after any operation lists its flags.
 
 Each guardrail below protects something the developer relies on:
 
@@ -54,8 +54,9 @@ It refuses, changing nothing, unless the store is the one this repo's `shopify.t
        sample --page product --device desktop
 
    Each call takes Samples until its Measurement holds five, about a minute per Sample, and ends with a `MEASUREMENT` line: each metric's median with its range in brackets. Allow each call 10 minutes. A call cut off by the timeout, or ending in `FAILED samples-rejected`, resumes when the same command runs again, since recorded Samples stay. When one call fails twice, or stops on any other line, stop measuring and go on to Report, which marks what is missing.
+3. Run `smoke`, allowing it 10 minutes. The smoke checker loads each page on both themes as a phone and does what a shopper does: opens and closes the header menu by keyboard, changes the product's variant, adds it to the cart and watches the cart count rise. It also lists the app blocks, console errors and Liquid errors. The program holds the Working theme to whatever already works on the Control theme and ends with a `SMOKE baseline result` line. Both themes are still copies of the published theme, so `pass` is expected; on `fail`, the check is unsteady on this store: show the developer the `SMOKE` lines. On `FAILED`, run `smoke` once more; when it fails again, go on to Report.
 
-**Done when** `status` prints six `MEASUREMENT … n=5` lines.
+**Done when** `status` prints six `MEASUREMENT … n=5` lines and a `SMOKE baseline result` line.
 
 ## 3. Report
 

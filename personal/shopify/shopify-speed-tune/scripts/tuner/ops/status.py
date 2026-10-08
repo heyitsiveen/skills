@@ -1,6 +1,6 @@
-"""status: the invocation as the ledger holds it, with every Measurement's median and range."""
+"""status: the invocation as the ledger holds it: every Measurement's median and range, and every smoke result."""
 
-from tuner import ledger, stats
+from tuner import ledger, smoke, stats
 from tuner.output import say
 
 ORDER = 80
@@ -26,4 +26,6 @@ def run(args):
         say("PAGE", page, inv.page_url(page))
     for key, samples in stats.measurements(data):
         say("MEASUREMENT", stats.measurement_line(*key, samples))
+    for record in data.get("smoke", []):
+        say("SMOKE", smoke.result_line(record["label"], smoke.judge(record["pages"])))
     return 0

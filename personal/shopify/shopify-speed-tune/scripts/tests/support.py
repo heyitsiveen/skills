@@ -20,6 +20,7 @@ HERE = Path(__file__).resolve().parent
 PROGRAM = HERE.parent / "speed_tune.py"
 FAKES = HERE / "fakes"
 REPORTS = HERE / "fixtures" / "lighthouse"
+SMOKE_RESULTS = HERE / "fixtures" / "smoke" / "results.json"
 
 STORE_URL = "https://store.example/"
 MYSHOPIFY = "example-store.myshopify.com"
@@ -86,6 +87,8 @@ class Sandbox:
                 "mobile": [str(report("home-mobile-%d" % i)) for i in range(1, 6)],
                 "desktop": [str(report("home-desktop-1"))],
             },
+            # What the smoke checker reports, each run rendered by the theme its cookie selects.
+            "smoke_results": str(SMOKE_RESULTS),
         }
 
     def store(self):
