@@ -180,8 +180,10 @@ def what_changed(inv):
                  % theme_name(working)
     lines += [intro, ""]
     lines += [kept_line(rnd, items[rnd["item"]]) for rnd in kept]
-    lines += ["- %s Removed in Round %d, because %s." % (
-        item_head(items[rnd["item"]]), rnd["n"], outcome.why_removed(rnd["verdict"]["reasons"]))
+    lines += ["- %s Removed in Round %d%s, because %s." % (
+        item_head(items[rnd["item"]]), rnd["n"],
+        "" if outcome.measured(inv, rnd) else " without being measured",
+        outcome.why_removed(rnd["verdict"]["reasons"]))
         for rnd in done if rnd["state"] == "removed"]
     reached = (data.get("stopped") or {}).get("reason") == "targets-reached"
     lines += ["- %s Not tried: %s" % (item_head(item), "every page reached its target first."
@@ -313,7 +315,7 @@ def round_here(inv, rnd, page):
         head += "kept"
     else:
         head += "removed, because %s" % outcome.why_removed(rnd["verdict"]["reasons"])
-    if len(rounds.pairs(inv, rnd, page)) < rounds.PAIRS_PER_PAGE:
+    if not outcome.measured(inv, rnd) or len(rounds.pairs(inv, rnd, page)) < rounds.PAIRS_PER_PAGE:
         return head + "; not measured here."
     found = rounds.page_summary(inv, rnd, page)
     return head + "; won %d of %d pairs here, median %d → %d." % (

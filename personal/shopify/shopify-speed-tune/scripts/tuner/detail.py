@@ -36,7 +36,7 @@ def _counted(values):
 def hook_text(record):
     if record is None:
         return "not recorded"
-    detail = " ".join(str(record.get("detail") or "").split())
+    detail = " ".join(str(record.get("detail") or "").split()).rstrip(".")
     return "%s%s" % (record.get("status"), ": %s" % detail if detail else "")
 
 
@@ -203,9 +203,13 @@ def one_round(inv, rnd):
     pushes = rnd.get("pushes") or []
     lines.append("- **Pushes.** %s." % ("; ".join(push_text(a) for a in pushes) if pushes
                                         else "none: the change never reached the Working theme"))
-    measured = any(rounds.pairs(inv, rnd, page) for page in stats.PAGE_ORDER)
-    lines.append("- **Pairs.** %s" % ("Each a Control theme Sample, then a Working theme Sample, "
-                                      "back to back, below." if measured else "Not measured."))
+    taken = any(rounds.pairs(inv, rnd, page) for page in stats.PAGE_ORDER)
+    if outcome.measured(inv, rnd):
+        lines.append("- **Pairs.** Each a Control theme Sample, then a Working theme Sample, back "
+                     "to back, below.")
+    else:
+        lines.append("- **Pairs.** Not measured%s" % (": the pairs below did not decide this "
+                                                      "Round." if taken else "."))
     record = rounds.smoke_record(inv, rnd)
     if record is not None:
         judgement = smoke.judge(record["pages"])
@@ -229,7 +233,7 @@ def one_round(inv, rnd):
         lines.append("- **Revert.** The working tree was put back at %s%s." % (
             when(rnd["restored"]), back))
     lines.append("")
-    if measured:
+    if taken:
         lines += pair_tables(inv, rnd)
     return lines
 

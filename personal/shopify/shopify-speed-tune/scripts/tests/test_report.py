@@ -244,14 +244,20 @@ class TheDetailLog(unittest.TestCase):
 
 
 class ARoundWithNoPairs(unittest.TestCase):
-    def test_is_shown_as_not_measured(self):
-        box = ran(self, "first-unmeasured")
+    def setUp(self):
+        self.box = ran(self, "first-unmeasured")
+        _, self.text = written(self, self.box)
 
-        _, text = written(self, box)
+    def test_is_shown_as_not_measured_in_the_detail_log(self):
+        first = section(self.text.split("\n## Detail log\n", 1)[1], "#### Round 1: P1, removed")
 
-        first = section(text.split("\n## Detail log\n", 1)[1], "#### Round 1: P1, removed")
         self.assertIn("- **Pairs.** Not measured.", first)
         self.assertIn("- **Verdict.** remove: the change never reached the Working theme.", first)
+
+    def test_is_told_to_the_team_as_removed_without_being_measured(self):
+        self.assertIn("- **P1. Load the hero image eagerly.** Removed in Round 1 without being "
+                      "measured, because the change never reached the Working theme.",
+                      section(self.text, "### What changed"))
 
 
 class TheCommitHookTheInvocationStartedWith(unittest.TestCase):
