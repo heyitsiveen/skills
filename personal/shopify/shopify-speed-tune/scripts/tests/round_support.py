@@ -48,16 +48,17 @@ PAGE_PATHS = {"home": "/", "collection": COLLECTION, "product": PRODUCT}
 FROZEN = {}
 
 
-def approved(test, items=ITEMS, *start_args):
-    """An invocation over THEME whose plan of `items` the developer approved.
+def approved(test, items=ITEMS, *start_args, pre_commit=None):
+    """An invocation over THEME whose plan of `items` the developer approved, started
+    with `start_args` in a repo whose pre-commit hook is `pre_commit`.
 
     Reaching approval takes some thirty program runs, so it is done once per
     plan and kept as a copy; each test gets that copy put back at the same path,
     a fresh sandbox none of the other tests touched.
     """
-    key = json.dumps([items, start_args])
+    key = json.dumps([items, start_args, pre_commit])
     if key not in FROZEN:
-        box = diagnosed(test, *start_args, theme_files=THEME)
+        box = diagnosed(test, *start_args, theme_files=THEME, pre_commit=pre_commit)
         for args in (("plan", "--items", write_items(box, items)), ("plan", "--approve")):
             result = box.run(*args)
             test.assertEqual(result.code, 0, result)
@@ -99,6 +100,30 @@ def pushed(test, items=ITEMS, item="P1"):
     result = box.run("push")
     test.assertEqual(result.code, 0, result)
     return box
+
+
+# Edits to the real smoke results, each making the Working theme do one thing worse.
+
+def add_to_cart_fails(results):
+    results["pages"]["product"]["working"]["checks"].update({
+        "add-to-cart": {"status": "fail", "detail": "the cart still holds 0 item(s)"},
+        "cart-count": {"status": "skip", "detail": "nothing was added"}})
+
+
+def new_console_error(results):
+    results["pages"]["home"]["working"]["console_errors"].append({
+        "text": "Uncaught ReferenceError: Swiper is not defined",
+        "url": "https://store.example/cdn/shop/t/22/assets/slider.js?v=172"})
+
+
+def new_liquid_error(results):
+    results["pages"]["product"]["working"]["liquid_errors"].append(
+        "Liquid error (sections/main-product line 214): Could not find asset snippets/price.liquid")
+
+
+def app_block_gone(results):
+    results["pages"]["product"]["working"]["app_blocks"].remove(
+        "shopify-block-AExampleBlock4Q__example_app_block_4")
 
 
 def checked(box, change=None):

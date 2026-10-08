@@ -1,9 +1,31 @@
-"""Starting an invocation: the store must be the repo's, and the machine must be free."""
+"""Starting an invocation: the store must be the repo's, the machine must be free, and
+the repo's own pre-commit hook must pass, since every kept Round is committed through it."""
 
+import os
 import re
+import shutil
+import tempfile
 import unittest
+from pathlib import Path
 
-from support import LIVE_THEME, STORE_URL, Sandbox
+from support import FAILING_HOOK, LIVE_THEME, STORE_URL, Sandbox, hook, running
+
+
+def old_git_on_path(test):
+    """A folder holding a git older than 2.36, which has no `git hook`; every other
+    command goes to the real git."""
+    folder = Path(tempfile.mkdtemp(prefix="speed-tune-old-git-"))
+    test.addCleanup(shutil.rmtree, folder, True)
+    stand_in = folder / "git"
+    stand_in.write_text(
+        "#!/bin/sh\n"
+        "case \"$1\" in\n"
+        "  --version) echo 'git version 2.30.2'; exit 0 ;;\n"
+        "  hook) echo \"git: 'hook' is not a git command. See 'git --help'.\" >&2; exit 1 ;;\n"
+        "esac\n"
+        "exec '%s' \"$@\"\n" % shutil.which("git"))
+    stand_in.chmod(0o755)
+    return str(folder)
 
 
 class StoreMustMatchTheRepo(unittest.TestCase):
@@ -138,6 +160,108 @@ class OneUnfinishedInvocationPerMachine(unittest.TestCase):
         self.assertRegex(cleared.out, r"(?m)^REFUSED wrong-invocation: ")
         again = box.run("start", "--store", STORE_URL)
         self.assertRegex(again.out, r"(?m)^REFUSED invocation-unfinished: ")
+
+
+class TheReposPreCommitHookMustPass(unittest.TestCase):
+    def test_a_hook_failing_on_the_unchanged_repo_refuses_before_anything_exists(self):
+        box = Sandbox(self)
+        hook(box.repo, FAILING_HOOK)
+
+        result = box.run("start", "--store", STORE_URL)
+
+        self.assertEqual(result.code, 1, result)
+        self.assertEqual(result.lines("REFUSED"), [
+            "REFUSED pre-commit-fails: the pre-commit hook .git/hooks/pre-commit exits 1 on the "
+            "unchanged repo: No staged files found. | snippets/image.liquid:3 MissingAsset | "
+            "733 problems found in 412 files"])
+        self.assertFalse(box.lock.exists(), "a refused start must not take the lock")
+        self.assertEqual(box.theme_ids(), {LIVE_THEME, 101, 102})
+        self.assertEqual(box.git(box.repo, "branch", "--list", "speed-tune/*"), "")
+
+    def test_the_hook_is_the_one_git_runs_through_core_hooks_path_as_husky_sets_it(self):
+        box = Sandbox(self)
+        hook(box.repo, "exit 0\n")  # .git/hooks, which git no longer reads once hooksPath is set
+        hook(box.repo, 'sh -e "$(dirname "$0")/../pre-commit"\n', ".husky/_/pre-commit")
+        (box.repo / ".husky" / "pre-commit").write_text(FAILING_HOOK)
+        box.git(box.repo, "config", "core.hooksPath", ".husky/_")
+
+        result = box.run("start", "--store", STORE_URL)
+
+        self.assertEqual(result.code, 1, result)
+        self.assertRegex(result.out, r"(?m)^REFUSED pre-commit-fails: the pre-commit hook "
+                                     r"\.husky/_/pre-commit exits 1 on the unchanged repo: ")
+
+    def test_a_git_without_git_hook_run_gets_the_hook_file_run_from_the_repo_root(self):
+        box = Sandbox(self)
+        hook(box.repo, FAILING_HOOK)
+        old_git = old_git_on_path(self)
+
+        result = box.run("start", "--store", STORE_URL,
+                         env={"PATH": old_git + os.pathsep + box.env()["PATH"]})
+
+        self.assertEqual(result.lines("REFUSED"), [
+            "REFUSED pre-commit-fails: the pre-commit hook .git/hooks/pre-commit exits 1 on the "
+            "unchanged repo: No staged files found. | snippets/image.liquid:3 MissingAsset | "
+            "733 problems found in 412 files"])
+
+    def test_a_hook_that_does_not_finish_is_stopped_with_its_children_and_refused(self):
+        box = Sandbox(self)
+        # Past its first line the hook lets go of its output, as a detached child would.
+        hook(box.repo, "echo 'Checking theme'\nexec >/dev/null 2>&1\nsleep 60 &\n"
+                       "echo $! > ../hook-child\nwait\n")
+
+        result = box.run("start", "--store", STORE_URL, env={"SPEED_TUNE_HOOK_SECONDS": "1"})
+
+        self.assertEqual(result.lines("REFUSED"), [
+            "REFUSED pre-commit-fails: the pre-commit hook .git/hooks/pre-commit did not finish "
+            "within 1 s on the unchanged repo: Checking theme"])
+        child = int((box.root / "hook-child").read_text())
+        self.assertFalse(running(child), "the hook's own children must be stopped too")
+        self.assertFalse(box.lock.exists())
+
+    def test_a_passing_hook_is_run_and_recorded(self):
+        box = Sandbox(self)
+        ran = box.root / "hook-ran"
+        hook(box.repo, "echo ran >> '%s'\n" % ran)
+
+        _, result = box.start()
+
+        self.assertIn("START hook=passed path=.git/hooks/pre-commit", result.lines("START"))
+        self.assertEqual(ran.read_text(), "ran\n")
+        self.assertIn("hook=passed", box.run("status").lines("INVOCATION")[0])
+
+    def test_a_hook_git_would_not_run_counts_as_absent(self):
+        box = Sandbox(self)
+        hook(box.repo, FAILING_HOOK).chmod(0o644)  # not executable: git skips it
+
+        _, result = box.start()
+
+        self.assertIn("START hook=absent", result.lines("START"))
+        self.assertIn("hook=absent", box.run("status").lines("INVOCATION")[0])
+
+
+class TheDevelopersApprovalToCommitWithoutTheHook(unittest.TestCase):
+    def test_lets_a_failing_hook_through_for_this_invocation(self):
+        box = Sandbox(self)
+        hook(box.repo, FAILING_HOOK)
+
+        _, result = box.start("--no-verify-approved")
+
+        self.assertIn("START hook=bypass-approved path=.git/hooks/pre-commit exit=1",
+                      result.lines("START"))
+        self.assertIn("NOTE kept Rounds are committed with --no-verify, as the developer approved "
+                      "for this invocation", result.lines("NOTE"))
+        self.assertIn("hook=bypass-approved", box.run("status").lines("INVOCATION")[0])
+
+    def test_is_not_used_when_the_hook_passes(self):
+        box = Sandbox(self)
+        hook(box.repo, "exit 0\n")
+
+        _, result = box.start("--no-verify-approved")
+
+        self.assertIn("START hook=passed path=.git/hooks/pre-commit", result.lines("START"))
+        self.assertIn("NOTE the pre-commit hook passes, so kept Rounds are committed through it "
+                      "and --no-verify-approved goes unused", result.lines("NOTE"))
 
 
 if __name__ == "__main__":

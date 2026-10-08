@@ -42,6 +42,23 @@ def read_report(name):
         return json.load(f)
 
 
+# What a Golden repo's pre-commit hook does on its unchanged tree: lint-staged finds
+# nothing staged, then a whole-theme `shopify theme check --fail-level=info` fails.
+FAILING_HOOK = ("echo 'No staged files found.'\n"
+                "echo 'snippets/image.liquid:3 MissingAsset' >&2\n"
+                "echo '733 problems found in 412 files' >&2\n"
+                "exit 1\n")
+
+
+def hook(repo, script, path=".git/hooks/pre-commit"):
+    """Install `script` as an executable shell hook at `path` in the client repo."""
+    target = Path(repo) / path
+    target.parent.mkdir(parents=True, exist_ok=True)
+    target.write_text("#!/bin/sh\n" + script)
+    target.chmod(0o755)
+    return target
+
+
 def running(pid):
     """True while `pid` is a live process; a zombie waiting for its reaper is not."""
     state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True,

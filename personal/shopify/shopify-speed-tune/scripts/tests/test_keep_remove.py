@@ -9,8 +9,9 @@ commit, and the Working theme pushed back to it.
 import stat
 import unittest
 
-from round_support import (CONTROL, EAGER, LAZY, NEUTRAL, THEME, WIN_4, WORKING, checked, measure,
-                           opened, pushed, write)
+from round_support import (CONTROL, EAGER, ITEMS, LAZY, NEUTRAL, THEME, WIN_4, WORKING, apply_item,
+                           approved, checked, measure, opened, pushed, write)
+from support import FAILING_HOOK
 
 
 def commits_since(box, rev):
@@ -25,8 +26,8 @@ class AKeptRound(unittest.TestCase):
     def setUp(self):
         self.box = pushed(self)
         self.base = base_of_round(self.box)
-        measure(self.box, {"home": WIN_4})
         checked(self.box)
+        measure(self.box, {"home": WIN_4})
         self.result = self.box.run("verdict")
         self.assertEqual(self.result.code, 0, self.result)
 
@@ -66,8 +67,8 @@ class ARemovedRound(unittest.TestCase):
         (self.box.repo / "assets" / "slider.js").unlink()
         write(self.box, "snippets/hero-preload.liquid", "{{ image | image_url: width: 800 }}\n")
         self.assertEqual(self.box.run("push").code, 0)
-        measure(self.box, {"home": NEUTRAL})
         checked(self.box)
+        measure(self.box, {"home": NEUTRAL})
         self.result = self.box.run("verdict")
         self.assertEqual(self.result.code, 0, self.result)
 
@@ -128,9 +129,9 @@ class TheRoundsRepoStaysWhereTheRoundLeftIt(unittest.TestCase):
         self.assertRegex(result.out, r"(?m)^REFUSED head-moved: ")
         self.assertEqual(box.pushes(), [])
 
-    def test_the_change_cannot_be_pushed_again_once_it_was_measured(self):
+    def test_the_change_cannot_be_pushed_again_once_its_smoke_check_ran(self):
         box = pushed(self)
-        measure(box, {"home": WIN_4})
+        checked(box)
         write(box, "assets/theme.js", "/* one more thing */\n")
 
         result = box.run("push")
@@ -140,8 +141,8 @@ class TheRoundsRepoStaysWhereTheRoundLeftIt(unittest.TestCase):
 
     def test_a_tree_changed_after_the_push_is_removed_not_kept(self):
         box = pushed(self)
-        measure(box, {"home": WIN_4})
         checked(box)
+        measure(box, {"home": WIN_4})
         write(box, "assets/theme.js", "/* changed after the pairs */\n")
 
         result = box.run("verdict")
@@ -173,8 +174,8 @@ class TheReposOwnCommitHook(unittest.TestCase):
     def test_a_change_the_hook_refuses_is_removed(self):
         box = pushed(self)
         base = base_of_round(box)
-        measure(box, {"home": WIN_4})
         checked(box)
+        measure(box, {"home": WIN_4})
         self.hook(box, "echo 'theme check: 1 offense' >&2\nexit 1\n")
 
         result = box.run("verdict")
@@ -188,8 +189,8 @@ class TheReposOwnCommitHook(unittest.TestCase):
 
     def test_a_file_the_hook_reformats_reaches_both_themes_as_committed(self):
         box = pushed(self)
-        measure(box, {"home": WIN_4})
         checked(box)
+        measure(box, {"home": WIN_4})
         # A formatter run by the hook, like lint-staged's prettier: rewrite, re-stage.
         self.hook(box, "printf '%s' \"$(cat snippets/image.liquid)\" > snippets/image.liquid\n"
                        "git add snippets/image.liquid\n")
@@ -201,6 +202,21 @@ class TheReposOwnCommitHook(unittest.TestCase):
         self.assertEqual(committed, EAGER.rstrip("\n"))
         self.assertEqual(box.theme_files(CONTROL)["snippets/image.liquid"], committed)
         self.assertEqual(box.theme_files(WORKING)["snippets/image.liquid"], committed)
+
+    def test_a_failing_hook_the_developer_approved_bypassing_does_not_refuse_the_keep(self):
+        box = approved(self, ITEMS, "--no-verify-approved", pre_commit=FAILING_HOOK)
+        self.assertEqual(box.run("round", "--item", "P1").code, 0)
+        base = base_of_round(box)
+        apply_item(box, "P1")
+        self.assertEqual(box.run("push").code, 0)
+        checked(box)
+        measure(box, {"home": WIN_4})
+
+        result = box.run("verdict")
+
+        self.assertEqual(result.lines("VERDICT"), ["VERDICT 1 keep item=P1 won=home"])
+        self.assertEqual(commits_since(box, base), "1")
+        self.assertEqual(box.theme_files(CONTROL), box.theme_files(WORKING))
 
 
 if __name__ == "__main__":

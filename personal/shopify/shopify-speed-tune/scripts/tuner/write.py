@@ -5,14 +5,15 @@ the Control theme, named by role or by id. Before every push the program reads
 the theme library back from the store and refuses unless that theme still
 exists, is still unpublished, and no other theme is named like its id (the CLI
 matches `--theme` by name too, live theme first). It also refuses a repo whose
-`shopify.theme.toml` no longer names the invocation's store, and any path
-holding a glob character, since the CLI deletes whatever its `--only` filter
-matches and the file lacks.
+`shopify.theme.toml` no longer names the invocation's store, any path holding
+a glob character, since the CLI deletes whatever its `--only` filter matches
+and the file lacks, and any path the repo's `.shopifyignore` excludes, since
+the CLI skips it without a word.
 """
 
 import re
 
-from tuner import repo, shopify
+from tuner import repo, shopify, shopifyignore
 from tuner.output import Refused
 
 GLOB = re.compile(r"[*?\[\]{}()!\\]")
@@ -74,6 +75,7 @@ def guard(inv, target, paths):
         if GLOB.search(path):
             raise Refused("odd-path", "%s holds a glob character, so a push would also touch "
                           "every file it matches" % path)
+    shopifyignore.check(root, paths)
     repo.require_theme(root)
     configured = repo.configured_store(root)
     if configured != data["store"]["myshopify"]:

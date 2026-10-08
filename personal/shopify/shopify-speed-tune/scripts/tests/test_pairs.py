@@ -9,12 +9,14 @@ and a tie otherwise.
 import re
 import unittest
 
-from round_support import opened, pair_files, pushed, record_pairs, write
+from round_support import (add_to_cart_fails, checked, opened, pair_files, pushed, record_pairs,
+                           write)
 
 
 class RecordingPairsFromReportFiles(unittest.TestCase):
     def setUp(self):
         self.box = pushed(self)
+        checked(self.box)
 
     def test_each_pair_is_a_win_a_loss_or_a_tie_on_the_performance_score(self):
         # The home page's real scores are 36, 49, 56, 50 and 55.
@@ -72,12 +74,37 @@ class PairsNeedThePushedChange(unittest.TestCase):
         self.assertRegex(result.out, r"(?m)^REFUSED changed-since-push: ")
 
 
+class PairsFollowAPassingSmokeCheck(unittest.TestCase):
+    """The smoke check runs first: it warms the store's cache with the changed files and
+    catches a broken change before fifteen minutes of pairs."""
+
+    def test_no_pair_is_taken_before_the_rounds_smoke_check(self):
+        box = pushed(self)
+
+        result = box.run("pairs")
+
+        self.assertEqual(result.code, 1, result)
+        self.assertRegex(result.out, r"(?m)^REFUSED round-unchecked: Round 1 has no smoke check yet")
+        self.assertEqual(result.lines("SAMPLE"), [])
+
+    def test_no_pair_is_taken_after_a_failed_one(self):
+        box = pushed(self)
+        checked(box, add_to_cart_fails)
+
+        result = box.run("pairs")
+
+        self.assertEqual(result.code, 1, result)
+        self.assertRegex(result.out, r"(?m)^REFUSED smoke-failed: Round 1's smoke check failed")
+        self.assertEqual(result.lines("SAMPLE"), [])
+
+
 class TakingPairs(unittest.TestCase):
     """The fake Lighthouse serves the theme whose preview cookie is in its Chrome's
     jar, from that theme's own asset folder."""
 
     def setUp(self):
         self.box = pushed(self)
+        checked(self.box)
 
     def taken(self, result):
         return [tuple(re.match(r"SAMPLE s\d+ round-1 (\w+) mobile (\w+) ", line).groups())

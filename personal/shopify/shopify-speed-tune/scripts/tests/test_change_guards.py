@@ -53,6 +53,16 @@ class ARefusedChangeWritesNothing(unittest.TestCase):
 
                 self.assertRegex(result.out, r"(?m)^REFUSED detection: assets/theme\.js line 2 adds ")
 
+    def test_a_vendored_library_that_reads_the_user_agent_gets_no_exception(self):
+        # A minified slider bundle, as Golden vendors one: its one line reads the user agent.
+        write(self.box, "assets/swiper-bundle.min.js",
+              "!function(){var e=navigator.userAgent;window.Swiper=function(){return/Mobi/.test(e)}}();\n")
+
+        result = self.push_refused()
+
+        self.assertEqual(result.lines("REFUSED"), [
+            "REFUSED detection: assets/swiper-bundle.min.js line 1 adds navigator.userAgent"])
+
     def test_detection_in_an_inline_script_of_a_liquid_file_is_refused(self):
         write(self.box, "snippets/image.liquid", THEME["snippets/image.liquid"] +
               "<script>if (navigator.userAgent.indexOf('Lighthouse') > -1) {}</script>\n")

@@ -29,6 +29,8 @@ def status_line(rnd):
         head = "%d kept item=%s commit=%s" % (rnd["n"], rnd["item"], rnd["commit"][:12])
     else:
         head = "%d removed item=%s" % (rnd["n"], rnd["item"])
+        if (rnd.get("verdict") or {}).get("measured") is False:
+            head += " not-measured"
     templates = (rnd.get("change") or {}).get("template_json") or []
     return head + (" template-json=%s" % ",".join(templates) if templates else "")
 
@@ -92,8 +94,21 @@ def require_measurable(inv, rnd):
     if change.fingerprint(root, entries) != rnd["change"]["fingerprint"]:
         raise Refused("changed-since-push", "the working tree no longer holds what Round %d "
                       "pushed to the Working theme" % rnd["n"],
-                      "Before the first pair or smoke check, `push` again. After it, the change "
+                      "Before the smoke check, `push` again. After it, the change "
                       "measured is not the one in the tree, and `verdict` removes the Round.")
+
+
+def require_smoke_passed(inv, rnd):
+    """Refuse pairs until the Round's smoke check passed. It runs first: it warms the
+    store's cache with the changed files, and a change it finds broken is removed
+    without fifteen minutes of pairs."""
+    record = smoke_record(inv, rnd)
+    if record is None:
+        raise Refused("round-unchecked", "Round %d has no smoke check yet" % rnd["n"],
+                      "Run `smoke` first; the pairs follow a passing one.")
+    if not smoke.judge(record["pages"]).passed:
+        raise Refused("smoke-failed", "Round %d's smoke check failed, so its pairs would decide "
+                      "nothing" % rnd["n"], "Run `verdict`: it removes the Round unmeasured.")
 
 
 def measured_yet(inv, rnd):
@@ -185,13 +200,19 @@ def decide(inv, rnd):
     reasons += ["loss:%s" % p for p in stats.PAGE_ORDER if pages[p]["losses"] >= DECISIVE]
     reasons += ["accessibility:%s" % p for p in stats.PAGE_ORDER
                 if pages[p]["accessibility"][1] < pages[p]["accessibility"][0]]
-    judgement = smoke.judge(smoke_record(inv, rnd)["pages"])
+    reasons += smoke_reasons(smoke.judge(smoke_record(inv, rnd)["pages"]))
+    return {"decision": "remove" if reasons else "keep", "reasons": reasons, "won": won,
+            "pages": pages, "measured": True}
+
+
+def smoke_reasons(judgement):
+    """The verdict's reasons from a smoke judgement: what the Working theme does worse."""
+    reasons = []
     if judgement.count("regression") or judgement.count("missing app block"):
         reasons.append("smoke-regression")
     if judgement.count("new error"):
         reasons.append("new-error")
-    return {"decision": "remove" if reasons else "keep", "reasons": reasons, "won": won,
-            "pages": pages}
+    return reasons
 
 
 def kept_state(inv):
@@ -235,7 +256,9 @@ def record_stop(inv, reason):
 
 
 def removal(*reasons):
-    return {"decision": "remove", "reasons": list(reasons), "won": [], "pages": None}
+    """A removal the pairs did not decide: the Round is not measured."""
+    return {"decision": "remove", "reasons": list(reasons), "won": [], "pages": None,
+            "measured": False}
 
 
 def verdict_line(rnd):

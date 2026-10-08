@@ -3,7 +3,7 @@ carry their five baseline mobile Samples, recorded from the real reports."""
 
 import json
 
-from support import Sandbox, report
+from support import Sandbox, hook, report
 
 PAGES = ("home", "collection", "product")
 COLLECTION = "/collections/example-collection"
@@ -28,10 +28,11 @@ def record(box, op, page, reports, *extra):
     return result
 
 
-def measured(test, *start_args, theme_files=None):
+def measured(test, *start_args, theme_files=None, pre_commit=None):
     """A started invocation with the three pages set and their baseline mobile
     Measurements complete. `theme_files` ({path: text}) are committed to the
-    client repo before the invocation starts."""
+    client repo before the invocation starts, and `pre_commit` becomes its
+    pre-commit hook."""
     box = Sandbox(test)
     if theme_files:
         for path, text in theme_files.items():
@@ -40,6 +41,8 @@ def measured(test, *start_args, theme_files=None):
             target.write_text(text)
         box.git(box.repo, "add", "-A")
         box.git(box.repo, "commit", "-q", "-m", "theme files")
+    if pre_commit:
+        hook(box.repo, pre_commit)
     box.start(*start_args)
     pages = box.run("pages", "--collection", COLLECTION, "--product", PRODUCT)
     test.assertEqual(pages.code, 0, pages)
@@ -48,9 +51,9 @@ def measured(test, *start_args, theme_files=None):
     return box
 
 
-def diagnosed(test, *start_args, theme_files=None):
+def diagnosed(test, *start_args, theme_files=None, pre_commit=None):
     """`measured`, plus each page's Ceiling and a `diagnose`: ready for a plan."""
-    box = measured(test, *start_args, theme_files=theme_files)
+    box = measured(test, *start_args, theme_files=theme_files, pre_commit=pre_commit)
     for page in PAGES:
         record(box, "ceiling", page, ceiling_reports(page))
     result = box.run("diagnose")
