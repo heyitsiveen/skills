@@ -2,9 +2,10 @@
 
 Deletes the Control theme, puts the repo back on the branch the invocation
 started from, restores Chrome for Testing's preferences, removes the temp
-workspace (Chrome, puppeteer-core, the pnpm store), marks the ledger
-finished and releases the machine lock. Each step is recorded as it completes,
-so a `finish` that stops part-way can simply be run again.
+workspace (Chrome, puppeteer-core, the pnpm store), stops the `caffeinate`
+that kept the Mac awake, marks the ledger finished and releases the machine
+lock. Each step is recorded as it completes, so a `finish` that stops part-way
+can simply be run again.
 
 `--discard` is for an invocation that stopped before any Round: it deletes the
 Working theme too, and the branch when the branch holds no commits.
@@ -16,7 +17,7 @@ must hold kept Rounds only.
 import os
 import shutil
 
-from tuner import ledger, lock, repo, rounds, shopify, tools
+from tuner import awake, ledger, lock, repo, rounds, shopify, tools
 from tuner.output import Refused, note, say
 
 ORDER = 90
@@ -57,6 +58,8 @@ def run(args):
         shutil.rmtree(workspace)
         say("FINISH", "workspace removed", "(Chrome, puppeteer-core, the pnpm store)")
 
+    if awake.release(data.get("awake")):
+        say("FINISH", "awake released")
     data["state"] = "finished"
     data["finished_at"] = ledger.now()
     inv.log("finish", "invocation finished")

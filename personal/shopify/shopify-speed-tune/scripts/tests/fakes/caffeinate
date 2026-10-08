@@ -1,0 +1,21 @@
+#!/usr/bin/env python3
+"""Stand-in macOS `caffeinate` for the decision program's tests: it holds nothing and waits.
+
+It registers itself in the sandbox's `awake/` folder, with its pid and its
+arguments, so a test can tell whether the program started it and whether it is
+still running. Then it waits until the program stops it, or until its sandbox
+is gone, so a test that never finishes its invocation leaves no process behind.
+"""
+
+import json
+import os
+import sys
+import time
+
+store = os.environ["FAKE_STORE"]
+registry = os.path.join(os.path.dirname(store), "awake")
+os.makedirs(registry, exist_ok=True)
+with open(os.path.join(registry, str(os.getpid())), "w", encoding="utf-8") as f:
+    json.dump({"pid": os.getpid(), "args": sys.argv[1:]}, f)
+while os.path.exists(store):
+    time.sleep(0.2)

@@ -3,12 +3,13 @@
 Only the developer knows an invocation is abandoned, so the lock is cleared
 only when it is named by id. `finish`, run from the invocation's repo, is the
 better ending whenever it can still run: it also deletes the Control theme and
-removes Chrome. `unlock` frees the machine and lists what is left to tidy.
+removes Chrome. `unlock` frees the machine, stops the `caffeinate` that kept it
+awake, and lists what is left to tidy.
 """
 
 import os
 
-from tuner import ledger, lock
+from tuner import awake, ledger, lock
 from tuner.output import Refused, note, say
 
 ORDER = 95
@@ -40,6 +41,12 @@ def run(args):
         note("its ledger at %s is unreadable; check the store's theme library by hand"
              % held.get("ledger"))
         inv = None
+    # The ledger's record, which says whether `finish` already stopped it; the
+    # lock's copy when the ledger cannot be read.
+    if awake.release((inv.data.get("awake") if inv is not None else None) or held.get("awake")):
+        say("UNLOCK", "awake released")
+    if inv is not None and inv.data.get("awake"):
+        inv.save()
     if inv is not None and inv.data.get("state") == "open":
         inv.data["state"] = "abandoned"
         inv.log("unlock", "lock cleared by the developer; invocation abandoned")

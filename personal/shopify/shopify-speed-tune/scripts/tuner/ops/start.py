@@ -16,7 +16,7 @@ import tempfile
 import time
 from datetime import datetime
 
-from tuner import ledger, lock, repo, shopify, storefront, tools
+from tuner import awake, ledger, lock, repo, shopify, storefront, tools
 from tuner.output import Failed, Refused, Stop, say
 
 ORDER = 10
@@ -90,6 +90,12 @@ def run(args):
     say("START", "invocation=%s" % invocation_id, "ledger=%s" % inv.path)
     say("START", "store=%s" % public, "myshopify=%s" % configured,
         "published=%s" % published["id"])
+    held = awake.hold()
+    if held:
+        inv.data["awake"] = held
+        inv.save()
+        lock.update(invocation_id, awake=held)  # so `unlock` finds it even without the ledger
+        say("START", "awake pid=%d" % held["pid"])
 
     try:
         prepare(inv, configured, published)

@@ -14,6 +14,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import time
 from pathlib import Path
 
 HERE = Path(__file__).resolve().parent
@@ -39,6 +40,13 @@ def report(name):
 def read_report(name):
     with open(report(name), encoding="utf-8") as f:
         return json.load(f)
+
+
+def running(pid):
+    """True while `pid` is a live process; a zombie waiting for its reaper is not."""
+    state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True,
+                           text=True).stdout.strip()
+    return bool(state) and not state.startswith("Z")
 
 
 class Result:
@@ -134,6 +142,21 @@ class Sandbox:
         if not registry.is_dir():
             return []
         return [json.loads(p.read_text()) for p in sorted(registry.iterdir()) if p.name.isdigit()]
+
+    def awake_started(self, expected=0, wait=5.0):
+        """Every stand-in `caffeinate` the program started: its pid and arguments.
+
+        A stand-in registers itself a moment after it starts, so this waits up to
+        `wait` seconds for `expected` of them.
+        """
+        registry = self.root / "awake"
+        deadline = time.monotonic() + wait
+        while True:
+            found = [json.loads(p.read_text()) for p in sorted(registry.iterdir())
+                     if p.name.isdigit()] if registry.is_dir() else []
+            if len(found) >= expected or time.monotonic() > deadline:
+                return found
+            time.sleep(0.05)
 
     def secrets_seen(self):
         """Every preview cookie value the fake store handed out, as it would appear anywhere."""

@@ -71,10 +71,15 @@ def acquire(info):
 
 
 def touch(invocation, op):
+    update(invocation, last_op=op, last_op_at=now())
+
+
+def update(invocation, **fields):
+    """Add `fields` to the lock, while `invocation` holds it."""
     held = read()
     if not held or held.get("invocation") != invocation:
         return
-    held.update(last_op=op, last_op_at=now())
+    held.update(fields)
     tmp = path() + ".tmp"
     with open(os.open(tmp, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w", encoding="utf-8") as f:
         json.dump(held, f, indent=2)
