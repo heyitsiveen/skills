@@ -8,7 +8,7 @@ Check every plan item against this list before you write it. An item may touch t
 
 **R1. Deferring theme CSS** (`media="print"` with an `onload` swap, or any async stylesheet).
 - A store targeting 90 fell from 84 to 65 with CLS 0.373.
-- Another reached CLS 0.891, which read as 0.005 on preview-URL runs because their slower timing hid it. Undoing the deferral took that store from 38 to 71.
+- Another reached CLS 0.891, which read as 0.005 on preview-URL Samples because their slower timing hid it. Undoing the deferral took that store from 38 to 71.
 - **Plan:** keep theme CSS render-blocking. Collapsing many stylesheets into fewer requests is fine, within R3.
 
 **R2. Swapping lazysizes for native lazy loading across the theme.**
@@ -22,7 +22,7 @@ Check every plan item against this list before you write it. An item may touch t
 - **Plan:** keep large CSS in files. Confirm the rendered page styles, not only the push.
 
 **R4. Splitting the hero preload by breakpoint, or preloading above the viewport tag.**
-- Lighthouse evaluates preloads before it applies mobile emulation, so a desktop preload matched the desktop-sized window and fetched the 1600 w image on every run.
+- Lighthouse evaluates preloads before it applies mobile emulation, so a desktop preload matched the desktop-sized window and fetched the 1600 w image on every Sample.
 - A preload placed above `<meta name="viewport">` resolved its `imagesizes` against the wrong viewport and downloaded the hero twice (173 KiB).
 - **Plan:** at most one hero preload, placed after `<meta name="viewport">`.
 
@@ -36,7 +36,7 @@ Check every plan item against this list before you write it. An item may touch t
 **R7. Lazily initialising a carousel.** A 286 px layout jump. **Plan:** keep carousels initialised at load.
 
 **R8. An eager hero exposing a layout shift.** Not a bad change but a trap that follows a good one (D2):
-- About 0.33 CLS in 2 of 17 runs, from a group block reordering its children on mobile with flex `order`; writing the markup in mobile order removed it (0.004, 0.006, 0, 0, 0).
+- About 0.33 CLS in 2 of 17 Samples, from a group block reordering its children on mobile with flex `order`; writing the markup in mobile order removed it (0.004, 0.006, 0, 0, 0).
 - 0.928 on one store and 0.886 on another, from a transparent header that pulls the first section up by a header height a script sets after load.
 - **Plan:** every D2 Round must show no CLS loss across its pairs. Fix the shift itself (DOM order, the header height reserved in CSS) in its own item.
 

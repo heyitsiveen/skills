@@ -23,7 +23,7 @@ Each guardrail below protects something the developer relies on:
 
 - **Customers see only what the developer publishes.** The program is the only thing that writes to the store, and it writes only to the two themes it created. Leave every `shopify theme` command to it, push no branch, publish nothing.
 - **The program keeps the history.** You edit theme files; the program pushes them, commits each kept Round once and puts back each removed one. Leave committing, stashing and switching branches to it, so the branch holds exactly the kept Rounds.
-- **One stop.** Step 3's plan is the only place the skill waits for the developer. Everything they decide (the pages, the plan, their PageSpeed scores) goes into that one message; every other step runs on.
+- **One stop.** Step 3's plan is the only place the skill waits for the developer. Everything they decide (the pages, the plan, their PageSpeed Insights mobile Performance scores) goes into that one message; every other step runs on.
 - **A refusal is an answer.** On `REFUSED` or `FAILED`, follow the step's instruction for that line, or stop and show the developer the line with its `NOTE`s. The ledger, the lock and the program stay as they are.
 - **The preview cookie stays inside the program.** It fetches each theme's cookie itself and gives it only to its own test Chrome, for the store's host alone. An unpublished theme's page loads from its own URL plus `?pb=0`, which keeps Shopify's preview bar out without the redirect `preview_theme_id` would add to every load.
 - **The developer's other work keeps running.** Leave stopping processes to the program, which stops only the Chrome and the `caffeinate` it started, and leave the Shopify CLI logged in.
@@ -81,14 +81,14 @@ Allow each call 10 minutes. A call cut off by the timeout, or ending in `FAILED 
    Run `plan --items <file>`. It refuses an item missing its change, pages, cause or effect, or one naming a defect `diagnose` did not find; fix the file and run it again. A `NOTE` naming a found defect no item fixes needs an item, or your reason in the message to the developer.
 4. Stop. Show the developer the Pages, Apps and tags, and Plan sections of `plan.md` (the `PLAN file` line names it) and every Ceiling `NOTE`, then ask in this one message for:
    - their approval, or the changes they want, a different collection or product page included
-   - their PageSpeed mobile score for each of the three pages, as they would screenshot it for the team
+   - the mobile Performance score PageSpeed Insights gives each of the three pages, as they would screenshot it for the team
 5. Apply the answer, then show the result again when anything changed: it is still the same stop.
    - A changed page: `pages --collection <path>` or `--product <path>`, then that page's two baseline Measurements and its Ceiling, `diagnose`, and `plan --items` again.
    - Changed items: edit the file and run `plan --items` again.
    - The scores: `psi --home <n> --collection <n> --product <n>`. Relay every `WARN psi-gap` line: the PageSpeed screenshot taken after going live may not match this skill's report.
 6. When the developer approves, run `plan --approve`.
 
-**Done when** the output ends with `PLAN approved items=<n> at <time>` and the developer's three PageSpeed scores are recorded.
+**Done when** the output ends with `PLAN approved items=<n> at <time>` and `status` prints a `PSI` line for each of the three pages.
 
 ## 4. Rounds
 

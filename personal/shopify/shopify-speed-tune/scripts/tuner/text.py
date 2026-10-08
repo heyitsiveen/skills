@@ -72,8 +72,8 @@ def score(figures):
 
 
 def psi_table(kept, pages):
-    """The developer's PageSpeed Insights scores beside the baseline medians, as the plan and
-    the report print them: `kept` is the ledger's `psi` record."""
+    """The developer's PageSpeed Insights mobile Performance scores beside the baseline medians,
+    as the plan and the report print them: `kept` is the ledger's `psi` record."""
     lines = ["| Page | PageSpeed | Baseline | Gap |", "|---|---|---|---|"]
     for page in pages:
         if page in kept["scores"]:

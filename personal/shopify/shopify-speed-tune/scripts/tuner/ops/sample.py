@@ -4,7 +4,7 @@ The baseline is each page on the Control theme, mobile and desktop, before any
 Round. Each Sample is taken as tuner.samples takes it. With no --count, it
 takes Samples until the Measurement holds five, so a call that is cut off
 part-way is finished by running it again. --report records existing
-Lighthouse report files instead: the same checks, no Lighthouse run.
+Lighthouse report files instead: the same checks, without running Lighthouse.
 """
 
 from tuner import ledger, samples, stats

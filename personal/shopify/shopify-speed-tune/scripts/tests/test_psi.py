@@ -1,5 +1,5 @@
-"""The PageSpeed comparison: the developer's three PageSpeed mobile scores against
-the matching baseline medians, warning when any gap is more than 10 points.
+"""The PageSpeed comparison: the developer's three PageSpeed Insights mobile Performance
+scores against the matching baseline medians, warning when any gap is more than 10 points.
 
 The baseline medians of the real reports, worked by hand:
 

@@ -4,7 +4,7 @@ Defects in the agency's Golden theme that every store built on it inherits, each
 
 - **Plan every `DEFECT … found` entry before any other item**, in this file's order. One plan item may fix several entries when they ship together (D1 with D2 and D3 is the proven bundle); name each in its `defects` list.
 - **A store not on Golden** prints `DEFECT none`. Plan from the Lighthouse findings and the theme code alone.
-- **Evidence** comes from the retro of eight earlier speed sessions on seven client stores, six of them on Golden. Stores are not named. A single run proves little: treat a figure marked "single run" as a direction, and an interleaved pair result as the measured effect.
+- **Evidence** comes from the retro of eight earlier speed sessions on seven client stores, six of them on Golden. Stores are not named. A single Sample proves little: treat a figure marked "single Sample" as a direction, and an interleaved pair result as the measured effect.
 
 **Fixed in Golden** is read by the program. It stays `not yet` until the Golden theme ships the fix upstream; then write the first Golden version that carries it, for example `3.1`. A store whose Golden version is at least that one skips the entry's check.
 
@@ -77,8 +77,8 @@ Watch for these in the item's Round:
 
 **Measured effect.** The strongest lever in the retro.
 
-- **Interleaved pairs, hero only** (D1, D2, D3 and a real `sizes`; three files, 48 lines): control 71, 72, 72, 71 against patched 89, 89, 89, 89, so **4 of 4 pairs, +17 to +18**, TBT unchanged. After going live the store's median moved from 64 (60–66, nine runs) to 84 (79–90, nine runs). A PageSpeed run half an hour later still showed 35 and the old markup, so the change's PageSpeed effect is unverified.
-- **Single runs and bundles on other Golden stores:** 73 → 84 (single run, LCP 6.9 → 3.5 s); 52 → 71 inside a bundle (LCP 8.8 → 3.6 s); 59 → 75 interleaved inside a bundle (LCP 16.7 → 3.1 s); LCP 8–10 s → about 5 s; LCP 20.1 → 10.9 s.
+- **Interleaved pairs, hero only** (D1, D2, D3 and a real `sizes`; three files, 48 lines): control 71, 72, 72, 71 against patched 89, 89, 89, 89, so **4 of 4 pairs, +17 to +18**, TBT unchanged. After going live the store's median moved from 64 (60–66, nine Samples) to 84 (79–90, nine Samples). PageSpeed Insights half an hour later still showed 35 and the old markup, so the change's PageSpeed effect is unverified.
+- **Single Samples and bundles on other Golden stores:** 73 → 84 (single Sample, LCP 6.9 → 3.5 s); 52 → 71 inside a bundle (LCP 8.8 → 3.6 s); 59 → 75 interleaved inside a bundle (LCP 16.7 → 3.1 s); LCP 8–10 s → about 5 s; LCP 20.1 → 10.9 s.
 
 ## D3. The srcset loses its final width descriptor
 
@@ -114,4 +114,4 @@ assign srcset_final = srcset | strip
 
 **Proven fix.** Swap the tag pair: `{%- style -%}` … `{%- endstyle -%}` becomes `{% stylesheet %}` … `{% endstylesheet %}`. A two-line diff. Shopify then serves the CSS once, in a cached file, and only for snippets rendered on the page. The block holds no Liquid, so nothing is lost. One store confirmed the buttons' computed styles were byte-identical afterwards. Moving the CSS from the body to a stylesheet can change which rule wins a specificity tie, and the smoke check does not look at styling, so compare a button's computed styles on both themes in the item's Round.
 
-**Measured effect.** Small. One store went 86 → 88 (single runs, stacked on earlier changes) as its home HTML fell from 646 KB to 561 KB; another shed about 100 KB of HTML together with the image snippet's shared styles. Duplicated inline CSS compresses well on the wire (on one store, minifying 455 KB of it would have saved only 9 KB transferred), so the gain is HTML parsing and the bytes ahead of the hero. Expect +0 to +2, and order it after D2.
+**Measured effect.** Small. One store went 86 → 88 (single Samples, stacked on earlier changes) as its home HTML fell from 646 KB to 561 KB; another shed about 100 KB of HTML together with the image snippet's shared styles. Duplicated inline CSS compresses well on the wire (on one store, minifying 455 KB of it would have saved only 9 KB transferred), so the gain is HTML parsing and the bytes ahead of the hero. Expect +0 to +2, and order it after D2.

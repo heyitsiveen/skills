@@ -320,7 +320,7 @@ class AReportAfterAnEarlyStop(unittest.TestCase):
 
     def test_says_no_round_ran_and_no_pagespeed_scores_were_given(self):
         self.assertIn("No Round ran: the invocation stopped before its plan.", self.text)
-        self.assertIn("The developer's PageSpeed scores were not recorded.", self.text)
+        self.assertIn("The developer's PageSpeed Insights mobile Performance scores were not recorded.", self.text)
 
     def test_still_names_the_lighthouse_and_chrome_that_took_its_samples(self):
         self.assertIn("Lighthouse 13.5.0 on Chrome for Testing 154.0.8037.57", self.text)

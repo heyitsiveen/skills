@@ -8,7 +8,7 @@ kept, so it is refused then.
 
 With no --count, it takes Samples until the Measurement holds five, so a call
 cut off part-way is finished by running it again. --report records existing
-Lighthouse report files instead: the same checks, no Lighthouse run.
+Lighthouse report files instead: the same checks, without running Lighthouse.
 """
 
 from tuner import ledger, rounds, samples, stats

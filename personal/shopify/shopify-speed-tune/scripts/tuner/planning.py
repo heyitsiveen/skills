@@ -67,10 +67,12 @@ def pages_ready(inv):
 # -- the PageSpeed comparison ---------------------------------------------------
 
 def record_psi(inv, scores):
-    """Keep the developer's PageSpeed mobile scores beside the baseline medians."""
+    """Keep the developer's PageSpeed Insights mobile Performance scores beside the baseline
+    medians."""
     for page, score in scores.items():
         if not 0 <= score <= 100:
-            raise Refused("bad-score", "a PageSpeed score is 0-100, not %d (%s)" % (score, page))
+            raise Refused("bad-score", "a Performance score from PageSpeed Insights is 0-100, not "
+                          "%d (%s)" % (score, page))
     medians = {page: baseline_median(inv, page) for page in scores}
     inv.data["psi"] = {"scores": dict(scores), "baseline": medians, "recorded_at": clock.now()}
     inv.log("psi", "PageSpeed %s" % ", ".join("%s %d" % (p, s) for p, s in scores.items()))

@@ -2,9 +2,9 @@
 
 Each scenario starts from round_support's approved invocation (the real pages,
 their real baselines and Ceilings, an approved plan of two items), adds the
-developer's PageSpeed scores and the baseline desktop Measurements, runs its
-Rounds on pairs derived from the real reports, and takes the final desktop
-Measurements. Every Sample is a real report with only its score fields, and
+developer's PageSpeed Insights mobile Performance scores and the baseline
+desktop Measurements, runs its Rounds on pairs derived from the real reports,
+and takes the final desktop Measurements. Every Sample is a real report with only its score fields, and
 for the Working theme its asset folder, edited.
 
 A scenario is built once and kept as a copy; each test gets that copy back at
@@ -28,8 +28,8 @@ from round_support import (ASSET_FOLDERS, ITEMS, NEUTRAL, WIN_4, add_to_cart_fai
                            approved, checked, measure, write)
 from support import FAILING_HOOK, Sandbox, read_report
 
-# The developer's PageSpeed scores: home 11 above its baseline median (a warning),
-# collection 3 below, product 3 above.
+# The developer's PageSpeed Insights mobile Performance scores: home 11 above its baseline
+# median (a warning), collection 3 below, product 3 above.
 PSI = {"home": 61, "collection": 58, "product": 47}
 
 # Desktop Performance scores of five Samples per page: the baseline on the Control

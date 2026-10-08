@@ -15,7 +15,7 @@ the second, and so on. A call starts no new pair once --minutes have passed
 and the next call carries on.
 A pair cut short is retaken whole, so its two Samples are always back to back.
 --pair records a pair from two existing report files instead: the same checks,
-no Lighthouse run.
+without running Lighthouse.
 """
 
 import json

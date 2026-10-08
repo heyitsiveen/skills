@@ -67,7 +67,8 @@ def invocation(inv):
     psi = "recorded at %s" % when(psi["recorded_at"]) if psi else "not recorded"
     stopped = "%s at %s" % (stopped["reason"], when(stopped["at"])) if stopped \
         else "the Rounds did not stop on their own"
-    lines += ["- **PageSpeed scores.** %s." % psi, "- **Stop.** %s." % stopped]
+    lines += ["- **PageSpeed Insights mobile Performance scores.** %s." % psi,
+              "- **Stop.** %s." % stopped]
     return lines + [""]
 
 

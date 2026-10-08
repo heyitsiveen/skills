@@ -2,8 +2,8 @@
 
 The report has two parts. The part for the team says what changed; each page's
 Performance score before and after, against its target and its Ceiling, with
-desktop at the start and the end; the developer's PageSpeed scores beside the
-baseline; what every app and tag costs; the template JSON a kept Round changed;
+desktop at the start and the end; the developer's PageSpeed Insights mobile
+Performance scores beside the baseline; what every app and tag costs; the template JSON a kept Round changed;
 how this store goes live and goes back; and, for each missed target, why and
 what to try next. The detail log is the record behind it.
 
@@ -251,10 +251,11 @@ def pagespeed(inv):
     lines = ["### PageSpeed beside the baseline", ""]
     kept = inv.data.get("psi")
     if not kept:
-        return lines + ["The developer's PageSpeed scores were not recorded.", ""]
+        return lines + ["The developer's PageSpeed Insights mobile Performance scores were not "
+                        "recorded.", ""]
     lines += psi_table(kept, stats.PAGE_ORDER)
-    lines += ["", "The developer's PageSpeed mobile scores, given at the plan stop, beside this "
-                  "skill's baseline medians.", ""]
+    lines += ["", "The developer's PageSpeed Insights mobile Performance scores, given at the plan "
+                  "stop, beside this skill's baseline medians.", ""]
     _, warnings = planning.psi_lines(inv)
     lines += ["- **Warning**, %s." % w.split(" ", 1)[1] for w in warnings]
     return lines + ([""] if warnings else [])

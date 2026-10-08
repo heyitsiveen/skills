@@ -47,8 +47,8 @@ def run(args):
     for entry in planning.unplanned_defects(inv):
         note("known defect %s was found but no item fixes it; plan it first, or say why not" % entry)
     if args.approve and not inv.data.get("psi"):
-        note("no PageSpeed scores are recorded: record them with `psi` so the report can set them "
-             "beside the baseline")
+        note("the developer's PageSpeed Insights mobile Performance scores are not recorded: "
+             "record them with `psi` so the report can set them beside the baseline")
     path = inv.file("plan.md")
     with open(path, "w", encoding="utf-8") as f:
         f.write(render(inv, table))
@@ -134,6 +134,7 @@ def render(inv, table):
         lines += [""] + ["- %s" % w.split(": ", 1)[1] for w in warnings]
     if not plan.get("approved_at"):
         lines += ["", "## Before approving", "",
-                  "Reply with your approval or the changes you want, and the PageSpeed mobile "
-                  "score of each of the three pages, as you would screenshot them for the team."]
+                  "Reply with your approval or the changes you want, and the mobile Performance "
+                  "score PageSpeed Insights gives each of the three pages, as you would "
+                  "screenshot it for the team."]
     return "\n".join(lines).rstrip() + "\n"

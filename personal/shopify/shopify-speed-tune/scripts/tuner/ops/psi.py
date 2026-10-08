@@ -1,4 +1,5 @@
-"""psi: compare the developer's three PageSpeed mobile scores with the baseline.
+"""psi: compare the developer's three PageSpeed Insights mobile Performance scores with the
+baseline.
 
 The developer types the scores they would screenshot for the team at the plan
 stop. Each is set beside the matching page's baseline mobile median; a gap of
@@ -15,10 +16,11 @@ ORDER = 50
 
 
 def register(sub):
-    p = sub.add_parser("psi", help="set the developer's PageSpeed mobile scores beside the baseline")
+    p = sub.add_parser("psi", help="set the developer's PageSpeed Insights mobile Performance "
+                                   "scores beside the baseline")
     for page in stats.PAGE_ORDER:
         p.add_argument("--" + page, type=int, required=True,
-                       help="PageSpeed mobile score of the %s page" % page)
+                       help="the %s page's mobile Performance score in PageSpeed Insights" % page)
     p.set_defaults(run=run)
 
 
