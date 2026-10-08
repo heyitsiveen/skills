@@ -10,11 +10,14 @@ puppeteer-core, so one download serves Lighthouse, the jar helper and the smoke
 checker. Lighthouse 13 is the major version PageSpeed Insights runs.
 """
 
+import hashlib
 import json
 import os
+import plistlib
 import shutil
 import subprocess
-import sys
+import tempfile
+from xml.parsers.expat import ExpatError
 
 from tuner.output import Failed
 from tuner.proc import child_env, run
@@ -97,29 +100,80 @@ def pin_lighthouse(workspace):
 
 
 # Chrome for Testing records its own location in the user's preferences on every
-# launch, headless included. The domain is saved here before the first launch
-# and put back by `finish`, so the machine ends as it began.
+# launch, headless included. The domain is saved here before the first launch,
+# with a digest of what it held, and `finish` puts it back and reads it back, so
+# the machine ends as it began. A machine without `defaults` (not a Mac) has no
+# such domain.
+
+def _defaults(*args):
+    return subprocess.run(["defaults", *args], stdin=subprocess.DEVNULL, capture_output=True,
+                          text=True, timeout=60)
+
+
+def _canonical(value):
+    """A preferences value with its dictionaries in key order, so equal settings read alike."""
+    if isinstance(value, dict):
+        return sorted((str(key), _canonical(item)) for key, item in value.items())
+    if isinstance(value, (list, tuple)):
+        return [_canonical(item) for item in value]
+    return value
+
+
+def _digest(path):
+    """A digest of an exported domain's settings, however the file lays them out."""
+    with open(path, "rb") as f:
+        data = f.read()
+    try:
+        settings = repr(_canonical(plistlib.loads(data))).encode("utf-8")
+    except (ValueError, ExpatError):  # a file plistlib cannot read is compared byte for byte
+        settings = data
+    return hashlib.sha256(settings).hexdigest()
+
+
+def chrome_preferences_now():
+    """The digest of Chrome for Testing's preferences now, or None while the domain does not
+    exist."""
+    with tempfile.TemporaryDirectory(prefix="speed-tune-defaults-") as folder:
+        exported = os.path.join(folder, "now.plist")
+        if _defaults("export", CFT_DOMAIN, exported).returncode != 0:
+            return None
+        return _digest(exported)
+
 
 def save_chrome_preferences(workspace):
-    if sys.platform != "darwin" or shutil.which("defaults") is None:
+    """Chrome for Testing's preferences before its first launch: {saved, existed, file, digest}."""
+    if shutil.which("defaults") is None:
         return {"saved": False}
     saved = os.path.join(workspace, "cft-preferences.plist")
-    proc = subprocess.run(["defaults", "export", CFT_DOMAIN, saved],
-                          stdin=subprocess.DEVNULL, capture_output=True, text=True)
-    return {"saved": True, "existed": proc.returncode == 0, "file": saved}
+    existed = _defaults("export", CFT_DOMAIN, saved).returncode == 0
+    return {"saved": True, "existed": existed, "file": saved,
+            "digest": _digest(saved) if existed else None}
+
+
+def chrome_preferences_as_before(snapshot):
+    """True when Chrome for Testing's preferences hold what the snapshot saved."""
+    return chrome_preferences_now() == snapshot.get("digest")
 
 
 def restore_chrome_preferences(snapshot):
-    """Put the saved domain back once; True when this call restored it."""
-    if not snapshot or not snapshot.get("saved") or snapshot.get("restored") \
-            or shutil.which("defaults") is None:
+    """Put the saved domain back, then read it back: True when this call changed it.
+
+    Raises cleanup-incomplete when `defaults` refuses, or when the domain still
+    differs from the snapshot, which then stays in the workspace for the next try.
+    """
+    if not snapshot or not snapshot.get("saved") or chrome_preferences_as_before(snapshot):
         return False
-    if snapshot.get("existed"):
-        if not os.path.isfile(snapshot["file"]):
-            return False
-        argv = ["defaults", "import", CFT_DOMAIN, snapshot["file"]]
-    else:
-        argv = ["defaults", "delete", CFT_DOMAIN]
-    subprocess.run(argv, stdin=subprocess.DEVNULL, capture_output=True, text=True)
-    snapshot["restored"] = True
+    argv = ("import", CFT_DOMAIN, snapshot["file"]) if snapshot["existed"] \
+        else ("delete", CFT_DOMAIN)
+    proc = _defaults(*argv)
+    if proc.returncode != 0:
+        said = [line for line in (proc.stderr or "").splitlines() if line.strip()]
+        raise Failed("cleanup-incomplete", "Chrome for Testing's preferences were not put back: "
+                     "`defaults %s %s` exited %d: %s" % (argv[0], CFT_DOMAIN, proc.returncode,
+                                                        said[-1][:200] if said else "no output"),
+                     "Run `finish` again; when it stops here twice, show the developer this line.")
+    if not chrome_preferences_as_before(snapshot):
+        raise Failed("cleanup-incomplete", "Chrome for Testing's preferences were not put back: "
+                     "they still differ from before the invocation",
+                     "Run `finish` again; when it stops here twice, show the developer this line.")
     return True

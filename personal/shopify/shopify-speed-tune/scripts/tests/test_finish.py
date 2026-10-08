@@ -6,6 +6,7 @@ is gone, the Working theme is still there, no Chrome or anything else runs from
 the invocation's workspace, the workspace is gone, and the lock is free.
 """
 
+import plistlib
 import re
 import subprocess
 import sys
@@ -84,7 +85,7 @@ class FinishReadsBackWhatItLeaves(unittest.TestCase):
         self.assertEqual(self.result.lines("FINISH")[-5:], [
             "FINISH verified themes control=gone working=unpublished",
             "FINISH verified branch=%s repo-on=main" % self.branch,
-            "FINISH verified chrome=none workspace=gone awake=stopped",
+            "FINISH verified chrome=none workspace=gone awake=stopped preferences=as-before",
             "FINISH lock released",
             "FINISH done invocation=%s" % self.branch.split("/", 1)[1],
         ])
@@ -92,6 +93,74 @@ class FinishReadsBackWhatItLeaves(unittest.TestCase):
     def test_says_when_no_report_was_written(self):
         self.assertIn("NOTE no report was written: `report --invocation %s` writes it from the "
                       "ledger" % self.branch.split("/", 1)[1], self.result.out)
+
+
+CFT_DOMAIN = "com.google.chrome.for.testing"
+
+
+def domain_file(box):
+    """Chrome for Testing's preferences domain, as the fake `defaults` keeps it."""
+    folder = box.root / "defaults"
+    folder.mkdir(exist_ok=True)
+    return folder / (CFT_DOMAIN + ".plist")
+
+
+def chrome_records_itself(box):
+    """What Chrome for Testing does on every launch: it records where it ran from."""
+    app = box.workspace() / "chrome" / "Google Chrome for Testing.app"
+    domain_file(box).write_bytes(plistlib.dumps({"LastRunAppBundlePath": str(app)}))
+
+
+class FinishPutsChromeForTestingsPreferencesBack(unittest.TestCase):
+    BEFORE = {"LastRunAppBundlePath": "/Users/dev/old-checker/Google Chrome for Testing.app"}
+
+    def test_and_reads_them_back_as_they_were_before_the_invocation(self):
+        box = Sandbox(self)
+        domain_file(box).write_bytes(plistlib.dumps(self.BEFORE))
+        box.start()
+        chrome_records_itself(box)
+
+        result = box.run("finish")
+
+        self.assertEqual(result.code, 0, result)
+        self.assertEqual(plistlib.loads(domain_file(box).read_bytes()), self.BEFORE)
+        self.assertIn("FINISH verified chrome=none workspace=gone awake=stopped "
+                      "preferences=as-before", result.lines("FINISH"))
+
+    def test_a_restore_defaults_refuses_keeps_the_invocation_open(self):
+        box = Sandbox(self)
+        box.start()
+        chrome_records_itself(box)
+        box.edit_store(lambda s: s.update(defaults_fails=["delete"]))
+
+        result = box.run("finish")
+
+        self.assertEqual(result.code, 1, result)
+        self.assertRegex(result.out, r"(?m)^FAILED cleanup-incomplete: Chrome for Testing's "
+                                     r"preferences were not put back: `defaults delete "
+                                     r"com\.google\.chrome\.for\.testing` exited 1")
+        self.assertEqual(box.run("status").code, 0, "the lock and the ledger stay open")
+
+        box.edit_store(lambda s: s.update(defaults_fails=[]))
+        again = box.run("finish")
+
+        self.assertEqual(again.code, 0, again)
+        self.assertFalse(domain_file(box).exists(), "the domain did not exist before the invocation")
+
+    def test_a_restore_that_changed_nothing_is_caught_by_the_read_back(self):
+        box = Sandbox(self)
+        domain_file(box).write_bytes(plistlib.dumps(self.BEFORE))
+        box.start()
+        chrome_records_itself(box)
+        box.edit_store(lambda s: s.update(defaults_ignores=["import"]))
+
+        result = box.run("finish")
+
+        self.assertEqual(result.code, 1, result)
+        self.assertRegex(result.out, r"(?m)^FAILED cleanup-incomplete: Chrome for Testing's "
+                                     r"preferences were not put back: they still differ from "
+                                     r"before the invocation")
+        self.assertEqual(box.run("status").code, 0, "the lock and the ledger stay open")
 
 
 class FinishStopsTheChromeOfAJobCutOffPartWay(unittest.TestCase):

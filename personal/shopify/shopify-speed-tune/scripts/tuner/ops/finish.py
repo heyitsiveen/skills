@@ -2,16 +2,17 @@
 
 Deletes the Control theme, puts the repo back on the branch the invocation
 started from when that loses nothing (never with uncommitted changes, never
-past a switch git refuses), restores Chrome for Testing's preferences, stops any Chrome a job
-cut off part-way left running, removes the temp workspace (Chrome,
-puppeteer-core and the smoke checker's project, the pnpm store), stops the
-`caffeinate` that kept the Mac awake, marks the ledger finished and releases
-the machine lock.
+past a switch git refuses), stops any Chrome a job cut off part-way left
+running, restores Chrome for Testing's preferences, removes the temp workspace
+(Chrome, puppeteer-core and the smoke checker's project, the pnpm store), stops
+the `caffeinate` that kept the Mac awake, marks the ledger finished and
+releases the machine lock.
 
 Then it reads back what it leaves, rather than trusting its own steps: the
 theme library must list no Control theme and still the Working theme, the repo
 must hold the branch, nothing may run from the workspace, which must be gone,
-and the lock must be free. Only then does it print `FINISH done`. Anything left
+Chrome for Testing's preferences must hold what they held before the
+invocation, and the lock must be free. Only then does it print `FINISH done`. Anything left
 fails it with `cleanup-incomplete`, keeping the invocation open, so `finish`
 can simply be run again once it is dealt with. Each step is recorded as it
 completes, so a `finish` that stops part-way is finished by running it again.
@@ -70,8 +71,8 @@ def run(args):
 
     return_to_start_branch(inv, discard=args.discard)
 
+    stop_cut_off_chromes(inv)
     if tools.restore_chrome_preferences(data["tools"].get("chrome_preferences")):
-        inv.save()
         say("FINISH", "chrome-preferences restored")
     remove_workspace(inv)
     if awake.release(data.get("awake")):
@@ -134,19 +135,33 @@ def return_to_start_branch(inv, discard):
     say("FINISH", "branch kept", branch, "(repo on %s)" % (on_branch or "a detached HEAD"))
 
 
-def remove_workspace(inv):
-    """Stop what a cut-off job left running there, then remove the workspace: never from under
-    a process that still runs from it."""
-    data = inv.data
-    workspace = data.get("workspace")
+def own_workspace(inv):
+    """The invocation's temp workspace while it is still there, else None."""
+    workspace = inv.data.get("workspace")
     if not workspace or not os.path.isdir(workspace) or \
             not os.path.basename(workspace).startswith("shopify-speed-tune-"):
+        return None
+    return workspace
+
+
+def stop_cut_off_chromes(inv):
+    """Stop each Chrome a job cut off part-way left running, before Chrome for Testing's
+    preferences are put back, so none of them writes there again."""
+    workspace = own_workspace(inv)
+    if workspace is None:
         return
-    chrome = (data["tools"].get("chrome") or {}).get("path")
+    chrome = (inv.data["tools"].get("chrome") or {}).get("path")
     for pid in browser.stop_leftovers(workspace, chrome):
         inv.log("finish", "stopped Chrome %d, left running by a job cut off part-way" % pid)
         inv.save()
         say("FINISH", "chrome stopped", "pid=%d" % pid, "(left by a job cut off part-way)")
+
+
+def remove_workspace(inv):
+    """Remove the workspace: never from under a process that still runs from it."""
+    workspace = own_workspace(inv)
+    if workspace is None:
+        return
     still = browser.running_from(workspace)
     if still:
         raise Failed("cleanup-incomplete", "%d process%s still run%s from the invocation's "
@@ -204,9 +219,13 @@ def verify(inv, store, discard):
     if awake.running(data.get("awake")):
         machine.append("the caffeinate %d that kept the Mac awake still runs"
                        % data["awake"]["pid"])
+    preferences = data["tools"].get("chrome_preferences") or {}
+    if preferences.get("saved") and not tools.chrome_preferences_as_before(preferences):
+        machine.append("Chrome for Testing's preferences differ from before the invocation")
     if not machine:
         say("FINISH", "verified", "chrome=none", "workspace=gone",
-            "awake=%s" % ("stopped" if data.get("awake") else "none"))
+            "awake=%s" % ("stopped" if data.get("awake") else "none"),
+            "preferences=%s" % ("as-before" if preferences.get("saved") else "none"))
     problems += machine
     if problems:
         raise Failed("cleanup-incomplete", "; ".join(problems),
