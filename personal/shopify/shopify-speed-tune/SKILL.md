@@ -1,6 +1,6 @@
 ---
 name: shopify-speed-tune
-description: Measure a client store's home, collection and product pages on unpublished copies of its theme, find what theme work can reach on each, stop once for the developer to approve a plan, then test each planned change against an unchanged copy and keep only clear wins, with a program deciding every number. Run it from the store's theme repo with the store URL.
+description: Measure a client store's home, collection and product pages on unpublished copies of its theme, find what theme work can reach on each, stop once for the developer to approve a plan, then test each planned change against a copy holding only the changes already kept and keep only clear wins, with a program deciding every number. Run it from the store's theme repo with the store URL.
 argument-hint: <store-url> [requested-score, default 80]
 disable-model-invocation: true
 ---
@@ -9,7 +9,7 @@ disable-model-invocation: true
 
 Measure a client store's speed on two unpublished copies of its published theme, so customers never see a change and every figure is a real median, plan the theme changes worth making, then make them one at a time and keep the ones that win. Run from the store's theme repo. Arguments: `$ARGUMENTS`: the store's public URL, then optionally a requested Performance score (default 80). Ask for the URL when it is missing.
 
-The terms are the repo glossary's "Making a store faster" section. A **Sample** is one Lighthouse load of one page on one device. A **Measurement** is five Samples of the same page, device and theme, given as a median and a range. The **Working theme** and the **Control theme** are this invocation's two unpublished copies of the published theme. A page's **Ceiling** is its mobile score with the theme's optional requests blocked: the most theme work can reach while apps and tags stay. Its **target** is the lower of the requested score and that Ceiling. A **Round** applies one plan item to the Working theme, measures it against the Control theme in pairs, then keeps or removes it.
+The terms are the repo glossary's "Making a store faster" section. A **Sample** is one Lighthouse load of one page on one device. A **Measurement** is five Samples of the same page, device and theme, given as a median and a range. The **Working theme** and the **Control theme** are this invocation's two unpublished copies of the published theme. A page's **Ceiling** is its mobile Performance score with the theme's optional requests blocked: the most theme work can reach while apps and tags stay. Its **target** is the lower of the requested score and that Ceiling. A **Round** applies one plan item to the Working theme, measures it against the Control theme in pairs, then keeps or removes it.
 
 ## The decision program
 
@@ -17,7 +17,7 @@ A small program owns every number, every write to the store and every guard: `sc
 
     python3 <skill>/scripts/speed_tune.py <operation> [flags]
 
-It prints one fact per line, each starting with a fixed tag: `START`, `PAGE`, `SAMPLE`, `MEASUREMENT`, `CEILING`, `SMOKE`, `FINDING`, `DEFECT`, `COST`, `PLAN`, `PSI`, `ROUND`, `CHANGE`, `PUSH`, `PAIR`, `PAIRS`, `VERDICT`, `TARGET`, `NEXT`, `STOP`, `WARN`, `REPORT`, `FINISH`, `NOTE`, and `REFUSED` or `FAILED` when it stops. Those lines are the verdict: act on what they say, and quote them rather than paraphrase. `--help` after any operation lists its flags.
+It prints one fact per line, each starting with a fixed upper-case tag, and a `REFUSED` or `FAILED` line when it stops. Those lines are the verdict: act on what they say, and quote them rather than paraphrase. `--help` after any operation lists its flags, and `status` prints the whole invocation so far.
 
 Each guardrail below protects something the developer relies on:
 
@@ -34,7 +34,7 @@ It runs six steps: Preflight → Baseline → Plan → Rounds → Report → Cle
 
 Run `start --store <store-url>`, adding `--score <n>` when the developer gave one. Allow it 10 minutes.
 
-It refuses, changing nothing, unless the store is the one this repo's `shopify.theme.toml` names, no other invocation is unfinished on this Mac, the theme library has room for two more themes, and the repo's pre-commit hook passes on the unchanged repo, run the way `git commit` runs it: every kept Round is committed through that hook. Then it takes the machine lock, keeps the Mac from idle sleep until `finish` (a `caffeinate -i` it stops by pid), creates the branch `speed-tune/<invocation>`, duplicates the published theme into the Working theme and the Control theme, checks that both preview, downloads Chrome for Testing into a temp workspace, pins Lighthouse 13.5.0 and installs puppeteer-core beside them.
+It refuses, changing nothing, unless the store is the one this repo's `shopify.theme.toml` names, no other invocation is unfinished on this Mac, the theme library has room for two more themes, and the repo's pre-commit hook passes on the unchanged repo, run the way `git commit` runs it: every kept Round is committed through that hook. Then it takes the machine lock, keeps the Mac from idle sleep until `finish` (a `caffeinate -i` it stops by pid), creates the branch `speed-tune/<invocation>`, duplicates the published theme into the Working theme and the Control theme, checks that both preview, downloads Chrome for Testing into a temp workspace, pins one Lighthouse for every Sample (its `START lighthouse=` line names it) and installs puppeteer-core beside them.
 
 **Done when** the output ends with `START ready`. Its `START hook=` line says how keep commits run: `passed`, through the hook; `absent`, with no hook; `bypass-approved`, with `--no-verify`.
 
@@ -76,7 +76,7 @@ Allow each call 10 minutes. A call cut off by the timeout, or ending in `FAILED 
    - `cause` names the finding or defect the change answers; `effect` is the expected gain, with "unmeasured" when no evidence backs it.
    - `defects` lists the known defects an item fixes, following each entry's proven fix. The program puts those items first.
    - Order the rest by expected effect, largest first.
-   - Every item changes theme code only, and treats every visitor alike. Apps, app embeds and tags stay as the merchant set them, and `config/settings_data.json` stays untouched. A Round refuses a change to that file or one that detects Lighthouse, the device or the platform, and its smoke check catches a lost app block.
+   - Every item is a change the rules under step 4's **Apply** allow: a Round refuses any other.
 
    Run `plan --items <file>`. It refuses an item missing its change, pages, cause or effect, or one naming a defect `diagnose` did not find; fix the file and run it again. A `NOTE` naming a found defect no item fixes needs an item, or your reason in the message to the developer.
 4. Stop. Show the developer the Pages, Apps and tags, and Plan sections of `plan.md` (the `PLAN file` line names it) and every Ceiling `NOTE`, then ask in this one message for:
@@ -95,9 +95,9 @@ Allow each call 10 minutes. A call cut off by the timeout, or ending in `FAILED 
 After approval the Rounds run without the developer until a `STOP` line. Each Round puts one plan item on the Working theme while the Control theme holds every change kept so far, smoke-checks the two, measures them in pairs, and lets the program keep or remove the change. Work Round after Round:
 
 1. **Open.** Run `round`. **Done when** it prints `ROUND <n> opened item=<id>` with that item's `PLAN item` line. When the Rounds are over it prints a `TARGET` line per page and a `STOP` line instead: go to step 5, Report. On `REFUSED`, stop and show the developer.
-2. **Apply.** Make the change the `PLAN item` line describes, in the theme files, and nothing beyond it. It stays uncommitted until its verdict. Write it so the theme treats every visitor alike:
-   - theme files only, with `config/settings_data.json` left as the merchant set it
-   - apps, app embeds, app blocks and tags left as they are
+2. **Apply.** Make the change the `PLAN item` line describes, in the theme files, and nothing beyond it. It stays uncommitted until its verdict. Write it as theme code that treats every visitor alike:
+   - theme files only, with `config/settings_data.json` left as the merchant set it: going live would overwrite their edits
+   - apps, app embeds, app blocks and tags left as they are: the smoke check catches a lost app block
    - no code that reads the user agent, `navigator.platform` or `navigator.webdriver`, and no theme file that names Lighthouse, PageSpeed or a test device, comments included: `push` refuses the change. Vendored libraries get no exception: a change that adds, updates or moves one that reads the user agent, such as a slider bundle, is refused like the theme's own code, so leave it as it is, or delete it when the item removes it
    - files the repo's `.shopifyignore` matches left alone: the CLI skips them without a word, so `push` refuses them
    - template JSON only when the item needs it; the program flags each template JSON change for the report
@@ -109,8 +109,8 @@ After approval the Rounds run without the developer until a `STOP` line. Each Ro
    - `FAILED push-failed`: run `push` once more; when it fails again, stop and show the developer.
    - Any other `REFUSED`: stop and show the developer. Nothing was written.
 4. **Check.** Run `smoke`, allowing it 10 minutes. It comes before the pairs: it warms the store's cache with the changed files, and it catches a broken change before 15 minutes of pairs. **Done when** it prints `SMOKE round-<n> result`. On `result fail`, go to **Decide**, which removes the Round without pairs. When it ends in `FAILED` twice, run `verdict --remove`.
-5. **Measure.** Run `pairs`, allowing it 10 minutes, until it prints `PAIRS <n> complete`. It takes five pairs on each page, each a Control theme Sample then a Working theme Sample, with a `PAIR` line per pair; a call stops between pairs after about six minutes and the next carries on. When two calls in a row end in `FAILED samples-rejected`, run `verdict --remove`.
-6. **Decide.** Run `verdict`. It prints each page's `PAIRS` line and the `SMOKE` result, then `VERDICT <n> keep item=<id> won=<pages>` or `VERDICT <n> remove item=<id> reasons=<reasons>`, and carries it out: a kept change becomes one commit and is pushed to the Control theme; a removed one leaves the working tree and the Working theme at the last commit. A Round whose smoke check failed is removed with no `PAIRS` lines, on `smoke-regression` or `new-error`. It ends with a `TARGET` line per page, then `NEXT item=<id>`, or `STOP targets-reached` or `STOP plan-exhausted`. On `FAILED`, run `verdict` again, which carries on where it stopped; when it fails twice, stop and show the developer.
+5. **Measure.** Run `pairs`, allowing it 10 minutes. It takes five pairs on each page, each a Control theme Sample then a Working theme Sample, with a `PAIR` line per pair; a call stops between pairs after about six minutes and prints `PAIRS <n> incomplete`, and the next call carries on. **Done when** it prints `PAIRS <n> complete`. When two calls in a row end in `FAILED samples-rejected`, run `verdict --remove`.
+6. **Decide.** Run `verdict`. It prints each page's `PAIRS` line and the `SMOKE` result, then `VERDICT <n> keep item=<id> won=<pages>` or `VERDICT <n> remove item=<id> reasons=<reasons>`, and carries it out: a kept change becomes one commit and is pushed to the Control theme; a removed one leaves the working tree and the Working theme at the last commit. A Round whose smoke check failed is removed with no `PAIRS` lines, on `smoke-regression` or `new-error`. It ends with a `TARGET` line per page, then `NEXT item=<id>`, or `STOP targets-reached` or `STOP plan-exhausted`. **Done when** it prints that `NEXT` or `STOP` line. On `FAILED`, run `verdict` again, which carries on where it stopped; when it fails twice, stop and show the developer.
 
 After a `NEXT` line, open the next Round.
 
