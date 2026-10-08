@@ -192,6 +192,10 @@ if command == "push":
     ignore = flag("--ignore", many=True)
     if "config/settings_data.json" not in ignore:
         fail("fake shopify: every push must --ignore config/settings_data.json", 2)
+    # renamed_before_push: someone renames a theme between the program's last read of the
+    # theme library and this push.
+    for renamed in store.pop("renamed_before_push", []):
+        next(t for t in themes if t["id"] == renamed["id"])["name"] = renamed["name"]
     order = {"live": 0, "unpublished": 1, "development": 2}
     matches = [t for t in sorted(themes, key=lambda t: order.get(t["role"], 3))
                if str(t["id"]) == wanted or t["name"].lower() == wanted.lower()]

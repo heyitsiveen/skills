@@ -182,6 +182,8 @@ class Sandbox:
     # -- client theme repos -----------------------------------------------
 
     def make_repo(self, path, store=MYSHOPIFY, toml=None):
+        """A client theme repo as the client-theme skills keep one: `shopify.theme.toml` at
+        its root and `.agent/` beside it, both kept out of git through .git/info/exclude."""
         (path / "layout").mkdir(parents=True)
         (path / "config").mkdir()
         (path / "layout" / "theme.liquid").write_text("<html>{{ content_for_header }}</html>\n")
@@ -190,10 +192,10 @@ class Sandbox:
             toml = '[environments.default]\nstore = "%s"\n' % store
         (path / "shopify.theme.toml").write_text(toml)
         self.git(path, "init", "-q", "-b", "main")
+        with open(path / ".git" / "info" / "exclude", "a", encoding="utf-8") as f:
+            f.write(".agent/\nshopify.theme.toml\n")
         self.git(path, "add", "-A")
         self.git(path, "commit", "-q", "-m", "init")
-        with open(path / ".git" / "info" / "exclude", "a", encoding="utf-8") as f:
-            f.write(".agent/\n")
         return path
 
     def git(self, path, *args):

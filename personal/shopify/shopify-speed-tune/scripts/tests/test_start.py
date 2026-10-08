@@ -83,7 +83,6 @@ class TheRepoMustNameOnlyItsStore(unittest.TestCase):
         repo = box.root / "no-toml"
         box.make_repo(repo, toml="")
         (repo / "shopify.theme.toml").unlink()
-        box.git(repo, "commit", "-qam", "drop toml")
 
         result = box.run("start", "--store", STORE_URL, cwd=repo)
 

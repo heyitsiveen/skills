@@ -154,6 +154,67 @@ class AWriteToAnyOtherThemeIsRefused(unittest.TestCase):
 
         self.assertRegex(result.out, r"(?m)^REFUSED theme-missing: the working theme %d " % WORKING)
 
+    def test_a_working_theme_that_became_a_development_theme_is_refused(self):
+        self.box.edit_store(lambda s: theme_in(s, WORKING).update(role="development"))
+
+        result = self.refused()
+
+        self.assertEqual(result.lines("REFUSED"), [
+            "REFUSED theme-not-unpublished: the working theme %d is now a development theme"
+            % WORKING])
+
+    def test_another_theme_named_like_the_working_themes_id_is_refused(self):
+        # The CLI matches --theme by name too, live theme first, so the push could land there.
+        self.box.edit_store(lambda s: theme_in(s, 101).update(name=str(WORKING)))
+
+        result = self.refused()
+
+        self.assertEqual(result.lines("REFUSED"), [
+            "REFUSED theme-name-clash: theme 101 is named %d, the id of the working theme, and "
+            "the CLI matches names too" % WORKING])
+
+    def test_a_path_holding_a_glob_character_is_refused(self):
+        write(self.box, "snippets/hero[mobile].liquid", EAGER)
+
+        result = self.refused()
+
+        self.assertEqual(result.lines("REFUSED"), [
+            "REFUSED odd-path: snippets/hero[mobile].liquid holds a glob character, so a push "
+            "would also touch every file it matches"])
+
+    def test_a_repo_whose_toml_now_names_another_store_is_refused(self):
+        # Client repos keep shopify.theme.toml out of git, so its edit is no part of the change.
+        (self.box.repo / "shopify.theme.toml").write_text(
+            '[environments.default]\nstore = "other-store.myshopify.com"\n')
+
+        result = self.refused()
+
+        self.assertEqual(result.lines("REFUSED"), [
+            "REFUSED store-mismatch: this repo's shopify.theme.toml now names "
+            "other-store.myshopify.com, not example-store.myshopify.com"])
+
+
+class APushTheCliSendsToAnotherThemeStopsTheRounds(unittest.TestCase):
+    def test_a_theme_renamed_like_the_working_themes_id_after_the_check_fails_the_push(self):
+        box = opened(self)
+        write(box, "snippets/image.liquid", EAGER)
+        box.edit_store(lambda s: s.update(renamed_before_push=[{"id": 101, "name": str(WORKING)}]))
+
+        result = box.run("push")
+
+        self.assertEqual(result.code, 1, result)
+        self.assertEqual(result.lines("FAILED"), [
+            "FAILED push-wrong-theme: the CLI reports a push to theme 101 (role unpublished), not "
+            "to the unpublished theme %d" % WORKING])
+        self.assertIn("NOTE Stop the Rounds and show the developer this line: that theme may "
+                      "have changed.", result.lines("NOTE"))
+        self.assertEqual(result.lines("PUSH"), [])
+
+
+def theme_in(state, theme_id):
+    """The fake store's record of one theme, to edit."""
+    return next(t for t in state["themes"] if t["id"] == theme_id)
+
 
 # The .shopifyignore every Golden repo ships: comments only.
 GOLDEN_SHOPIFYIGNORE = """\
