@@ -211,6 +211,42 @@ def cutting_ps(test):
     return str(folder)
 
 
+class AStoreAnsweringTooManyRequests(unittest.TestCase):
+    """Shopify answers a burst of storefront requests with HTTP 429 and serves them again a
+    minute or two later: it refused the first real invocation a preview cookie so, and gave
+    it one two minutes on. The cookie is asked for again after a pause, then after one twice
+    as long, before the refusal stands."""
+
+    def setUp(self):
+        self.box = Sandbox(self)
+        self.box.start()
+
+    def take(self, refusals, first_pause="0"):
+        self.box.edit_store(lambda s: s.update(too_many_requests=refusals))
+        return self.box.run("sample", "--page", "home", "--device", "mobile", "--count", "1",
+                            env={"SPEED_TUNE_BACKOFF_SECONDS": first_pause})
+
+    def test_a_cookie_refused_twice_is_had_on_the_third_attempt(self):
+        result = self.take(2, first_pause="0.05")
+
+        self.assertEqual(result.code, 0, result)
+        self.assertEqual(len(result.lines("SAMPLE")), 1, result)
+        self.assertEqual(result.lines("NOTE"), [
+            "NOTE https://store.example/?preview_theme_id=201 answered HTTP 429 (too many "
+            "requests): asking again in 0.05 s, attempt 2 of 3",
+            "NOTE https://store.example/?preview_theme_id=201 answered HTTP 429 (too many "
+            "requests): asking again in 0.1 s, attempt 3 of 3"])
+
+    def test_a_store_still_refusing_on_the_third_attempt_fails_as_before(self):
+        result = self.take(5)
+
+        self.assertEqual(result.code, 1, result)
+        self.assertEqual(result.lines("FAILED"), [
+            "FAILED preview-refused: https://store.example/ set no preview cookie for theme 201 "
+            "(HTTP 429)"])
+        self.assertEqual(self.box.store()["too_many_requests"], 2, "three attempts, no more")
+
+
 class ASampleCutOffAtItsTimeLimit(unittest.TestCase):
     """When the invocation's Chrome is gone, Lighthouse's chrome-launcher starts a Chrome of
     its own, in a session of its own, so stopping Lighthouse leaves it running."""

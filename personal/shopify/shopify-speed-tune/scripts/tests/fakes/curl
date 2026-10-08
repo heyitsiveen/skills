@@ -11,6 +11,9 @@ and answers like a Shopify storefront did in October 2026:
 - the create_sharing URL      302 back to its return_to, sharing the cookie
 - any other path              200 HTML rendered by the theme the cookie selects,
                               or by the published theme when there is none
+
+FAKE_STORE's `too_many_requests` answers that many of the next requests, of any
+path, with HTTP 429, as Shopify answers a burst of them.
 """
 
 import json
@@ -73,7 +76,7 @@ def live():
 
 
 def respond(status, head, body):
-    reason = {200: "OK", 302: "Found", 404: "Not Found"}.get(status, "")
+    reason = {200: "OK", 302: "Found", 404: "Not Found", 429: "Too Many Requests"}.get(status, "")
     lines = ["HTTP/2 %d %s" % (status, reason)] + head
     if header_file:
         with open(header_file, "w", encoding="utf-8") as f:
@@ -91,6 +94,12 @@ def timing(theme_id):
 
 
 query = parse_qs(parts.query)
+
+if store.get("too_many_requests"):
+    store["too_many_requests"] -= 1
+    with open(state_path, "w", encoding="utf-8") as f:
+        json.dump(store, f, indent=2)
+    respond(429, ["content-type: text/html", "retry-after: 60"], "Too Many Requests")
 
 if parts.path == "/meta.json":
     respond(200, ["content-type: application/json"], json.dumps(shop))

@@ -213,6 +213,7 @@ class Sandbox:
             "FAKE_DEFAULTS": str(self.root / "defaults"),
             "SPEED_TUNE_LOCK": str(self.lock),
             "SPEED_TUNE_POLL_SECONDS": "0",
+            "SPEED_TUNE_BACKOFF_SECONDS": "0",
             "TMPDIR": str(self.tmp),
             "HOME": str(self.root / "home"),
             "GIT_CONFIG_NOSYSTEM": "1",

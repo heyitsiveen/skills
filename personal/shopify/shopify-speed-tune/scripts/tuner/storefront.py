@@ -11,11 +11,19 @@ import tempfile
 import time
 from urllib.parse import urljoin, urlsplit
 
-from tuner.output import Failed, Refused
+from tuner.output import Failed, Refused, note
 from tuner.proc import run
 
 USER_AGENT = ("Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 "
               "(KHTML, like Gecko) Chrome/154.0.0.0 Safari/537.36")
+
+# Shopify answers a burst of storefront requests with HTTP 429, too many requests,
+# and serves them again a minute or two later. Each request for a preview cookie,
+# or for the page that reads one back, is asked again after a pause, then after
+# one twice as long: three attempts within about two and a quarter minutes, before
+# the store's answer stands. SPEED_TUNE_BACKOFF_SECONDS sets the first pause.
+BACKOFF_SECONDS = 45
+TOO_MANY_REQUESTS = 429
 
 
 class Response:
@@ -92,6 +100,27 @@ def fetch(url, cookie=None, timeout=30):
     return response
 
 
+def pauses():
+    """The pauses, in seconds, before the second and the third attempt of a request the store
+    answers with HTTP 429."""
+    first = float(os.environ.get("SPEED_TUNE_BACKOFF_SECONDS", BACKOFF_SECONDS))
+    return (first, 2 * first)
+
+
+def patient_fetch(url, cookie=None):
+    """fetch(), asked again after each pause while the store answers HTTP 429; the answer to
+    the last attempt stands."""
+    waits = pauses()
+    for attempt, pause in enumerate(waits, 2):
+        response = fetch(url, cookie=cookie)
+        if response.status != TOO_MANY_REQUESTS:
+            return response
+        note("%s answered HTTP 429 (too many requests): asking again in %g s, attempt %d of %d"
+             % (url, pause, attempt, len(waits) + 1))
+        time.sleep(pause)
+    return fetch(url, cookie=cookie)
+
+
 def preview_url(url):
     """The URL an unpublished theme's page is loaded from: the page URL plus `pb=0`.
 
@@ -112,11 +141,12 @@ def preview_cookie(store_url, theme_id):
     `_shopify_essential`. Sent alone on a plain URL, that cookie first redirects
     to a `create_sharing` URL; once the cookie has visited that URL, the plain
     URL renders the theme. The query parameter itself is never used for a
-    Sample: its redirect adds most of a second to every load.
+    Sample: its redirect adds most of a second to every load. A request the store
+    answers with HTTP 429 is asked again (patient_fetch).
     Returns `_shopify_essential=<value>`, already shared.
     """
     for attempt in (1, 2):
-        response = fetch("%s?preview_theme_id=%s" % (store_url, theme_id))
+        response = patient_fetch("%s?preview_theme_id=%s" % (store_url, theme_id))
         cookie = None
         for value in response.headers.get("set-cookie", []):
             m = re.match(r"\s*(_shopify_essential=[^;]+)", value)
@@ -125,12 +155,12 @@ def preview_cookie(store_url, theme_id):
         if cookie is None:
             raise Failed("preview-refused", "%s set no preview cookie for theme %s (HTTP %d)"
                          % (store_url, theme_id, response.status))
-        plain = fetch(store_url, cookie=cookie)
+        plain = patient_fetch(store_url, cookie=cookie)
         target = plain.header("location") or ""
         if SHARING not in target:
             return cookie
-        fetch(urljoin(store_url, target), cookie=cookie)
-        if SHARING not in (fetch(store_url, cookie=cookie).header("location") or ""):
+        patient_fetch(urljoin(store_url, target), cookie=cookie)
+        if SHARING not in (patient_fetch(store_url, cookie=cookie).header("location") or ""):
             return cookie
         if attempt == 1:
             time.sleep(float(os.environ.get("SPEED_TUNE_POLL_SECONDS", "10")))
@@ -144,7 +174,7 @@ def verify_theme(url, cookie, theme_id):
     A missing or ignored cookie fails silently, because the store then serves
     its published theme; so the served theme is read back every time.
     """
-    response = fetch(url, cookie=cookie)
+    response = patient_fetch(url, cookie=cookie)
     if response.status != 200:
         raise Failed("preview-failed", "%s answered HTTP %d with theme %s's preview cookie"
                      % (url, response.status, theme_id))
