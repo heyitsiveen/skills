@@ -46,9 +46,9 @@ def register(sub):
 def run(args):
     inv = ledger.current("finish")
     data = inv.data
-    store = data["store"]["myshopify"]
+    store = inv.myshopify
     rounds.require_closed(inv, "finish")
-    kept =[r["n"] for r in data.get("rounds", []) if r["state"] == "kept"]
+    kept = [r["n"] for r in data.get("rounds", []) if r["state"] == "kept"]
     if args.discard and kept:
         raise Refused("kept-rounds", "%s kept %s, so the Working theme %s and the branch hold "
                       "work to publish" % (

@@ -42,7 +42,7 @@ def run(args):
         rounds.record_stop(inv, reason)
         return 0
     item = item or planning.claim(inv)
-    root = inv.data["repo"]["root"]
+    root = inv.root
     rounds.require_branch(inv)
     repo.require_clean(root)
     base = repo.head(root)

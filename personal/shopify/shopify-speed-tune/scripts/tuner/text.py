@@ -4,7 +4,7 @@ plan and the report."""
 import math
 from datetime import datetime
 
-COLUMNS =("Performance", "LCP", "TBT", "CLS", "FCP", "Speed Index", "Accessibility")
+COLUMNS = ("Performance", "LCP", "TBT", "CLS", "FCP", "Speed Index", "Accessibility")
 
 
 def half_up(value, places=0):

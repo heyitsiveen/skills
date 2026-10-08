@@ -32,7 +32,7 @@ def run(args):
         raise Refused("plan-approved", "the plan approved at %s was measured on these pages, so "
                       "they stay" % inv.data["plan"]["approved_at"])
     pages = inv.data.setdefault("pages", {"home": "/"})
-    store_url = inv.data["store"]["url"]
+    store_url = inv.store_url
     sources = {}
     if args.collection or args.product:
         for page, path in (("collection", args.collection), ("product", args.product)):

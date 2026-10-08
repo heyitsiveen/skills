@@ -77,7 +77,7 @@ def check(inv, urls, themes):
     if not os.access(chrome, os.X_OK):
         raise Refused("no-chrome", "the invocation's Chrome is missing at %r" % chrome,
                       "It is downloaded by `start`; a finished invocation has none.")
-    store_url = data["store"]["url"]
+    store_url = inv.store_url
     cookies = {}
     for role in smoke.ROLES:
         found = theme(inv, role)

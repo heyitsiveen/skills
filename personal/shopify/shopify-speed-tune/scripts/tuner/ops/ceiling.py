@@ -118,7 +118,7 @@ def probe_for(inv, page, url):
                       "Samples" % (page, len(baseline), stats.SAMPLES_PER_MEASUREMENT),
                       "Take it first with `sample --page %s --device mobile`; the probe is "
                       "built from what those Samples requested." % page)
-    built = probe.build(_reports(inv, baseline), inv.data["store"]["url"],
+    built = probe.build(_reports(inv, baseline), inv.store_url,
                         inv.data["themes"]["control"]["asset_path"])
     built.update(url=url, built_from=[s["id"] for s in baseline], built_at=clock.now())
     inv.data["ceilings"][page] = built

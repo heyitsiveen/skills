@@ -60,7 +60,7 @@ def require_closed(inv, op):
 def require_branch(inv):
     """Refuse unless the repo is on the invocation's branch, at the state both themes hold:
     the last kept Round's commit, or the commit the branch started from."""
-    root, branch = inv.data["repo"]["root"], inv.data["repo"]["branch"]
+    root, branch = inv.root, inv.data["repo"]["branch"]
     here = repo.git(root, "branch", "--show-current").stdout.strip()
     if here != branch:
         raise Refused("wrong-branch", "the repo is on %s, not the invocation's branch %s"
@@ -80,7 +80,7 @@ def require_branch(inv):
 def require_place(inv, rnd):
     """Refuse unless the repo is on the invocation's branch at the Round's base commit."""
     require_branch(inv)
-    root = inv.data["repo"]["root"]
+    root = inv.root
     head = repo.head(root)
     if head != rnd["base"]:
         raise Refused("head-moved", "HEAD is %s, but Round %d started at %s"
@@ -99,7 +99,7 @@ def require_measurable(inv, rnd):
         raise Refused("round-not-pushed", "Round %d's change has not reached the Working theme"
                       % rnd["n"], "Push it with `push` first.")
     require_place(inv, rnd)
-    root = inv.data["repo"]["root"]
+    root = inv.root
     entries = change.compute(root, rnd["base"], set(rnd["untracked"]))
     if change.fingerprint(root, entries) != rnd["change"]["fingerprint"]:
         raise Refused("changed-since-push", "the working tree no longer holds what Round %d "

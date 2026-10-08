@@ -30,12 +30,11 @@ def resolve(inv, role):
 
 def look_up(inv, theme):
     """(the store's theme library now, the theme's entry in it or None)."""
-    data = inv.data
     theme_id = int(theme["id"])
-    if theme_id == int(data["store"]["published_theme"]["id"]):
+    if theme_id == int(inv.data["store"]["published_theme"]["id"]):
         raise Refused("theme-published", "theme %s was the published theme when the invocation "
                       "started" % theme_id)
-    library = shopify.themes(data["store"]["myshopify"])
+    library = shopify.themes(inv.myshopify)
     return library, next((t for t in library if int(t["id"]) == theme_id), None)
 
 
@@ -62,7 +61,7 @@ def check_target(inv, role, theme):
     library, found = look_up(inv, theme)
     if found is None:
         raise Refused("theme-missing", "the %s theme %s is no longer in %s's theme library"
-                      % (role, theme["id"], inv.data["store"]["myshopify"]),
+                      % (role, theme["id"], inv.myshopify),
                       "Ask the developer what happened to it.")
     check_listed(role, theme, library, found)
 
@@ -70,8 +69,7 @@ def check_target(inv, role, theme):
 def guard(inv, role, paths):
     """The `role` theme once every check before a push to it holds; a refusal otherwise."""
     theme = resolve(inv, role)
-    data = inv.data
-    root = data["repo"]["root"]
+    root = inv.root
     for path in paths:
         if GLOB.search(path):
             raise Refused("odd-path", "%s holds a glob character, so a push would also touch "
@@ -79,16 +77,16 @@ def guard(inv, role, paths):
     shopifyignore.check(root, paths)
     repo.require_theme(root)
     configured = repo.configured_store(root)
-    if configured != data["store"]["myshopify"]:
+    if configured != inv.myshopify:
         raise Refused("store-mismatch", "this repo's shopify.theme.toml now names %s, not %s"
-                      % (configured, data["store"]["myshopify"]))
+                      % (configured, inv.myshopify))
     check_target(inv, role, theme)
     return theme
 
 
 def send(inv, theme, paths):
     """The push itself, to a theme `guard` just passed: a shopify.Pushed."""
-    return shopify.push(inv.data["store"]["myshopify"], theme["id"], inv.data["repo"]["root"], paths)
+    return shopify.push(inv.myshopify, theme["id"], inv.root, paths)
 
 
 def push(inv, role, paths):
@@ -105,5 +103,5 @@ def delete(inv, role):
     if found is None:
         return False
     check_listed(role, theme, library, found)
-    shopify.delete(inv.data["store"]["myshopify"], theme["id"])
+    shopify.delete(inv.myshopify, theme["id"])
     return True

@@ -75,7 +75,7 @@ def render(inv, table):
     data = inv.data
     plan = data["plan"]
     lines = [
-        "# Speed plan: %s" % data["store"]["url"],
+        "# Speed plan: %s" % inv.store_url,
         "",
         "Invocation `%s`. Requested score %d. %s" % (
             inv.id, data["requested_score"],

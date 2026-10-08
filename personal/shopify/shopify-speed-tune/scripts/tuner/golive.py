@@ -127,7 +127,7 @@ def live_theme(inv):
     recorded at the start, with the reason, when the library cannot be read."""
     recorded = inv.data["store"]["published_theme"]
     try:
-        library = shopify.themes(inv.data["store"]["myshopify"])
+        library = shopify.themes(inv.myshopify)
     except Stop as failure:
         return recorded, "the theme library could not be read (%s), so the published theme " \
                          "recorded at the start stands in for it" % failure.message
@@ -222,7 +222,7 @@ def github_steps(inv, setup):
 
 def cli_steps(inv, live):
     data = inv.data
-    store, working = data["store"]["myshopify"], data["themes"]["working"]
+    store, working = inv.myshopify, data["themes"]["working"]
     return [
         "To go live:", "",
         "1. Bring over what the merchant changed on the published theme %s since the Working "

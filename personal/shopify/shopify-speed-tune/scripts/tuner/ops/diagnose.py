@@ -29,13 +29,13 @@ def register(sub):
 def run(args):
     inv = ledger.current("diagnose")
     reports = {page: [r for _, r in findings.baseline(inv, page)] for page in stats.PAGE_ORDER}
-    checked = defects.check(inv.data["repo"]["root"], reports)
+    checked = defects.check(inv.root, reports)
     inv.data["defects"] = dict(checked, checked_at=clock.now())
     inv.log("diagnose", "known defects: %s" % (", ".join(
         r["id"] for r in checked["results"] if r["state"] == "found") or "none"))
     inv.save()
     for page in stats.PAGE_ORDER:
-        owners = findings.Owners(inv.data["store"]["url"],
+        owners = findings.Owners(inv.store_url,
                                  inv.data["themes"]["control"]["asset_path"], inv.page_url(page))
         for line in (findings.lcp_line(reports[page]),
                      findings.render_blocking_line(reports[page], owners),

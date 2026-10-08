@@ -29,5 +29,5 @@ def register(sub):
 def run(args):
     inv = ledger.current("final")
     rounds.require_closed(inv, "final")
-    target =stats.Measurement.of(inv, stats.FINAL, args.page, "desktop", "working")
+    target = stats.Measurement.of(inv, stats.FINAL, args.page, "desktop", "working")
     return samples.fill(inv, target, args.count, args.report)

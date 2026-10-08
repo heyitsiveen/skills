@@ -70,7 +70,7 @@ def judge(inv, rnd, forced):
                       % rnd["n"], "Push it with `push`. When the plan item cannot be made, "
                       "`verdict --remove` ends the Round.")
     rounds.require_place(inv, rnd)
-    root = inv.data["repo"]["root"]
+    root = inv.root
     entries = change.compute(root, rnd["base"], set(rnd["untracked"]))
     if change.fingerprint(root, entries) != rnd["change"]["fingerprint"]:
         # What was measured is not what the tree holds, so the tree cannot be kept.
@@ -100,7 +100,7 @@ def judge(inv, rnd, forced):
 def commit(inv, rnd):
     """Commit the kept change once; a commit the repo's hooks refuse turns it into a removal.
     The hooks run unless the developer approved --no-verify for this invocation at start."""
-    root = inv.data["repo"]["root"]
+    root = inv.root
     paths = [p for _, p in rnd["change"]["entries"]]
     subject, body = rounds.commit_message(inv, rnd)
     done = change.commit(root, rnd["base"], paths, subject, body, verify=hook.verifies(inv.data))
@@ -155,7 +155,7 @@ def keep(inv, rnd):
 
 
 def remove(inv, rnd):
-    root = inv.data["repo"]["root"]
+    root = inv.root
     if not rnd.get("restored"):
         entries = change.compute(root, rnd["base"], set(rnd["untracked"]))
         paths = sorted({p for _, p in entries} | set(rnd.get("pushed_paths", [])))

@@ -37,6 +37,21 @@ class Invocation:
     def path(self):
         return os.path.join(self.folder, "ledger.json")
 
+    @property
+    def root(self):
+        """The client theme repo the invocation runs in."""
+        return self.data["repo"]["root"]
+
+    @property
+    def myshopify(self):
+        """The store's myshopify domain, which every Shopify CLI call names."""
+        return self.data["store"]["myshopify"]
+
+    @property
+    def store_url(self):
+        """The store's public URL, `https://<host>/`."""
+        return self.data["store"]["url"]
+
     def file(self, *parts):
         return os.path.join(self.folder, *parts)
 
@@ -45,7 +60,7 @@ class Invocation:
         if not path:
             raise Refused("no-page", "the %s page is not set" % page,
                           "Run `pages` to propose it, or `pages --%s <path>` to set it." % page)
-        return self.data["store"]["url"].rstrip("/") + path
+        return self.store_url.rstrip("/") + path
 
     def log(self, op, text):
         self.data.setdefault("events", []).append({"at": clock.now(), "op": op, "text": text})

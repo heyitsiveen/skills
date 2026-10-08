@@ -79,7 +79,7 @@ def results(inv):
 
 # -- why a target was missed, and what to try next ---------------------------------
 
-STATE_WORDS ={"reached": "reached its target", "short": "was never tried: no Round ran",
+STATE_WORDS = {"reached": "reached its target", "short": "was never tried: no Round ran",
                "no-target": "has no target", "not-measured": "was not measured"}
 
 

@@ -43,7 +43,7 @@ def run(args):
         outcome.record_missed(inv, outcome.read_missed(args.missed))
     results = outcome.results(inv)
     live, unread = golive.live_theme(inv)
-    setup = golive.detect(inv.data["repo"]["root"], live["name"])
+    setup = golive.detect(inv.root, live["name"])
     path = inv.file("report.md")
     with open(path, "w", encoding="utf-8") as f:
         f.write(render(inv, results, setup, live))
@@ -101,7 +101,7 @@ def render(inv, results, setup, live):
     table = measured_costs(inv)
     kept = any(r["state"] == "kept" for r in data.get("rounds", []))
     pinned = data.get("tools") or {}
-    lines = ["# Speed report: %s" % data["store"]["url"], "",
+    lines = ["# Speed report: %s" % inv.store_url, "",
              "Invocation `%s`, started %s, measured with Lighthouse %s on Chrome for Testing %s. "
              "Requested Performance score: %s." % (
                  inv.id, when(data.get("created_at")), pinned.get("lighthouse", "?"),

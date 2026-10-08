@@ -123,7 +123,7 @@ def run(args):
 
 
 def prepare(inv, store, published):
-    data, root, workspace = inv.data, inv.data["repo"]["root"], inv.data["workspace"]
+    data, root, workspace = inv.data, inv.root, inv.data["workspace"]
 
     data["tools"]["chrome_preferences"] = tools.save_chrome_preferences(workspace)
     branch = "speed-tune/" + inv.id
@@ -143,8 +143,8 @@ def prepare(inv, store, published):
     for role in ("working", "control"):
         theme = data["themes"][role]
         wait_until_processed(store, theme["id"])
-        cookie = storefront.preview_cookie(data["store"]["url"], theme["id"])
-        theme["asset_path"] = storefront.verify_theme(data["store"]["url"], cookie, theme["id"])
+        cookie = storefront.preview_cookie(inv.store_url, theme["id"])
+        theme["asset_path"] = storefront.verify_theme(inv.store_url, cookie, theme["id"])
         inv.save()
         say("START", "preview=%s" % role, "assets=%s" % theme["asset_path"])
 

@@ -92,7 +92,7 @@ def preview(inv, theme, url):
     if not os.access(chrome, os.X_OK):
         raise Refused("no-chrome", "the invocation's Chrome is missing at %r" % chrome,
                       "It is downloaded by `start`; a finished invocation has none.")
-    cookie = storefront.preview_cookie(data["store"]["url"], theme["id"])
+    cookie = storefront.preview_cookie(inv.store_url, theme["id"])
     served = storefront.verify_theme(storefront.preview_url(url), cookie, theme["id"])
     if theme.get("asset_path") and served != theme["asset_path"]:
         raise Failed("preview-changed", "theme %s now serves %s, not %s"
@@ -111,7 +111,7 @@ def attempt(inv, measurement, theme, cookie, probe=None, extra=None):
         os.remove(output)
     try:
         with browser.Chrome(workspace, chrome) as session:
-            session.put_preview_cookie(data["store"]["url"], cookie)
+            session.put_preview_cookie(inv.store_url, cookie)
             report = lighthouse.take(workspace, chrome, storefront.preview_url(measurement.url),
                                      measurement.device, session.port, output,
                                      blocked=probe["patterns"] if probe else ())

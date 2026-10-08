@@ -37,7 +37,7 @@ def run(args):
                       % rnd["n"], "Its verdict decides it now: `pairs` once its smoke check "
                       "passed, then `verdict`.")
     rounds.require_place(inv, rnd)
-    root = inv.data["repo"]["root"]
+    root = inv.root
     entries = change.compute(root, rnd["base"], set(rnd["untracked"]))
     for status, path in entries:
         say("CHANGE", status, path, "template-json" if change.is_template_json(path) else "")
