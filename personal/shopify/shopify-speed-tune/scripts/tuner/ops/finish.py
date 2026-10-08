@@ -13,6 +13,9 @@ theme library must list no Control theme and still the Working theme, the repo
 must hold the branch, nothing may run from the workspace, which must be gone,
 Chrome for Testing's preferences must hold what they held before the
 invocation, and the lock must be free. Only then does it print `FINISH done`.
+A ledger an earlier release wrote kept no digest of those preferences, so they
+are read back against the copy `start` exported; with that copy gone, nothing
+says what they held, and a NOTE says they were not checked.
 Anything left fails it with `cleanup-incomplete`, keeping the invocation open,
 so `finish` can simply be run again once it is dealt with. Each step is
 recorded as it completes, so a `finish` that stops part-way is finished by
@@ -68,8 +71,11 @@ def run(args):
     return_to_start_branch(inv, discard=args.discard)
 
     stop_cut_off_chromes(inv)
-    if tools.restore_chrome_preferences(data["tools"].get("chrome_preferences")):
+    preferences = data["tools"].get("chrome_preferences")
+    tools.complete_snapshot(preferences)  # a ledger an earlier release wrote holds no digest
+    if tools.restore_chrome_preferences(preferences):
         say("FINISH", "chrome-preferences restored")
+    inv.save()  # the digest outlives the exported file, which goes with the workspace
     remove_workspace(inv)
     if awake.release(data.get("awake")):
         say("FINISH", "awake released")
@@ -216,12 +222,18 @@ def verify(inv, store, discard):
         machine.append("the caffeinate %d that kept the Mac awake still runs"
                        % data["awake"]["pid"])
     preferences = data["tools"].get("chrome_preferences") or {}
-    if preferences.get("saved") and not tools.chrome_preferences_as_before(preferences):
-        machine.append("Chrome for Testing's preferences differ from before the invocation")
+    if tools.checkable(preferences):
+        if not tools.chrome_preferences_as_before(preferences):
+            machine.append("Chrome for Testing's preferences differ from before the invocation")
+    elif preferences.get("saved"):
+        note("Chrome for Testing's preferences were not put back or checked: the copy `start` "
+             "saved, %s, is gone, and this ledger, from an earlier release, kept no digest of "
+             "them" % preferences.get("file"))
     if not machine:
         say("FINISH", "verified", "chrome=none", "workspace=gone",
             "awake=%s" % ("stopped" if data.get("awake") else "none"),
-            "preferences=%s" % ("as-before" if preferences.get("saved") else "none"))
+            "preferences=%s" % ("as-before" if tools.checkable(preferences) else
+                                "unchecked" if preferences.get("saved") else "none"))
     problems += machine
     if problems:
         raise Failed("cleanup-incomplete", "; ".join(problems),

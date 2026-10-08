@@ -104,8 +104,9 @@ def pin_lighthouse(workspace):
 # Chrome for Testing records its own location in the user's preferences on every
 # launch, headless included. The domain is saved here before the first launch,
 # with a digest of what it held, and `finish` puts it back and reads it back, so
-# the machine ends as it began. A machine without `defaults` (not a Mac) has no
-# such domain.
+# the machine ends as it began. An earlier release saved no digest: `finish`
+# takes it from the file that release exported. A machine without `defaults`
+# (not a Mac) has no such domain.
 
 def _defaults(*args):
     return subprocess.run(["defaults", *args], stdin=subprocess.DEVNULL, capture_output=True,
@@ -152,6 +153,24 @@ def save_chrome_preferences(workspace):
             "digest": _digest(saved) if existed else None}
 
 
+def complete_snapshot(snapshot):
+    """Give a snapshot an earlier release saved without its digest the digest of what it saved:
+    of the file `start` exported, while that file is still in the workspace, or None when the
+    domain did not exist. With that file gone the snapshot stays without one."""
+    if not snapshot or not snapshot.get("saved") or "digest" in snapshot:
+        return
+    if not snapshot.get("existed"):
+        snapshot["digest"] = None
+    elif snapshot.get("file") and os.path.isfile(snapshot["file"]):
+        snapshot["digest"] = _digest(snapshot["file"])
+
+
+def checkable(snapshot):
+    """True when the snapshot was saved and carries the digest a read-back compares with; a
+    snapshot an earlier release saved has none until complete_snapshot gives it one."""
+    return bool(snapshot) and bool(snapshot.get("saved")) and "digest" in snapshot
+
+
 def chrome_preferences_as_before(snapshot):
     """True when Chrome for Testing's preferences hold what the snapshot saved."""
     return chrome_preferences_now() == snapshot.get("digest")
@@ -162,8 +181,9 @@ def restore_chrome_preferences(snapshot):
 
     Raises cleanup-incomplete when `defaults` refuses, or when the domain still
     differs from the snapshot, which then stays in the workspace for the next try.
+    A snapshot with no digest is left alone: nothing says what to put back.
     """
-    if not snapshot or not snapshot.get("saved") or chrome_preferences_as_before(snapshot):
+    if not checkable(snapshot) or chrome_preferences_as_before(snapshot):
         return False
     argv = ("import", CFT_DOMAIN, snapshot["file"]) if snapshot["existed"] \
         else ("delete", CFT_DOMAIN)
