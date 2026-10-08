@@ -16,8 +16,7 @@ emitted. --report records existing Lighthouse report files instead.
 import argparse
 import json
 
-from tuner import findings, ledger, planning, probe, stats
-from tuner.ops import sample
+from tuner import findings, ledger, planning, probe, samples, stats
 from tuner.output import Failed, Refused, note, say
 
 ORDER = 35
@@ -51,7 +50,7 @@ def run(args):
         note("%s: %s" % (args.page, text))
 
     target = argparse.Namespace(label=LABEL, page=args.page, device="mobile", theme="control")
-    have = len(sample.members(inv, target, url))
+    have = len(samples.members(inv, target, url))
     room = stats.SAMPLES_PER_MEASUREMENT - have
     wanted = len(args.report) if args.report else (args.count or room)
     if wanted > room:
@@ -61,15 +60,15 @@ def run(args):
         for path in args.report:
             with open(path, encoding="utf-8") as f:
                 report = json.load(f)
-            if sample.record(inv, target, url, theme, report, source="file", probe=found) is None:
+            if samples.record(inv, target, url, theme, report, source="file", probe=found) is None:
                 return 1
     else:
-        taken = sample.take(inv, target, url, theme, wanted, probe=found)
+        taken = samples.take(inv, target, url, theme, wanted, probe=found)
         if taken < wanted:
             raise Failed("samples-rejected", "%d of %d Samples taken; see the rejections above"
                          % (taken, wanted), "Run the same command again to continue.")
 
-    done = sample.members(inv, target, url)
+    done = samples.members(inv, target, url)
     if len(done) == stats.SAMPLES_PER_MEASUREMENT:
         say("MEASUREMENT", stats.measurement_line(LABEL, args.page, "mobile", "control", done))
         found["findings"] = read_ceiling(inv, args.page, url, done)

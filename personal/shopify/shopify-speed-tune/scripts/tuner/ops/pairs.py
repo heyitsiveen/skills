@@ -22,8 +22,7 @@ import argparse
 import json
 import time
 
-from tuner import ledger, rounds, stats
-from tuner.ops import sample
+from tuner import ledger, rounds, samples, stats
 from tuner.output import Failed, Refused, say
 
 ORDER = 64
@@ -102,7 +101,7 @@ def record_files(inv, rnd, page, files):
         for role, path in (("control", control_file), ("working", working_file)):
             with open(path, encoding="utf-8") as f:
                 report = json.load(f)
-            recorded[role] = sample.record(inv, target(rnd, page, role), url, themes[role], report,
+            recorded[role] = samples.record(inv, target(rnd, page, role), url, themes[role], report,
                                            source="file", extra={"round": rnd["n"], "pair": k})
             if recorded[role] is None:
                 if role == "working":
@@ -126,7 +125,7 @@ def take(inv, rnd, pages, budget):
         recorded = {}
         for role in ("control", "working"):
             if (role, page) not in cookies:
-                cookies[(role, page)] = sample.preview(inv, themes[role], url)
+                cookies[(role, page)] = samples.preview(inv, themes[role], url)
             recorded[role] = attempts(inv, rnd, page, role, url, cookies[(role, page)], k)
             if recorded[role] is None:
                 if role == "working":
@@ -138,8 +137,8 @@ def take(inv, rnd, pages, budget):
 
 
 def attempts(inv, rnd, page, role, url, cookie, k):
-    for _ in range(1 + sample.SPARE_ATTEMPTS):
-        found = sample.attempt(inv, target(rnd, page, role), url, inv.data["themes"][role], cookie,
+    for _ in range(1 + samples.SPARE_ATTEMPTS):
+        found = samples.attempt(inv, target(rnd, page, role), url, inv.data["themes"][role], cookie,
                                extra={"round": rnd["n"], "pair": k})
         if found is not None:
             return found

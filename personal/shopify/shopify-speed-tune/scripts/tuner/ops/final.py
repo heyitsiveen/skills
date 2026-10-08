@@ -14,8 +14,7 @@ Lighthouse report files instead: the same checks, no Lighthouse run.
 import argparse
 import json
 
-from tuner import ledger, rounds, stats
-from tuner.ops import sample
+from tuner import ledger, rounds, samples, stats
 from tuner.output import Failed, Refused, say
 
 ORDER = 70
@@ -46,7 +45,7 @@ def run(args):
     url = inv.page_url(args.page)
     target = argparse.Namespace(label=stats.FINAL, page=args.page, device="desktop",
                                 theme="working")
-    room = stats.SAMPLES_PER_MEASUREMENT - len(sample.members(inv, target, url))
+    room = stats.SAMPLES_PER_MEASUREMENT - len(samples.members(inv, target, url))
     wanted = len(args.report) if args.report else (args.count or room)
     if wanted > room:
         raise Refused("measurement-complete", "the %s page's final desktop Measurement already "
@@ -55,14 +54,14 @@ def run(args):
         for path in args.report:
             with open(path, encoding="utf-8") as f:
                 report = json.load(f)
-            if sample.record(inv, target, url, theme, report, source="file") is None:
+            if samples.record(inv, target, url, theme, report, source="file") is None:
                 return 1
     else:
-        taken = sample.take(inv, target, url, theme, wanted)
+        taken = samples.take(inv, target, url, theme, wanted)
         if taken < wanted:
             raise Failed("samples-rejected", "%d of %d Samples taken; see the rejections above"
                          % (taken, wanted), "Run the same command again to continue.")
-    done = sample.members(inv, target, url)
+    done = samples.members(inv, target, url)
     if len(done) == stats.SAMPLES_PER_MEASUREMENT:
         say("MEASUREMENT", stats.measurement_line(stats.FINAL, args.page, "desktop", "working",
                                                   done))
