@@ -7,7 +7,8 @@ fail, and every command talks to whichever store `--store` names, so a missing
 or wrong store fails.
 
 Each theme's files are kept in FAKE_STORE as {path: text}; a duplicate copies
-its source's. `push` follows the CLI's own source: `--theme` matches an id or a
+its source's. `delete` deletes every theme whose id or name its `--theme`
+matches. `push` follows the CLI's own source: `--theme` matches an id or a
 name, live themes first, and a live target needs `--allow-live`; every local
 theme file is read, and `--only`/`--ignore` filter both what is uploaded (a
 local file whose content differs) and what is deleted (a theme file missing
@@ -121,17 +122,20 @@ if command == "delete":
     if "--force" not in args and "-f" not in args:
         fail("Failed to prompt: run with --force", 1)
     for wanted in flag("--theme", many=True):
-        match = [t for t in themes if str(t["id"]) == wanted]
+        # Like push, delete matches an id or a name; unlike push, it deletes every match.
+        match = [t for t in themes
+                 if str(t["id"]) == wanted or t["name"].lower() == wanted.lower()]
         if not match:
             fail('No themes on the store match the ID or name "%s"' % wanted)
-        if match[0]["role"] == "live":
-            fail("The published theme cannot be deleted")
-        if int(wanted) in store.get("deletes_ignored", []):  # it says so, and the theme stays
-            print("The theme '%s' (#%s) was deleted." % (match[0]["name"], wanted))
-            continue
-        themes.remove(match[0])
-        store.get("files", {}).pop(wanted, None)
-        print("The theme '%s' (#%s) was deleted." % (match[0]["name"], wanted))
+        for theme in match:
+            if theme["role"] == "live":
+                fail("The published theme cannot be deleted")
+            if theme["id"] in store.get("deletes_ignored", []):  # it says so, and the theme stays
+                print("The theme '%s' (#%s) was deleted." % (theme["name"], theme["id"]))
+                continue
+            themes.remove(theme)
+            store.get("files", {}).pop(str(theme["id"]), None)
+            print("The theme '%s' (#%s) was deleted." % (theme["name"], theme["id"]))
     save()
     sys.exit(0)
 

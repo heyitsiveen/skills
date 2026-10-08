@@ -155,6 +155,26 @@ class FinishIsNotDoneWhileSomethingRemains(unittest.TestCase):
         self.assertNotIn(themes["control"], box.theme_ids())
 
 
+class FinishDeletesOnlyItsOwnThemes(unittest.TestCase):
+    """The CLI's `theme delete --theme` deletes every theme whose id or name matches, so a
+    delete passes the same guard a push does."""
+
+    def test_a_theme_named_like_the_control_themes_id_stops_the_delete(self):
+        box = Sandbox(self)
+        themes, _ = box.start()
+        named = str(themes["control"])
+        box.edit_store(lambda s: next(t for t in s["themes"] if t["id"] == 101).update(name=named))
+
+        result = box.run("finish")
+
+        self.assertEqual(result.code, 1, result)
+        self.assertEqual(result.lines("REFUSED"), [
+            "REFUSED theme-name-clash: theme 101 is named %s, the id of the control theme, and "
+            "the CLI matches names too" % named])
+        self.assertTrue({101, themes["control"], themes["working"]} <= box.theme_ids())
+        self.assertEqual(box.run("status").code, 0, "the lock and the ledger stay open")
+
+
 class FinishDiscardsAnInvocationThatStoppedInPreflight(unittest.TestCase):
     def test_a_start_that_fails_part_way_is_cleaned_up_by_finish_discard(self):
         box = Sandbox(self)

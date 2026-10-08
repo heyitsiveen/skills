@@ -27,7 +27,7 @@ it keeps must hold kept Rounds only, and a discard waits for the verdict.
 import os
 import shutil
 
-from tuner import awake, browser, ledger, lock, repo, rounds, shopify, tools
+from tuner import awake, browser, ledger, lock, repo, rounds, shopify, tools, write
 from tuner.output import Failed, Refused, note, say
 
 ORDER = 90
@@ -62,7 +62,7 @@ def run(args):
                       "Run `finish` without --discard: it keeps the Working theme and the branch.")
 
     for role in ["control"] + (["working"] if args.discard else []):
-        delete_theme(inv, store, role)
+        delete_theme(inv, role)
     working = data["themes"].get("working")
     if working and not working.get("deleted"):
         say("FINISH", "working-theme kept", "id=%s" % working["id"], 'name="%s"' % working["name"])
@@ -92,21 +92,13 @@ def run(args):
     return 0
 
 
-def delete_theme(inv, store, role):
+def delete_theme(inv, role):
+    """Delete the invocation's `role` theme through the guarded write, which refuses one that
+    is no longer unpublished or that another theme is named like."""
     theme = inv.data["themes"].get(role)
     if not theme or theme.get("deleted"):
         return
-    found = shopify.theme(store, theme["id"])
-    if found is None:
-        theme["deleted"] = "already gone"
-    elif found.get("role") != "unpublished":
-        raise Refused("theme-not-unpublished",
-                      "the %s theme %s is now %s; finish deletes only unpublished themes"
-                      % (role, theme["id"], found.get("role")),
-                      "Ask the developer what happened to it before going further.")
-    else:
-        shopify.delete(store, theme["id"])
-        theme["deleted"] = ledger.now()
+    theme["deleted"] = ledger.now() if write.delete(inv, role) else "already gone"
     inv.log("finish", "%s theme %s deleted" % (role, theme["id"]))
     inv.save()
     say("FINISH", "%s-theme deleted" % role, "id=%s" % theme["id"])
