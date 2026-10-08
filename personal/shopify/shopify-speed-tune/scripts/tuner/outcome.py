@@ -146,21 +146,7 @@ def explanation(inv, page):
     return ((inv.data.get("report") or {}).get("missed") or {}).get(page)
 
 
-# -- the Rounds and the repo, in words ----------------------------------------------
-
-def hook(data):
-    """The client repo's pre-commit hook as `start` recorded it, {"status", "detail"}, where
-    status is passed, absent or bypass-approved; None in a ledger from before the hook check."""
-    found = data.get("hook")
-    return found if isinstance(found, dict) else None
-
-
-def measured(inv, rnd):
-    """Whether the Round's pairs decided it. Its verdict says so; a ledger from before
-    verdicts did counts a Round measured when it holds all its pairs."""
-    flag = (rnd.get("verdict") or {}).get("measured")
-    return rounds.complete(inv, rnd) if flag is None else bool(flag)
-
+# -- the Rounds, in words -------------------------------------------------------------
 
 def why_removed(reasons):
     """A removed Round's reasons, as words."""

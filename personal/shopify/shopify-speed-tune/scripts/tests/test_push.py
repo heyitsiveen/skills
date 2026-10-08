@@ -103,34 +103,19 @@ class APushThatReportsErrorsFailsTheRound(unittest.TestCase):
 
 
 class AWriteToAnyOtherThemeIsRefused(unittest.TestCase):
-    """Nothing is written when the guard refuses: the fake store records every push."""
+    """A push goes to the invocation's Working theme only, after the store confirms it is still
+    that unpublished theme. Nothing is written when the guard refuses: the fake store records
+    every push."""
 
     def setUp(self):
         self.box = opened(self)
         write(self.box, "snippets/image.liquid", EAGER)
 
-    def refused(self, *args):
-        result = self.box.run("push", *args)
+    def refused(self):
+        result = self.box.run("push")
         self.assertEqual(result.code, 1, result)
         self.assertEqual(self.box.pushes(), [], "the guard must refuse before any push")
         return result
-
-    def test_the_published_themes_id_is_refused(self):
-        result = self.refused("--theme", str(LIVE_THEME))
-
-        self.assertEqual(result.lines("REFUSED"), [
-            "REFUSED not-invocation-theme: %d is not one of this invocation's two themes "
-            "(control %d, working %d)" % (LIVE_THEME, CONTROL, WORKING)])
-
-    def test_another_unpublished_theme_is_refused(self):
-        result = self.refused("--theme", "101")
-
-        self.assertRegex(result.out, r"(?m)^REFUSED not-invocation-theme: 101 is not one of ")
-
-    def test_the_control_theme_never_receives_a_change_under_test(self):
-        result = self.refused("--theme", str(CONTROL))
-
-        self.assertRegex(result.out, r"(?m)^REFUSED control-theme: ")
 
     def test_a_working_theme_that_was_published_is_refused(self):
         def publish_working(state):

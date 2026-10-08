@@ -186,15 +186,15 @@ def what_changed(inv):
     lines += [kept_line(rnd, items[rnd["item"]]) for rnd in kept]
     lines += ["- %s Removed in Round %d%s, because %s." % (
         item_head(items[rnd["item"]]), rnd["n"],
-        "" if outcome.measured(inv, rnd) else " without being measured",
+        "" if rnd["verdict"]["measured"] else " without being measured",
         outcome.why_removed(rnd["verdict"]["reasons"]))
         for rnd in done if rnd["state"] == "removed"]
     reached = (data.get("stopped") or {}).get("reason") == "targets-reached"
     lines += ["- %s Not tried: %s" % (item_head(item), "every page reached its target first."
                                       if reached else "the Rounds were ended before it.")
               for item in planning.unused(inv)]
-    hook = outcome.hook(data)
-    if kept and hook and hook.get("status") == "bypass-approved":
+    hook = data["hook"]
+    if kept and hook["status"] == "bypass-approved":
         lines += ["", "The kept Rounds were committed with `--no-verify`: the repo's pre-commit "
                       "hook already failed before this invocation, and the developer approved the "
                       "bypass for it, so the hook checked none of these commits. What it said "
@@ -328,7 +328,7 @@ def round_here(inv, rnd, page):
         head += "kept"
     else:
         head += "removed, because %s" % outcome.why_removed(rnd["verdict"]["reasons"])
-    if not outcome.measured(inv, rnd) or len(rounds.pairs(inv, rnd, page)) < rounds.PAIRS_PER_PAGE:
+    if not rnd["verdict"]["measured"] or len(rounds.pairs(inv, rnd, page)) < rounds.PAIRS_PER_PAGE:
         return head + "; not measured here."
     found = rounds.page_summary(inv, rnd, page)
     return head + "; won %d of %d pairs here, median %d → %d." % (

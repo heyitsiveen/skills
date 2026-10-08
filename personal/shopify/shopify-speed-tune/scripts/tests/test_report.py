@@ -281,17 +281,6 @@ class TheCommitHookTheInvocationStartedWith(unittest.TestCase):
                       "passes on the unchanged repo, so every keep commit runs it.",
                       text.split("\n## Detail log\n", 1)[1])
 
-    def test_a_ledger_from_before_the_hook_check_says_it_was_not_recorded(self):
-        box = ran(self, "reached")
-        ledger = next((box.repo / ".agent" / "shopify-speed-tune").glob("*/ledger.json"))
-        data = json.loads(ledger.read_text())
-        del data["hook"]
-        ledger.write_text(json.dumps(data))
-
-        _, text = written(self, box)
-
-        self.assertIn("- **Commit hook.** not recorded.", text.split("\n## Detail log\n", 1)[1])
-
 
 class ARoundTheSmokeCheckRemovedBeforeItsPairs(unittest.TestCase):
     def setUp(self):

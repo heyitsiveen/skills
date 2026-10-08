@@ -34,8 +34,8 @@ def _counted(values):
 
 
 def hook_text(record):
-    if record is None:
-        return "not recorded"
+    """The client repo's pre-commit hook as `start` recorded it: passed, absent or
+    bypass-approved, and what it said."""
     detail = " ".join(str(record.get("detail") or "").split()).rstrip(".")
     return "%s%s" % (record.get("status"), ": %s" % detail if detail else "")
 
@@ -59,7 +59,7 @@ def invocation(inv):
     if repo.get("branch"):
         lines.append("- **Branch.** `%s`, cut from `%s` at `%s`." % (
             repo["branch"], repo.get("start_branch"), (repo.get("start_commit") or "?")[:12]))
-    lines.append("- **Commit hook.** %s." % hook_text(outcome.hook(data)))
+    lines.append("- **Commit hook.** %s." % hook_text(data["hook"]))
     if plan:
         approved = "approved at %s" % when(plan["approved_at"]) if plan.get("approved_at") \
             else "not approved"
@@ -205,7 +205,7 @@ def one_round(inv, rnd):
     lines.append("- **Pushes.** %s." % ("; ".join(push_text(a) for a in pushes) if pushes
                                         else "none: the change never reached the Working theme"))
     taken = any(rounds.pairs(inv, rnd, page) for page in stats.PAGE_ORDER)
-    if outcome.measured(inv, rnd):
+    if rnd["verdict"]["measured"]:
         lines.append("- **Pairs.** Each a Control theme Sample, then a Working theme Sample, back "
                      "to back, below.")
     else:

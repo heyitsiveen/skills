@@ -1,8 +1,8 @@
 """The guarded write: the only way the program changes a theme on the store.
 
 It pushes files to one of the invocation's own two themes, the Working theme or
-the Control theme, named by role or by id, and at the end it deletes one of
-them. Before every push and every delete the program reads the theme library
+the Control theme, named by role, and at the end it deletes one of them.
+Before every push and every delete the program reads the theme library
 back from the store and refuses unless that theme is still unpublished and no
 other theme is named like its id: the CLI matches `--theme` by name too, a
 push taking the first match, live theme first, and a delete every match. A
@@ -20,24 +20,12 @@ from tuner.output import Refused
 GLOB = re.compile(r"[*?\[\]{}()!\\]")
 
 
-def resolve(inv, target):
-    """(role, theme) for `working`, `control` or one of their ids; refuse anything else."""
-    themes = inv.data.get("themes", {})
-    ours = ", ".join("%s %s" % (role, t["id"]) for role, t in sorted(themes.items()))
-    role = None
-    if target in themes:
-        role = target
-    elif str(target).isdigit():
-        role = next((r for r, t in themes.items() if int(t["id"]) == int(target)), None)
-    if role is None:
-        raise Refused("not-invocation-theme", "%s is not one of this invocation's two themes (%s)"
-                      % (target, ours),
-                      "The program writes only to the Working theme and the Control theme it "
-                      "created.")
-    theme = themes[role]
+def resolve(inv, role):
+    """The invocation's `role` theme, working or control; a refusal once it was deleted."""
+    theme = inv.data["themes"][role]
     if theme.get("deleted"):
         raise Refused("theme-deleted", "the %s theme %s was deleted" % (role, theme["id"]))
-    return role, theme
+    return theme
 
 
 def look_up(inv, theme):
@@ -79,9 +67,9 @@ def check_target(inv, role, theme):
     check_listed(role, theme, library, found)
 
 
-def guard(inv, target, paths):
-    """(role, theme) once every check before a push holds; a refusal otherwise."""
-    role, theme = resolve(inv, target)
+def guard(inv, role, paths):
+    """The `role` theme once every check before a push to it holds; a refusal otherwise."""
+    theme = resolve(inv, role)
     data = inv.data
     root = data["repo"]["root"]
     for path in paths:
@@ -95,7 +83,7 @@ def guard(inv, target, paths):
         raise Refused("store-mismatch", "this repo's shopify.theme.toml now names %s, not %s"
                       % (configured, data["store"]["myshopify"]))
     check_target(inv, role, theme)
-    return role, theme
+    return theme
 
 
 def send(inv, theme, paths):
@@ -103,16 +91,16 @@ def send(inv, theme, paths):
     return shopify.push(inv.data["store"]["myshopify"], theme["id"], inv.data["repo"]["root"], paths)
 
 
-def push(inv, target, paths):
-    """Push `paths` from the repo to the invocation's `target` theme; (role, theme, Pushed)."""
-    role, theme = guard(inv, target, paths)
-    return role, theme, send(inv, theme, paths)
+def push(inv, role, paths):
+    """Push `paths` from the repo to the invocation's `role` theme; (theme, Pushed)."""
+    theme = guard(inv, role, paths)
+    return theme, send(inv, theme, paths)
 
 
 def delete(inv, role):
     """Delete the invocation's `role` theme once the checks a push passes hold: True when this
     call deleted it, False when the theme library no longer lists it."""
-    role, theme = resolve(inv, role)
+    theme = resolve(inv, role)
     library, found = look_up(inv, theme)
     if found is None:
         return False

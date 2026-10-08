@@ -23,18 +23,12 @@ ORDER = 62
 
 def register(sub):
     p = sub.add_parser("push", help="push the open Round's change to the Working theme")
-    p.add_argument("--theme", default="working",
-                   help="the Working theme, by role or id (the default); any other is refused")
     p.set_defaults(run=run)
 
 
 def run(args):
     inv = ledger.current("push")
     rnd = rounds.require_open(inv)
-    role, _ = write.resolve(inv, args.theme)
-    if role != "working":
-        raise Refused("control-theme", "the Control theme receives only kept Rounds, never the "
-                      "change under test", "`verdict` brings it up to date when a Round is kept.")
     if rnd.get("failed"):
         raise Refused("round-failed", "Round %d failed its push: %s" % (rnd["n"], rnd["failed"]),
                       "Run `verdict`: it removes the change and restores the Working theme.")
@@ -52,12 +46,12 @@ def run(args):
                       "Make the plan item's change first.")
     change.check(root, rnd["base"], entries)
     paths = sorted({p for _, p in entries} | set(rnd.get("pushed_paths", [])))
-    role, theme = write.guard(inv, "working", paths)
+    theme = write.guard(inv, "working", paths)
 
     # Recorded before the CLI runs: a push cut off part-way may have written some
     # files, and removing the Round pushes every one of these paths back.
     rnd["pushed_paths"] = paths
-    attempt = {"theme": role, "id": theme["id"], "paths": paths, "at": ledger.now(),
+    attempt = {"theme": "working", "id": theme["id"], "paths": paths, "at": ledger.now(),
                "result": "sent"}
     rnd.setdefault("pushes", []).append(attempt)
     rnd.pop("change", None)
@@ -91,5 +85,5 @@ def run(args):
     inv.log("push", "Round %d pushed %d paths to the Working theme %s"
             % (rnd["n"], len(paths), theme["id"]))
     inv.save()
-    say("PUSH", "%s theme=%s paths=%d ok" % (role, theme["id"], len(paths)))
+    say("PUSH", "working theme=%s paths=%d ok" % (theme["id"], len(paths)))
     return 0

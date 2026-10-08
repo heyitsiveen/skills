@@ -129,7 +129,7 @@ def push(inv, rnd, role, paths, step):
     """Push `paths` to the invocation's `role` theme for the verdict, once."""
     if rnd.get(step):
         return
-    _, theme, pushed = write.push(inv, role, paths)
+    theme, pushed = write.push(inv, role, paths)
     if not pushed.ok:
         detail = ["%s: %s" % (p, m) for p, ms in sorted(pushed.errors.items()) for m in ms]
         raise Failed("push-errors" if pushed.warning else "push-failed",
