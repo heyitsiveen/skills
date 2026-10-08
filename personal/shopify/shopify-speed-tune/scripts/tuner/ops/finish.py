@@ -8,12 +8,15 @@ so a `finish` that stops part-way can simply be run again.
 
 `--discard` is for an invocation that stopped before any Round: it deletes the
 Working theme too, and the branch when the branch holds no commits.
+
+Without --discard it refuses while a Round is open: the Working theme it keeps
+must hold kept Rounds only.
 """
 
 import os
 import shutil
 
-from tuner import ledger, lock, repo, shopify, tools
+from tuner import ledger, lock, repo, rounds, shopify, tools
 from tuner.output import Refused, note, say
 
 ORDER = 90
@@ -30,6 +33,12 @@ def run(args):
     inv = ledger.current("finish")
     data = inv.data
     store = data["store"]["myshopify"]
+    open_round = rounds.current(inv)
+    if open_round is not None and not args.discard:
+        raise Refused("round-open", "Round %d is open, so the Working theme may hold a change no "
+                      "verdict kept" % open_round["n"],
+                      "End it with `verdict`, or with `verdict --remove` when it cannot be "
+                      "measured, then run `finish` again.")
 
     for role in ["control"] + (["working"] if args.discard else []):
         delete_theme(inv, store, role)

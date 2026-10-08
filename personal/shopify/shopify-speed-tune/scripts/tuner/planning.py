@@ -188,13 +188,30 @@ def approve(inv):
     return plan
 
 
-def claim(inv, item_id):
-    """The approved plan's item for a new Round, or a refusal: no Round may use an
-    item outside the plan, or an item a Round already used."""
+def require_approved(inv):
     plan = inv.data.get("plan") or {}
     if not plan.get("approved_at"):
         raise Refused("plan-not-approved", "no approved plan: a Round uses only an item of the "
                       "plan the developer approved", "Approve it with `plan --approve`.")
+    return plan
+
+
+def unused(inv):
+    """The approved plan's items no Round has used yet, in the plan's order."""
+    used = {r["item"] for r in inv.data.get("rounds", [])}
+    return [i for i in (inv.data.get("plan") or {}).get("items", []) if i["id"] not in used]
+
+
+def claim(inv, item_id=None):
+    """The approved plan's item for a new Round, or a refusal: no Round may use an
+    item outside the plan, or an item a Round already used. With no id, the first
+    unused item."""
+    plan = require_approved(inv)
+    if item_id is None:
+        left = unused(inv)
+        if not left:
+            raise Refused("plan-exhausted", "every item of the approved plan was used")
+        return left[0]
     item = next((i for i in plan["items"] if i["id"] == item_id), None)
     if item is None:
         raise Refused("unplanned-item", "%s is not in the approved plan (%s)"

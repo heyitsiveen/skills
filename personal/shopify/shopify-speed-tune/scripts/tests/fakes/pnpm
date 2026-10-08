@@ -162,8 +162,11 @@ except (OSError, ValueError):
 served = next(t for t in store["themes"] if t["role"] == "live")
 host = urlsplit(url).hostname
 match = re.match(r"_shopify_essential=fake-(\d+)-cookie$", jar.get("cookie", ""))
-# drops_cookie: the jar lost the cookie, so the store served its published theme.
-if match and jar.get("host") == host and not store["lighthouse"].get("drops_cookie"):
+# drops_cookie: the jar lost the cookie, so the store served its published theme;
+# drops_cookie_of: the same, for those themes' cookies only.
+dropped = store["lighthouse"].get("drops_cookie") or \
+    (match and int(match.group(1)) in (store["lighthouse"].get("drops_cookie_of") or []))
+if match and jar.get("host") == host and not dropped:
     served = next((t for t in store["themes"] if t["id"] == int(match.group(1))), served)
 if served["role"] != "live" and "pb=0" not in urlsplit(url).query.split("&"):
     fail("fake pnpm: without ?pb=0 the unpublished theme's page also loads Shopify's preview bar")

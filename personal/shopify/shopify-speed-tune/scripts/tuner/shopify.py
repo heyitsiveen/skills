@@ -69,3 +69,54 @@ def delete(store, theme_id):
     if proc.returncode != 0:
         raise Failed("delete-failed", "deleting theme %s failed: %s"
                      % (theme_id, (proc.stderr or proc.stdout).strip()[-300:]))
+
+
+class Pushed:
+    """What a push did: `ok`, or `errors` ({path: [message]}, possibly empty when the
+    CLI gave only its warning), or `failure` when the CLI said nothing usable."""
+
+    def __init__(self, ok=False, errors=None, warning=None, failure=None):
+        self.ok = ok
+        self.errors = errors or {}
+        self.warning = warning
+        self.failure = failure
+
+
+def _json_line(text):
+    text = text.strip()
+    for candidate in [text] + [l for l in reversed(text.splitlines()) if l.startswith("{")]:
+        try:
+            found = json.loads(candidate)
+        except ValueError:
+            continue
+        if isinstance(found, dict):
+            return found
+    return None
+
+
+def push(store, theme_id, root, paths):
+    """Push exactly `paths` from the theme repo at `root` to theme `theme_id`.
+
+    Each path goes in its own `--only=`, so the CLI uploads it when the local file
+    differs and deletes it from the theme when the file is gone locally, and
+    touches nothing else (CLI 4.8.2: both sets pass the same --only filter). The
+    merchant's settings file is ignored as a second guard. The CLI exits 0 even
+    when files fail, so its JSON decides: success is the expected theme, still
+    unpublished, with neither `warning` nor `errors`.
+    """
+    proc = _cli(store, "push", "--theme", str(theme_id), "--path", root, "--json",
+                "--ignore=config/settings_data.json", *["--only=" + p for p in paths], timeout=600)
+    result = _json_line(proc.stdout)
+    theme = (result or {}).get("theme") if isinstance((result or {}).get("theme"), dict) else None
+    if proc.returncode != 0 or theme is None:
+        detail = (proc.stderr or proc.stdout).strip()
+        return Pushed(failure=detail.splitlines()[-1][:300] if detail else "no JSON")
+    if str(theme.get("id")) != str(theme_id) or theme.get("role") != "unpublished":
+        raise Failed("push-wrong-theme", "the CLI reports a push to theme %s (role %s), not to "
+                     "the unpublished theme %s" % (theme.get("id"), theme.get("role"), theme_id),
+                     "Stop the Rounds and show the developer this line: that theme may have "
+                     "changed.")
+    if theme.get("warning") or theme.get("errors"):
+        errors = theme.get("errors") if isinstance(theme.get("errors"), dict) else {}
+        return Pushed(errors=errors, warning=theme.get("warning") or "pushed with errors")
+    return Pushed(ok=True)

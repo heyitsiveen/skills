@@ -25,6 +25,8 @@ SMOKE_RESULTS = HERE / "fixtures" / "smoke" / "results.json"
 STORE_URL = "https://store.example/"
 MYSHOPIFY = "example-store.myshopify.com"
 LIVE_THEME = 100
+THEME_FOLDERS = ("assets", "blocks", "config", "layout", "locales", "sections", "snippets",
+                 "templates")
 # The asset folder the fixtures' theme requests come from: /cdn/shop/t/23/.
 CONTROL_ASSET_NUMBER = 23
 
@@ -54,17 +56,29 @@ class Result:
 
 
 class Sandbox:
-    def __init__(self, test):
+    def __init__(self, test, root=None):
         self.test = test
-        self.root = Path(tempfile.mkdtemp(prefix="speed-tune-test-"))
+        self.root = root or Path(tempfile.mkdtemp(prefix="speed-tune-test-"))
         test.addCleanup(shutil.rmtree, self.root, True)
         self.repo = self.root / "repo"
         self.tmp = self.root / "tmp"
-        self.tmp.mkdir()
         self.lock = self.root / "machine" / "speed-tune.lock"
         self.store_file = self.root / "store.json"
-        self.write_store(self.default_store())
-        self.make_repo(self.repo)
+        if root is None:
+            self.tmp.mkdir()
+            self.write_store(self.default_store())
+            self.make_repo(self.repo)
+
+    @classmethod
+    def restored(cls, test, root, frozen):
+        """A sandbox put back at `root` from the copy `frozen` taken of it.
+
+        Every path the ledger, the lock and the fake store hold lies under
+        `root`, so a copy restored at the same path is the same invocation.
+        """
+        shutil.rmtree(root, ignore_errors=True)
+        shutil.copytree(frozen, root, symlinks=True)
+        return cls(test, root)
 
     # -- the fake store ---------------------------------------------------
 
@@ -173,8 +187,28 @@ class Sandbox:
             text=True, stdin=subprocess.DEVNULL, timeout=120)
         return Result(completed)
 
+    def publish_repo(self, repo=None):
+        """Make the published theme hold the repo's theme files, as on a store whose
+        live theme is the repo's main branch."""
+        root = Path(repo) if repo else self.repo
+        files = {}
+        for folder in THEME_FOLDERS:
+            for path in sorted((root / folder).rglob("*")):
+                if path.is_file():
+                    files[path.relative_to(root).as_posix()] = path.read_text()
+        self.edit_store(lambda s: s.setdefault("files", {}).update({str(LIVE_THEME): files}))
+
+    def theme_files(self, theme_id):
+        """The files the fake store holds for one theme: {path: text}."""
+        return self.store().get("files", {}).get(str(theme_id), {})
+
+    def pushes(self):
+        """Every `theme push` the program made: [{theme, only, ignore}]."""
+        return self.store().get("pushes", [])
+
     def start(self, *extra, cwd=None):
         """Start an invocation that is expected to succeed; return its theme ids."""
+        self.publish_repo(cwd)
         result = self.run("start", "--store", STORE_URL, *extra, cwd=cwd)
         self.test.assertEqual(result.code, 0, result)
         themes = dict(re.findall(r"^START theme=(\w+) id=(\d+)", result.out, re.M))

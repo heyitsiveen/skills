@@ -88,44 +88,56 @@ def take(inv, args, url, theme, wanted, probe=None):
     `probe` (the Ceiling probe: blocked patterns and the LCP image they spare)
     passes through to Lighthouse and to the check of every report.
     """
-    data = inv.data
-    workspace = data["workspace"]
-    chrome = data["tools"].get("chrome", {}).get("path", "")
-    if not os.access(chrome, os.X_OK):
-        raise Refused("no-chrome", "the invocation's Chrome is missing at %r" % chrome,
-                      "It is downloaded by `start`; a finished invocation has none.")
-    store_url = data["store"]["url"]
-    cookie = storefront.preview_cookie(store_url, theme["id"])
-    measured = storefront.preview_url(url)
-    served = storefront.verify_theme(measured, cookie, theme["id"])
-    if theme.get("asset_path") and served != theme["asset_path"]:
-        raise Failed("preview-changed", "theme %s now serves %s, not %s"
-                     % (theme["id"], served, theme["asset_path"]))
-    secret = cookie.split("=", 1)[1]
-    output = os.path.join(workspace, "raw-sample.json")
+    cookie = preview(inv, theme, url)
     taken, attempts = 0, 0
     while taken < wanted and attempts < wanted + SPARE_ATTEMPTS:
         attempts += 1
-        if os.path.exists(output):
-            os.remove(output)
-        try:
-            with browser.Chrome(workspace, chrome) as session:
-                session.put_preview_cookie(store_url, cookie)
-                report = lighthouse.take(workspace, chrome, measured, args.device, session.port,
-                                         output, blocked=probe["patterns"] if probe else ())
-        except lighthouse.Rejected as rejection:
-            reject(inv, args, rejection.reason)
-            continue
-        finally:
-            if os.path.exists(output):
-                os.remove(output)
-        if record(inv, args, url, theme, report, source="lighthouse", secrets=(secret,),
-                  probe=probe) is not None:
+        if attempt(inv, args, url, theme, cookie, probe=probe) is not None:
             taken += 1
     return taken
 
 
-def record(inv, args, url, theme, report, source, secrets=(), probe=None):
+def preview(inv, theme, url):
+    """The theme's preview cookie, once the page has been read back as that theme's."""
+    data = inv.data
+    chrome = data["tools"].get("chrome", {}).get("path", "")
+    if not os.access(chrome, os.X_OK):
+        raise Refused("no-chrome", "the invocation's Chrome is missing at %r" % chrome,
+                      "It is downloaded by `start`; a finished invocation has none.")
+    cookie = storefront.preview_cookie(data["store"]["url"], theme["id"])
+    served = storefront.verify_theme(storefront.preview_url(url), cookie, theme["id"])
+    if theme.get("asset_path") and served != theme["asset_path"]:
+        raise Failed("preview-changed", "theme %s now serves %s, not %s"
+                     % (theme["id"], served, theme["asset_path"]))
+    return cookie
+
+
+def attempt(inv, args, url, theme, cookie, probe=None, extra=None):
+    """One Lighthouse run in a fresh copy of the invocation's Chrome: the recorded
+    Sample, or None when its report was rejected."""
+    data = inv.data
+    workspace = data["workspace"]
+    chrome = data["tools"]["chrome"]["path"]
+    output = os.path.join(workspace, "raw-sample.json")
+    if os.path.exists(output):
+        os.remove(output)
+    try:
+        with browser.Chrome(workspace, chrome) as session:
+            session.put_preview_cookie(data["store"]["url"], cookie)
+            report = lighthouse.take(workspace, chrome, storefront.preview_url(url), args.device,
+                                     session.port, output,
+                                     blocked=probe["patterns"] if probe else ())
+    except lighthouse.Rejected as rejection:
+        reject(inv, args, rejection.reason)
+        return None
+    finally:
+        if os.path.exists(output):
+            os.remove(output)
+    return record(inv, args, url, theme, report, source="lighthouse",
+                  secrets=(cookie.split("=", 1)[1],), probe=probe, extra=extra)
+
+
+def record(inv, args, url, theme, report, source, secrets=(), probe=None, extra=None):
     try:
         figures = lighthouse.check(report, storefront.preview_url(url), args.device,
                                    inv.data["tools"].get("lighthouse"), theme.get("asset_path"),
@@ -151,6 +163,7 @@ def record(inv, args, url, theme, report, source, secrets=(), probe=None):
         "chrome": build.group(0) if build else None,
         "axe": ((report.get("environment") or {}).get("credits") or {}).get("axe-core"),
     }
+    sample.update(extra or {})
     inv.data["samples"].append(sample)
     inv.log("sample", "%s recorded (%s %s %s %s)" % (sample_id, args.label, args.page,
                                                     args.device, args.theme))

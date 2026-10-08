@@ -50,10 +50,14 @@ def show_range(metric, low, high):
 
 
 def members(samples, label, page, url, device, theme):
-    """The Samples that make up one Measurement, in the order they were taken."""
+    """The Samples that make up one Measurement, in the order they were taken.
+
+    A discarded Sample (a pair's Control Sample whose Working Sample could not
+    be taken) stays in the ledger for the record but counts in no Measurement.
+    """
     return [s for s in samples
             if s["label"] == label and s["page"] == page and s["url"] == url
-            and s["device"] == device and s["theme"] == theme]
+            and s["device"] == device and s["theme"] == theme and not s.get("discarded")]
 
 
 BASELINE = "baseline"

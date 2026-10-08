@@ -7,12 +7,15 @@ them differentially, printing one SMOKE line per finding and a result line.
 
 --results records an existing results file instead of running the checker:
 the same checks and judgement, no browser.
+
+While a Round is open, the check belongs to it: its label is the Round's, and
+it runs only once the Working theme holds the Round's change as the tree has it.
 """
 
 import json
 import os
 
-from tuner import ledger, smoke, storefront
+from tuner import ledger, rounds, smoke, storefront
 from tuner.output import Failed, Refused, say
 
 ORDER = 40
@@ -20,8 +23,8 @@ ORDER = 40
 
 def register(sub):
     p = sub.add_parser("smoke", help="compare the Working theme with the Control theme on the three pages")
-    p.add_argument("--label", default="baseline",
-                   help="what the results belong to (default baseline)")
+    p.add_argument("--label",
+                   help="what the results belong to (default: the open Round, else baseline)")
     p.add_argument("--results", metavar="FILE",
                    help="record this smoke-checker results file instead of running the checker")
     p.set_defaults(run=run)
@@ -29,6 +32,14 @@ def register(sub):
 
 def run(args):
     inv = ledger.current("smoke")
+    rnd = rounds.current(inv)
+    if rnd is not None:
+        if args.label not in (None, rounds.label(rnd["n"])):
+            raise Refused("round-open", "Round %d is open, so the smoke check is its own, not %s"
+                          % (rnd["n"], args.label))
+        rounds.require_measurable(inv, rnd)
+        args.label = rounds.label(rnd["n"])
+    args.label = args.label or "baseline"
     if any(record["label"] == args.label for record in inv.data.get("smoke", [])):
         raise Refused("smoke-recorded", "the smoke check %s already has its result" % args.label,
                       "A label takes one result, so a failed check is never retried into a pass.")

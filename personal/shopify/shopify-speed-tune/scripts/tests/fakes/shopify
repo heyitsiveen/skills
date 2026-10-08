@@ -1,13 +1,30 @@
 #!/usr/bin/env python3
 """Fake Shopify CLI for the decision program's tests: a theme library kept in FAKE_STORE.
 
-It answers `theme list`, `theme duplicate` and `theme delete` the way CLI 4.8.2
-does, including its traps: duplicate exits 0 when it fails, and every command
-talks to whichever store `--store` names, so a missing or wrong store fails.
+It answers `theme list`, `theme duplicate`, `theme delete` and `theme push` the
+way CLI 4.8.2 does, including its traps: duplicate and push exit 0 when they
+fail, and every command talks to whichever store `--store` names, so a missing
+or wrong store fails.
+
+Each theme's files are kept in FAKE_STORE as {path: text}; a duplicate copies
+its source's. `push` follows the CLI's own source: `--theme` matches an id or a
+name, live themes first, and a live target needs `--allow-live`; every local
+theme file is read, and `--only`/`--ignore` filter both what is uploaded (a
+local file whose content differs) and what is deleted (a theme file missing
+locally). It answers with one JSON line whose `warning` and `errors` report the
+files that failed, as the real one does: the Shopify parser refuses a
+multi-line `{%- # … -%}` comment whose lines do not all start with `#`.
+
+It also holds the program to its contract: every push names a numeric theme,
+the repo's absolute path, exact `--only` paths and `--ignore
+config/settings_data.json`, asks for JSON, and never passes a flag that could
+reach the live theme or delete files beyond the named ones. Each push is
+recorded in FAKE_STORE's `pushes`, so a test can see every write.
 """
 
 import json
 import os
+import re
 import sys
 
 state_path = os.environ["FAKE_STORE"]
@@ -90,6 +107,8 @@ if command == "duplicate":
     store["next_theme_id"] += 1
     themes.append({"id": new_id, "name": flag("--name") or "Copy of " + source["name"],
                    "role": "unpublished", "processing": True})
+    files = store.setdefault("files", {})
+    files[str(new_id)] = dict(files.get(str(source["id"]), {}))
     numbers = store.setdefault("asset_numbers", {})
     numbers[str(new_id)] = store.get("next_asset_number", 50)
     store["next_asset_number"] = numbers[str(new_id)] + 1
@@ -108,8 +127,102 @@ if command == "delete":
         if match[0]["role"] == "live":
             fail("The published theme cannot be deleted")
         themes.remove(match[0])
+        store.get("files", {}).pop(wanted, None)
         print("The theme '%s' (#%s) was deleted." % (match[0]["name"], wanted))
     save()
+    sys.exit(0)
+
+# The local files `theme push` reads, as CLI 4.8.2 globs them (chunk-ZKWJX5GE `ts`).
+LOCAL = (r"assets/[^/]+\.[^/]+", r"config/[^/]+\.json", r"layout/[^/]+\.liquid",
+         r"locales/[^/]+\.json", r"sections/[^/]+\.(liquid|json)", r"blocks/[^/]+\.liquid",
+         r"snippets/[^/]+\.liquid", r"templates/(customers/)?[^/]+\.(liquid|json)")
+NEVER = ("--live", "-l", "--allow-live", "-a", "--publish", "-p", "--unpublished", "-u",
+         "--development", "-d", "--environment", "-e", "--nodelete", "-n", "--listing")
+
+
+def local_files(root):
+    found = {}
+    for folder, _, names in os.walk(root):
+        for name in names:
+            path = os.path.relpath(os.path.join(folder, name), root).replace(os.sep, "/")
+            if any(re.fullmatch(p, path) for p in LOCAL):
+                with open(os.path.join(folder, name), encoding="utf-8") as f:
+                    found[path] = f.read()
+    return found
+
+
+def parser_errors(text):
+    """What Shopify's Liquid parser says about a file: only the multi-line comment trap."""
+    for m in re.finditer(r"\{%-?\s*#(.*?)-?%\}", text, re.S):
+        inner = m.group(1).split("\n")[1:]
+        if any(line.strip() and not line.strip().startswith("#") for line in inner):
+            line = text[:m.start()].count("\n") + 1
+            return ["Liquid syntax error (line %d): Syntax error in tag '#' - Each line of "
+                    "comments must be prefixed by the '#' character" % line]
+    return []
+
+
+if command == "push":
+    for name in NEVER:
+        if name in args or any(a.startswith(name + "=") for a in args):
+            fail("fake shopify: the program must never pass %s to a push" % name, 2)
+    if "--json" not in args:
+        fail("fake shopify: the program must ask for --json", 2)
+    wanted = flag("--theme") or ""
+    if not wanted.isdigit():
+        fail("fake shopify: a push must name its theme by numeric id, got %r" % wanted, 2)
+    root = flag("--path") or ""
+    if not os.path.isabs(root) or not os.path.isfile(os.path.join(root, "layout", "theme.liquid")):
+        fail("fake shopify: --path must be the theme repo's absolute root, got %r" % root, 2)
+    only = flag("--only", many=True)
+    if not only:
+        fail("fake shopify: a push without --only deletes every file the store holds and the "
+             "repo does not", 2)
+    if any(re.search(r"[*?\[\]{}()!]", p) for p in only):
+        fail("fake shopify: --only takes exact paths; a pattern widens what is deleted", 2)
+    ignore = flag("--ignore", many=True)
+    if "config/settings_data.json" not in ignore:
+        fail("fake shopify: every push must --ignore config/settings_data.json", 2)
+    order = {"live": 0, "unpublished": 1, "development": 2}
+    matches = [t for t in sorted(themes, key=lambda t: order.get(t["role"], 3))
+               if str(t["id"]) == wanted or t["name"].lower() == wanted.lower()]
+    if not matches:
+        fail('No themes on the store %s match the ID or name "%s"'
+             % (store["shop"]["myshopify_domain"], wanted))
+    target = matches[0]
+    if target["role"] == "live":
+        fail("Failed to prompt: Push theme files to the live theme on %s? This usually happens "
+             "when running a command non-interactively" % store["shop"]["myshopify_domain"])
+    remote = store.setdefault("files", {}).setdefault(str(target["id"]), {})
+    local = local_files(root)
+    named = [p for p in only if p not in ignore]
+    failed = {}
+    for path in named:
+        if path in local:
+            if remote.get(path) == local[path]:
+                continue
+            problems = parser_errors(local[path]) if path.endswith(".liquid") else []
+            if path in store.get("fails_without_detail", []):
+                failed[path] = None
+            elif problems:
+                failed[path] = problems
+            else:
+                remote[path] = local[path]
+        elif path in remote:
+            del remote[path]
+    store.setdefault("pushes", []).append({"theme": target["id"], "only": only, "ignore": ignore})
+    save()
+    domain = store["shop"]["myshopify_domain"]
+    out = {"environment": "default", "theme": {
+        "id": target["id"], "name": target["name"], "role": target["role"], "shop": domain,
+        "editor_url": "https://%s/admin/themes/%d/editor" % (domain, target["id"]),
+        "preview_url": "https://%s?preview_theme_id=%d" % (domain, target["id"])}}
+    if failed:
+        out["theme"]["warning"] = "[default] The theme '%s' was pushed with errors" % target["name"]
+        detail = {p: e for p, e in failed.items() if e}
+        if detail:
+            out["theme"]["errors"] = detail
+    print(json.dumps(out))
     sys.exit(0)
 
 fail("fake shopify: unsupported theme command %r" % command, 2)
