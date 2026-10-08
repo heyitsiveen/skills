@@ -229,13 +229,15 @@ class Sandbox:
 
     def publish_repo(self, repo=None):
         """Make the published theme hold the repo's theme files, as on a store whose
-        live theme is the repo's main branch."""
+        live theme is the repo's main branch. A file that is not UTF-8 is kept the way
+        the fake CLI reads it."""
         root = Path(repo) if repo else self.repo
         files = {}
         for folder in THEME_FOLDERS:
             for path in sorted((root / folder).rglob("*")):
                 if path.is_file():
-                    files[path.relative_to(root).as_posix()] = path.read_text()
+                    files[path.relative_to(root).as_posix()] = path.read_bytes().decode(
+                        "utf-8", "surrogateescape")
         self.edit_store(lambda s: s.setdefault("files", {}).update({str(LIVE_THEME): files}))
 
     def theme_files(self, theme_id):

@@ -8,9 +8,23 @@ such change is flagged for the report.
 """
 
 import json
+import struct
 import unittest
+import zlib
 
-from round_support import THEME, approved, opened, write
+from round_support import LATIN1_LIBRARY, THEME, approved, opened, write
+
+READS_THE_AGENT = b"var mobile = /Mobi/.test(navigator.userAgent);\n"
+
+
+def png_saying(text):
+    """A one-pixel PNG whose text chunk says `text`, as an image optimiser may write one."""
+    def chunk(kind, data):
+        return (struct.pack(">I", len(data)) + kind + data
+                + struct.pack(">I", zlib.crc32(kind + data)))
+    return (b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", 1, 1, 8, 2, 0, 0, 0))
+            + chunk(b"tEXt", b"Comment\x00" + text.encode("latin-1"))
+            + chunk(b"IDAT", zlib.compress(b"\x00\xff\xff\xff")) + chunk(b"IEND", b""))
 
 
 class ARefusedChangeWritesNothing(unittest.TestCase):
@@ -63,6 +77,23 @@ class ARefusedChangeWritesNothing(unittest.TestCase):
         self.assertEqual(result.lines("REFUSED"), [
             "REFUSED detection: assets/swiper-bundle.min.js line 1 adds navigator.userAgent"])
 
+    def test_a_new_file_that_is_not_utf8_is_read_too(self):
+        (self.box.repo / "assets" / "lightbox.js").write_bytes(LATIN1_LIBRARY + READS_THE_AGENT)
+
+        result = self.push_refused()
+
+        self.assertEqual(result.lines("REFUSED"), [
+            "REFUSED detection: assets/lightbox.js line 3 adds navigator.userAgent"])
+
+    def test_a_change_to_a_file_that_is_not_utf8_is_read_too(self):
+        update = LATIN1_LIBRARY.replace(b"1.4 \xa9 2014", b"1.5 \xa9 2016")
+        (self.box.repo / "assets" / "carousel.js").write_bytes(update + READS_THE_AGENT)
+
+        result = self.push_refused()
+
+        self.assertEqual(result.lines("REFUSED"), [
+            "REFUSED detection: assets/carousel.js line 3 adds navigator.userAgent"])
+
     def test_detection_in_an_inline_script_of_a_liquid_file_is_refused(self):
         write(self.box, "snippets/image.liquid", THEME["snippets/image.liquid"] +
               "<script>if (navigator.userAgent.indexOf('Lighthouse') > -1) {}</script>\n")
@@ -89,6 +120,16 @@ class WhatAChangeMayDo(unittest.TestCase):
 
         self.assertEqual(result.code, 0, result)
         self.assertEqual(result.lines("CHANGE"), ["CHANGE D assets/slider.js"])
+
+    def test_an_image_is_not_read_as_text(self):
+        box = opened(self)
+        (box.repo / "assets" / "hero.png").write_bytes(
+            png_saying("Optimized with PageSpeed Insights"))
+
+        result = box.run("push")
+
+        self.assertEqual(result.code, 0, result)
+        self.assertEqual(result.lines("CHANGE"), ["CHANGE A assets/hero.png"])
 
     def test_a_template_json_change_is_flagged_for_the_report(self):
         box = opened(self)

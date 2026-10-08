@@ -30,15 +30,18 @@ def record(box, op, page, reports, *extra):
 
 def measured(test, *start_args, theme_files=None, pre_commit=None):
     """A started invocation with the three pages set and their baseline mobile
-    Measurements complete. `theme_files` ({path: text}) are committed to the
-    client repo before the invocation starts, and `pre_commit` becomes its
+    Measurements complete. `theme_files` ({path: text or bytes}) are committed to
+    the client repo before the invocation starts, and `pre_commit` becomes its
     pre-commit hook."""
     box = Sandbox(test)
     if theme_files:
         for path, text in theme_files.items():
             target = box.repo / path
             target.parent.mkdir(parents=True, exist_ok=True)
-            target.write_text(text)
+            if isinstance(text, bytes):
+                target.write_bytes(text)
+            else:
+                target.write_text(text)
         box.git(box.repo, "add", "-A")
         box.git(box.repo, "commit", "-q", "-m", "theme files")
     if pre_commit:

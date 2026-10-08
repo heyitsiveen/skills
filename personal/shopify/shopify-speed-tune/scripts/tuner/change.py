@@ -22,6 +22,8 @@ THEME_FOLDERS = ("assets", "blocks", "config", "layout", "locales", "sections", 
                  "templates")
 # Template JSON and section groups: page content the merchant edits in the theme editor.
 TEMPLATE_JSON = re.compile(r"templates/.+\.json|sections/[^/]+\.json")
+# How far git looks for a NUL byte before it calls a file binary.
+BINARY_PROBE = 8000
 
 # Ways a page can tell Lighthouse, its emulated phone or its platform from a
 # visitor, after Shopify's guide to fake performance apps. Liquid cannot see the
@@ -64,19 +66,25 @@ def is_template_json(path):
 
 
 def added_lines(root, base, status, path):
-    """[(line number, text)] the change adds to `path`: every line of a new file."""
+    """[(line number, text)] the change adds to `path`: every line of a new file.
+
+    A file is binary, as git decides, when a NUL byte comes in its first 8000:
+    an image or a font has no line to read. Any other file is text, whatever its
+    encoding: bytes that are not UTF-8, as in a Latin-1 library, read as U+FFFD,
+    so every ASCII word the detection looks for still reads.
+    """
     full = os.path.join(root, path)
     if status == "D" or not os.path.isfile(full):
         return []
     tracked = repo.git(root, "cat-file", "-e", "%s:%s" % (base, path)).returncode == 0
     if not tracked:
-        try:
-            with open(full, encoding="utf-8") as f:
-                return list(enumerate(f.read().splitlines(), 1))
-        except UnicodeDecodeError:
-            return []  # an image or a font: no line to read
+        with open(full, "rb") as f:
+            data = f.read()
+        if b"\0" in data[:BINARY_PROBE]:
+            return []
+        return list(enumerate(data.decode("utf-8", "replace").splitlines(), 1))
     diff = repo.git(root, "diff", "-U0", "--no-color", "--no-ext-diff", "--no-textconv",
-                    base, "--", path).stdout
+                    base, "--", path, errors="replace").stdout
     out, number = [], 0
     for line in diff.splitlines():
         hunk = re.match(r"@@ -\S+ \+(\d+)", line)

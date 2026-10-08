@@ -22,12 +22,16 @@ ASSET_FOLDERS = {"working": "/cdn/shop/t/22/", "control": "/cdn/shop/t/23/"}
 
 LAZY = '<img src="{{ image | image_url: width: 800 }}" loading="lazy">\n'
 EAGER = '<img src="{{ image | image_url: width: 800 }}" loading="eager" fetchpriority="high">\n'
+# A vendored library saved in Latin-1, as older ones often are: its © is one byte that is
+# not UTF-8.
+LATIN1_LIBRARY = "/*! Carousel 1.4 © 2014 */\nwindow.Carousel = function () {};\n".encode("latin-1")
 
 THEME = {
     "snippets/image.liquid": LAZY,
     "assets/theme.js": "document.documentElement.classList.add('js');\n",
     # A vendored library that reads the user agent, as Golden's swiper bundle does.
     "assets/slider.js": "window.Slider = function () { return /Mobi/.test(navigator.userAgent); };\n",
+    "assets/carousel.js": LATIN1_LIBRARY,
     "templates/index.json": json.dumps({"sections": {"hero": {"type": "hero"}},
                                         "order": ["hero"]}, indent=2) + "\n",
     "sections/header-group.json": json.dumps({"type": "header", "name": "Header group",

@@ -18,11 +18,13 @@ def require(tool):
     return path
 
 
-def run(argv, cwd=None, env=None, timeout=120):
+def run(argv, cwd=None, env=None, timeout=120, errors=None):
+    """The finished child, its output as text; `errors="replace"` reads bytes that are not
+    UTF-8 rather than failing on them."""
     require(argv[0])
     try:
         return subprocess.run(argv, cwd=cwd, env=env, stdin=subprocess.DEVNULL,
-                              capture_output=True, text=True, timeout=timeout)
+                              capture_output=True, text=True, errors=errors, timeout=timeout)
     except subprocess.TimeoutExpired:
         raise Failed("timeout", "`%s` did not finish within %d s" % (argv[0], timeout))
 

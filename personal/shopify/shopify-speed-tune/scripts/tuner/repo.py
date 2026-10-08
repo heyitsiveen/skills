@@ -37,8 +37,8 @@ def myshopify(value):
     return host
 
 
-def git(path, *args):
-    return run(["git", *args], cwd=path)
+def git(path, *args, errors=None):
+    return run(["git", *args], cwd=path, errors=errors)
 
 
 def git_version(path):

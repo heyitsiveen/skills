@@ -153,7 +153,9 @@ def local_files(root):
         for name in names:
             path = os.path.relpath(os.path.join(folder, name), root).replace(os.sep, "/")
             if any(re.fullmatch(p, path) for p in LOCAL):
-                with open(os.path.join(folder, name), encoding="utf-8") as f:
+                # Any bytes: an image, or a library that is not UTF-8.
+                with open(os.path.join(folder, name), encoding="utf-8",
+                          errors="surrogateescape") as f:
                     found[path] = f.read()
     return found
 
