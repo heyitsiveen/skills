@@ -15,19 +15,7 @@ import signal
 import subprocess
 import time
 
-
-def _ps(field, pid):
-    try:
-        proc = subprocess.run(["ps", "-o", field + "=", "-p", str(pid)], stdin=subprocess.DEVNULL,
-                              capture_output=True, text=True, timeout=10)
-    except (OSError, subprocess.TimeoutExpired):
-        return ""
-    return proc.stdout.strip()
-
-
-def _alive(pid):
-    state = _ps("stat", pid)
-    return bool(state) and not state.startswith("Z")
+from tuner import processes
 
 
 def hold():
@@ -40,30 +28,31 @@ def hold():
                                 stderr=subprocess.DEVNULL, start_new_session=True)
     except OSError:
         return None
-    started = _ps("lstart", proc.pid)
+    started = processes.field(proc.pid, "lstart")
     if not started:
         return None
     return {"pid": proc.pid, "started": started}
 
 
 def running(held):
-    """True while the process `hold` started still runs."""
-    return bool(held) and _alive(held["pid"]) and _ps("lstart", held["pid"]) == held["started"]
+    """True while the process `hold` started still runs: its pid, started when it was."""
+    return bool(held) and processes.alive(held["pid"]) and \
+        processes.field(held["pid"], "lstart") == held["started"]
 
 
 def release(held):
     """Stop the held process by its pid; True when this call stopped it."""
     if not held or held.get("released"):
         return False
-    pid = held["pid"]
-    if not _alive(pid) or _ps("lstart", pid) != held["started"]:
+    if not running(held):
         held["released"] = "already gone"
         return False
+    pid = held["pid"]
     os.kill(pid, signal.SIGTERM)
     deadline = time.monotonic() + 5
-    while _alive(pid) and time.monotonic() < deadline:
+    while processes.alive(pid) and time.monotonic() < deadline:
         time.sleep(0.05)
-    if _alive(pid) and _ps("lstart", pid) == held["started"]:
+    if running(held):
         os.kill(pid, signal.SIGKILL)
     held["released"] = "stopped"
     return True

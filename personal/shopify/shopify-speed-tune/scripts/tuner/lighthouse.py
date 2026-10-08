@@ -12,11 +12,9 @@ import json
 import os
 import re
 import shutil
-import signal
 import subprocess
-import time
 
-from tuner import tools
+from tuner import processes, tools
 from tuner.proc import require
 
 # The seven figures a Measurement reports, in report order.
@@ -31,6 +29,12 @@ AUDITS = {
 # Dropped before a report is kept: images, translations, and the request
 # headers, which carry the preview cookie.
 HEAVY_AUDITS = ("screenshot-thumbnails", "final-screenshot", "full-page-screenshot")
+# How long one Sample may run before it is cut off and rejected.
+SECONDS = 300
+
+
+def seconds():
+    return int(os.environ.get("SPEED_TUNE_SAMPLE_SECONDS", SECONDS))
 
 
 class Rejected(Exception):
@@ -106,7 +110,7 @@ def keepable(report, secrets=()):
     return text
 
 
-def take(workspace, chrome, url, device, port, output, timeout=300, blocked=()):
+def take(workspace, chrome, url, device, port, output, blocked=()):
     """One Sample: the pinned Lighthouse through pnpm's on-demand runner, driving
     the invocation's Chrome already running at `port`, with `blocked` URL
     patterns for a Ceiling Sample.
@@ -134,11 +138,12 @@ def take(workspace, chrome, url, device, port, output, timeout=300, blocked=()):
     proc = subprocess.Popen(argv, cwd=workspace, env=env, stdin=subprocess.DEVNULL,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,
                             start_new_session=True)
+    timeout = seconds()
     try:
         _, err = proc.communicate(timeout=timeout)
     except subprocess.TimeoutExpired:
-        _kill_group(proc.pid)
-        _kill_new_chrome(before, chrome)
+        processes.kill_group(proc.pid)
+        _stop_launched_chrome(before, chrome)
         proc.communicate()
         raise Rejected("timeout after %d s" % timeout)
     if not os.path.isfile(output):
@@ -152,17 +157,19 @@ def take(workspace, chrome, url, device, port, output, timeout=300, blocked=()):
 
 # If the Chrome at the port died, chrome-launcher starts its own in a process
 # group of its own, so killing Lighthouse would leave it running. Its throwaway
-# profile (lighthouse.XXXXXXX.*) holds the pid. Only a profile that appeared
-# during this Sample, whose process runs this invocation's own Chrome binary, is
-# killed: never a process found by name.
+# profile, made by `mktemp -d -t lighthouse.XXXXXXX`, holds the pid. Only a
+# profile that appeared during this Sample, whose process runs this invocation's
+# own Chrome binary, is stopped: never a process found by name.
 
 def _launcher_root():
+    """Where `mktemp -d -t` makes its folder: the Darwin user temp folder on a Mac, else
+    TMPDIR, else /tmp."""
     try:
         out = subprocess.run(["getconf", "DARWIN_USER_TEMP_DIR"], capture_output=True,
                              text=True, stdin=subprocess.DEVNULL).stdout.strip()
     except OSError:
         out = ""
-    return out or "/tmp"
+    return out or os.environ.get("TMPDIR") or "/tmp"
 
 
 def _launcher_profiles():
@@ -173,29 +180,8 @@ def _launcher_profiles():
         return set()
 
 
-def _kill_group(pid):
-    try:
-        os.killpg(pid, signal.SIGKILL)
-    except OSError:
-        pass
-
-
-def _runs(pid, binary):
-    command = subprocess.run(["ps", "-o", "command=", "-p", str(pid)], capture_output=True,
-                             text=True, stdin=subprocess.DEVNULL).stdout
-    return bool(binary) and binary in command
-
-
-def _kill_new_chrome(before, chrome):
+def _stop_launched_chrome(before, chrome):
     root = _launcher_root()
     for name in _launcher_profiles() - before:
-        try:
-            with open(os.path.join(root, name, "chrome.pid"), encoding="utf-8") as f:
-                pid = int(f.read().strip())
-        except (OSError, ValueError):
-            continue
-        if not _runs(pid, chrome):
-            continue
-        _kill_group(pid)
-        time.sleep(0.5)
-        shutil.rmtree(os.path.join(root, name), ignore_errors=True)
+        if processes.stop_recorded(os.path.join(root, name, "chrome.pid"), chrome) is not None:
+            shutil.rmtree(os.path.join(root, name), ignore_errors=True)

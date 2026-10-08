@@ -16,7 +16,9 @@ at `--port` with the preview cookie in its jar (never in a header, which would
 reach every third-party host), an unpublished theme's page is loaded with
 `?pb=0`, the URL comes first and error reporting is off. Blocked URL patterns
 fail the requests they match, by Chrome's own rule, and are recorded in the
-report's settings as Lighthouse records them.
+report's settings as Lighthouse records them. FAKE_STORE's lighthouse `hang`
+and `chrome_lost` play a page that never settles, the second with the Chrome
+at `--port` gone, so chrome-launcher starts a Chrome of its own.
 """
 
 import json
@@ -26,6 +28,7 @@ import shutil
 import stat
 import subprocess
 import sys
+import tempfile
 import time
 from urllib.parse import urlsplit
 
@@ -150,6 +153,36 @@ port = value("--port")
 if not port:
     fail("fake pnpm: no --port, so Lighthouse would start its own Chrome with an empty cookie jar")
 registry = os.path.join(os.path.dirname(state_path), "chromes")
+
+
+def mktemp_folder():
+    """Where `mktemp -d -t` makes its folder: the Darwin user temp folder, else TMPDIR, else /tmp."""
+    try:
+        found = subprocess.run(["getconf", "DARWIN_USER_TEMP_DIR"], capture_output=True,
+                               text=True).stdout.strip()
+    except OSError:
+        found = ""
+    return found or os.environ.get("TMPDIR") or "/tmp"
+
+
+# chrome_lost: the Chrome at --port is gone, so chrome-launcher starts one of its own from
+# CHROME_PATH, in a session of its own, with a throwaway profile `lighthouse.XXXXXXX` made by
+# `mktemp -d -t` holding its pid; and the page never settles. Each profile is listed in the
+# sandbox's `launcher-profiles`.
+if store["lighthouse"].get("chrome_lost"):
+    profile = tempfile.mkdtemp(prefix="lighthouse.", dir=mktemp_folder())
+    with open(os.path.join(os.path.dirname(state_path), "launcher-profiles"), "a",
+              encoding="utf-8") as f:
+        f.write(profile + "\n")
+    own = subprocess.Popen([chrome, "--headless=new", "--remote-debugging-port=0",
+                            "--user-data-dir=" + profile], stdin=subprocess.DEVNULL,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           start_new_session=True)
+    with open(os.path.join(profile, "chrome.pid"), "w", encoding="utf-8") as f:
+        f.write("%d" % own.pid)
+    time.sleep(600)
+    fail("fake pnpm: the page never settled")
+
 try:
     with open(os.path.join(registry, port), encoding="utf-8") as f:
         chrome_pid = json.load(f)["pid"]

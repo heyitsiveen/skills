@@ -19,12 +19,11 @@ cookie reaches the Node helpers on stdin, never on a command line.
 
 import os
 import shutil
-import signal
 import subprocess
 import tempfile
 import time
 
-from tuner import tools
+from tuner import processes, tools
 from tuner.output import Failed
 from tuner.proc import require
 
@@ -125,10 +124,7 @@ class Chrome:
             # A leader that was never reaped still owns its pid, so the group
             # cannot belong to anyone else; one already reaped is left alone.
             if self.proc.returncode is None:
-                try:
-                    os.killpg(self.proc.pid, signal.SIGKILL)
-                except OSError:
-                    pass
+                processes.kill_group(self.proc.pid)
             try:
                 self.proc.wait(timeout=10)
             except subprocess.TimeoutExpired:
@@ -151,21 +147,6 @@ class Chrome:
                          % last_line(proc.stderr or proc.stdout))
 
 
-def _ps(pid, field):
-    try:
-        # -ww: the whole command line, however long, on macOS and Linux alike
-        return subprocess.run(["ps", "-ww", "-o", field + "=", "-p", str(pid)],
-                              stdin=subprocess.DEVNULL, capture_output=True, text=True,
-                              timeout=10).stdout.strip()
-    except (OSError, subprocess.TimeoutExpired):
-        return ""
-
-
-def _alive(pid):
-    state = _ps(pid, "stat")
-    return bool(state) and not state.startswith("Z")
-
-
 def stop_leftovers(workspace, binary):
     """Stop each Chrome of this invocation that its job never stopped; return their pids.
 
@@ -180,24 +161,9 @@ def stop_leftovers(workspace, binary):
         names = sorted(os.listdir(profiles))
     except OSError:
         return []
-    stopped = []
-    for name in names:
-        try:
-            with open(os.path.join(profiles, name, PID_FILE), encoding="utf-8") as f:
-                pid = int(f.read().strip())
-        except (OSError, ValueError):
-            continue
-        if not binary or not _alive(pid) or binary not in _ps(pid, "command"):
-            continue
-        try:
-            os.killpg(pid, signal.SIGKILL)
-        except OSError:
-            continue
-        deadline = time.monotonic() + 10
-        while _alive(pid) and time.monotonic() < deadline:
-            time.sleep(0.1)
-        stopped.append(pid)
-    return stopped
+    stopped = (processes.stop_recorded(os.path.join(profiles, name, PID_FILE), binary)
+               for name in names)
+    return [pid for pid in stopped if pid is not None]
 
 
 def running_from(folder, wait=5.0):
@@ -209,17 +175,8 @@ def running_from(folder, wait=5.0):
     names = {folder, os.path.realpath(folder)}
     deadline = time.monotonic() + wait
     while True:
-        try:
-            listing = subprocess.run(["ps", "-A", "-ww", "-o", "pid=", "-o", "command="],
-                                     stdin=subprocess.DEVNULL, capture_output=True, text=True,
-                                     timeout=10).stdout
-        except (OSError, subprocess.TimeoutExpired):
-            listing = ""
-        found = []
-        for line in listing.splitlines():
-            pid, _, command = line.strip().partition(" ")
-            if pid.isdigit() and int(pid) != os.getpid() and any(n in command for n in names):
-                found.append((int(pid), command.strip()))
+        found = [(pid, command) for pid, command in processes.listing()
+                 if pid != os.getpid() and any(n in command for n in names)]
         if not found or time.monotonic() > deadline:
             return found
         time.sleep(0.2)

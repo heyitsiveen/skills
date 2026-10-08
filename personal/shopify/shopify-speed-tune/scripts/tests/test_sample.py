@@ -8,8 +8,14 @@ editing the one field that breaks it.
 
 import json
 import os
+import shutil
+import signal
+import sys
+import tempfile
 import unittest
+from pathlib import Path
 
+import support
 from support import Sandbox, read_report, report
 
 
@@ -183,6 +189,58 @@ class TakingASample(unittest.TestCase):
         self.assertEqual(result.code, 0, result)
         self.assertEqual(len(result.lines("SAMPLE")), 5)
         self.assertRegex(result.out, r"(?m)^MEASUREMENT baseline home mobile control n=5 ")
+
+
+def cutting_ps(test):
+    """A folder holding a `ps` that cuts each line it prints at 80 columns unless asked for
+    whole lines with -ww, as some Linux builds do when their output is piped."""
+    folder = Path(tempfile.mkdtemp(prefix="speed-tune-ps-"))
+    test.addCleanup(shutil.rmtree, folder, True)
+    stand_in = folder / "ps"
+    stand_in.write_text(
+        "#!%s\n"
+        "import subprocess, sys\n"
+        "done = subprocess.run([%r] + sys.argv[1:], capture_output=True, text=True)\n"
+        "out = done.stdout\n"
+        "if '-ww' not in sys.argv[1:]:\n"
+        "    out = '\\n'.join(line[:80] for line in out.split('\\n'))\n"
+        "sys.stdout.write(out)\n"
+        "sys.stderr.write(done.stderr)\n"
+        "sys.exit(done.returncode)\n" % (sys.executable, shutil.which("ps")))
+    stand_in.chmod(0o755)
+    return str(folder)
+
+
+class ASampleCutOffAtItsTimeLimit(unittest.TestCase):
+    """When the invocation's Chrome is gone, Lighthouse's chrome-launcher starts a Chrome of
+    its own, in a session of its own, so stopping Lighthouse leaves it running."""
+
+    def test_stops_the_chrome_lighthouse_started_for_itself(self):
+        box = Sandbox(self)
+        box.start()
+        box.edit_store(lambda s: s["lighthouse"].update(chrome_lost=True))
+        self.addCleanup(self.clear_launcher_profiles, box)
+
+        result = box.run("sample", "--page", "home", "--device", "mobile", "--count", "1",
+                         env={"SPEED_TUNE_SAMPLE_SECONDS": "1",
+                              "PATH": cutting_ps(self) + os.pathsep + box.env()["PATH"]})
+
+        self.assertEqual(result.code, 1, result)
+        self.assertIn("SAMPLE rejected home mobile control: timeout after 1 s", result.lines("SAMPLE"))
+        launched = [c for c in box.chromes_started() if "lighthouse." in c["profile"]]
+        self.assertEqual(len(launched), 3, "one Chrome of Lighthouse's own per attempt")
+        for chrome in box.chromes_started():
+            self.assertFalse(support.running(chrome["pid"]), "Chrome %d still runs" % chrome["pid"])
+
+    @staticmethod
+    def clear_launcher_profiles(box):
+        """What a failing run of this test would leave: Lighthouse's own Chromes and profiles."""
+        for chrome in box.chromes_started():
+            if support.running(chrome["pid"]):
+                os.kill(chrome["pid"], signal.SIGKILL)
+        listed = box.root / "launcher-profiles"
+        for profile in (listed.read_text().split() if listed.exists() else []):
+            shutil.rmtree(profile, ignore_errors=True)
 
 
 if __name__ == "__main__":
