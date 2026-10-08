@@ -261,41 +261,54 @@ class ARoundWithNoPairs(unittest.TestCase):
 
 
 class TheCommitHookTheInvocationStartedWith(unittest.TestCase):
-    """`start` records the client repo's pre-commit hook: passed, absent, or failing already
-    and bypassed with the developer's approval."""
+    """`start` records the client repo's pre-commit hook: passed, absent, or already failing
+    and bypassed with the developer's approval (`--no-verify-approved`)."""
 
-    def hook(self, box, status, detail):
-        ledger = next((box.repo / ".agent" / "shopify-speed-tune").glob("*/ledger.json"))
-        data = json.loads(ledger.read_text())
-        data["hook"] = {"status": status, "detail": detail}
-        ledger.write_text(json.dumps(data))
-
-    def test_a_bypass_is_told_to_the_team_with_the_hooks_own_words(self):
-        box = ran(self, "reached")
-        self.hook(box, "bypass-approved", "theme check: 3 offenses in snippets/legacy.liquid")
-
-        _, text = written(self, box)
+    def test_a_bypass_is_told_to_the_team_with_what_the_hook_said(self):
+        _, text = written(self, ran(self, "hook-bypassed"))
 
         changed = section(text, "### What changed")
-        self.assertIn("The kept Rounds were committed with `--no-verify`", changed)
-        self.assertIn("theme check: 3 offenses in snippets/legacy.liquid", changed)
+        self.assertIn("The kept Rounds were committed with `--no-verify`: the repo's pre-commit "
+                      "hook already failed before this invocation, and the developer approved the "
+                      "bypass for it", changed)
+        self.assertIn("733 problems found in 412 files", changed)
 
     def test_a_hook_that_passed_is_only_in_the_detail_log(self):
-        box = ran(self, "reached")
-        self.hook(box, "passed", "lint-staged: 0 problems")
-
-        _, text = written(self, box)
+        _, text = written(self, ran(self, "hook-passed"))
 
         self.assertNotIn("--no-verify", text)
-        self.assertIn("- **Commit hook.** passed: lint-staged: 0 problems",
+        self.assertIn("- **Commit hook.** passed: The pre-commit hook .git/hooks/pre-commit "
+                      "passes on the unchanged repo, so every keep commit runs it.",
                       text.split("\n## Detail log\n", 1)[1])
 
     def test_a_ledger_from_before_the_hook_check_says_it_was_not_recorded(self):
         box = ran(self, "reached")
+        ledger = next((box.repo / ".agent" / "shopify-speed-tune").glob("*/ledger.json"))
+        data = json.loads(ledger.read_text())
+        del data["hook"]
+        ledger.write_text(json.dumps(data))
 
         _, text = written(self, box)
 
-        self.assertIn("- **Commit hook.** not recorded", text.split("\n## Detail log\n", 1)[1])
+        self.assertIn("- **Commit hook.** not recorded.", text.split("\n## Detail log\n", 1)[1])
+
+
+class ARoundTheSmokeCheckRemovedBeforeItsPairs(unittest.TestCase):
+    def setUp(self):
+        _, self.text = written(self, ran(self, "smoke-removed"))
+
+    def test_is_told_to_the_team_as_removed_without_being_measured(self):
+        self.assertIn("- **P1. Load the hero image eagerly.** Removed in Round 1 without being "
+                      "measured, because the smoke check found something broken that works on "
+                      "the Control theme.", section(self.text, "### What changed"))
+
+    def test_shows_its_failed_smoke_check_and_no_pairs_in_the_detail_log(self):
+        first = section(self.text.split("\n## Detail log\n", 1)[1], "#### Round 1: P1, removed")
+
+        self.assertIn("- **Pairs.** Not measured.", first)
+        self.assertIn("- **Smoke check.** round-1 result fail: 2 regressions", first)
+        self.assertIn("round-1 product regression add-to-cart: control pass, working fail", first)
+        self.assertNotIn("| Page | Pair |", first)
 
 
 class AReportAfterAnEarlyStop(unittest.TestCase):

@@ -24,9 +24,9 @@ import tempfile
 from pathlib import Path
 
 from plan_support import PAGES
-from round_support import (ASSET_FOLDERS, NEUTRAL, WIN_4, apply_item, approved, checked, measure,
-                           write)
-from support import Sandbox, read_report
+from round_support import (ASSET_FOLDERS, ITEMS, NEUTRAL, WIN_4, add_to_cart_fails, apply_item,
+                           approved, checked, measure, write)
+from support import FAILING_HOOK, Sandbox, read_report
 
 # The developer's PageSpeed scores: home 11 above its baseline median (a warning),
 # collection 3 below, product 3 above.
@@ -76,12 +76,13 @@ def desktop(box, op, theme, scores):
 
 
 def round_of(box, item, gains, apply=None, smoke=None):
-    """Open a Round for `item`, make its change, push it, measure and check it, and decide."""
+    """Open a Round for `item`, make its change and push it, smoke-check it, take its pairs
+    when the check passed, and decide."""
     run(box, "round", "--item", item)
     (apply or (lambda b: apply_item(b, item)))(box)
     run(box, "push")
-    measure(box, gains)
-    checked(box, smoke)
+    if checked(box, smoke).lines("SMOKE")[-1].endswith("result pass"):
+        measure(box, gains)
     return run(box, "verdict")
 
 
@@ -116,8 +117,24 @@ def first_unmeasured(box):
     round_of(box, "P2", PAST_THE_TARGETS)
 
 
-SCENARIOS = {"reached": reached, "missed": missed, "none-kept": none_kept,
-             "first-unmeasured": first_unmeasured}
+def smoke_removed(box):
+    """P1's smoke check finds add to cart broken, so it is removed before any pair; P2 is
+    then kept past every target."""
+    round_of(box, "P1", {}, smoke=add_to_cart_fails)
+    round_of(box, "P2", PAST_THE_TARGETS)
+
+
+# Each scenario: the `start` arguments and the repo's pre-commit hook it is approved
+# with, and the Rounds it runs.
+SCENARIOS = {
+    "reached": ((), None, reached),
+    "missed": ((), None, missed),
+    "none-kept": ((), None, none_kept),
+    "first-unmeasured": ((), None, first_unmeasured),
+    "smoke-removed": ((), None, smoke_removed),
+    "hook-passed": ((), "exit 0\n", reached),
+    "hook-bypassed": (("--no-verify-approved",), FAILING_HOOK, reached),
+}
 FROZEN = {}
 
 
@@ -127,10 +144,11 @@ def ran(test, scenario):
     if scenario in FROZEN:
         root, frozen = FROZEN[scenario]
         return Sandbox.restored(test, root, frozen)
-    box = approved(test)
+    start_args, pre_commit, rounds = SCENARIOS[scenario]
+    box = approved(test, ITEMS, *start_args, pre_commit=pre_commit)
     run(box, "psi", *sum((["--%s" % page, str(score)] for page, score in PSI.items()), []))
     desktop(box, "sample", "control", DESKTOP_BEFORE)
-    SCENARIOS[scenario](box)
+    rounds(box)
     test.assertTrue(box.run("status").lines("STOP"), "the Rounds must have stopped")
     desktop(box, "final", "working", DESKTOP_AFTER)
     frozen = Path(tempfile.mkdtemp(prefix="speed-tune-frozen-"))
