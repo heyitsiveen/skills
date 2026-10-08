@@ -59,7 +59,7 @@ class SettingThePages(unittest.TestCase):
 
         self.assertEqual(result.lines("SAMPLE"), [
             "SAMPLE rejected collection mobile control: wrong-page "
-            "https://store.example/products/example-product"])
+            "https://store.example/products/example-product?pb=0"])
 
     def test_a_path_that_is_not_a_collection_is_refused(self):
         result = self.box.run("pages", "--collection", "/pages/about-us")

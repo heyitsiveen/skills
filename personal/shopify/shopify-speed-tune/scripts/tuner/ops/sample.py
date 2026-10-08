@@ -1,9 +1,11 @@
 """sample: add Samples to one Measurement, by taking them or from report files.
 
 Taking a Sample runs the pinned Lighthouse through pnpm's on-demand runner on
-the invocation's Chrome. A Sample of an unpublished theme carries that theme's
-preview cookie on the plain page URL, and the served theme is read back before
-the first Sample and checked in every report.
+a fresh copy of the invocation's Chrome whose cookie jar holds the theme's
+preview cookie for the store's host alone (tuner.browser). The page loads from
+its own URL plus `?pb=0`, which keeps Shopify's preview bar out: never the
+preview query parameter, never a redirect. The served theme is read back
+before the first Sample and checked in every report.
 
 With no --count, it takes Samples until the Measurement holds five, so a call
 that is cut off part-way is finished by running it again. --report records
@@ -14,7 +16,7 @@ import json
 import os
 import re
 
-from tuner import ledger, lighthouse, stats, storefront
+from tuner import browser, ledger, lighthouse, stats, storefront
 from tuner.output import Failed, Refused, say
 
 ORDER = 30
@@ -86,45 +88,40 @@ def take(inv, args, url, theme, wanted):
     if not os.access(chrome, os.X_OK):
         raise Refused("no-chrome", "the invocation's Chrome is missing at %r" % chrome,
                       "It is downloaded by `start`; a finished invocation has none.")
-    cookie = storefront.preview_cookie(data["store"]["url"], theme["id"])
-    served = storefront.verify_theme(url, cookie, theme["id"])
+    store_url = data["store"]["url"]
+    cookie = storefront.preview_cookie(store_url, theme["id"])
+    measured = storefront.preview_url(url)
+    served = storefront.verify_theme(measured, cookie, theme["id"])
     if theme.get("asset_path") and served != theme["asset_path"]:
         raise Failed("preview-changed", "theme %s now serves %s, not %s"
                      % (theme["id"], served, theme["asset_path"]))
-    secrets = os.path.join(workspace, "secrets")
-    os.makedirs(secrets, mode=0o700, exist_ok=True)
-    flags = os.path.join(secrets, "flags-%s.json" % args.theme)
-    try:
-        with open(os.open(flags, os.O_WRONLY | os.O_CREAT | os.O_TRUNC, 0o600), "w",
-                  encoding="utf-8") as f:
-            json.dump({"extraHeaders": {"Cookie": cookie}}, f)
-        taken, attempts = 0, 0
-        while taken < wanted and attempts < wanted + SPARE_ATTEMPTS:
-            attempts += 1
-            output = os.path.join(workspace, "raw-sample.json")
+    secret = cookie.split("=", 1)[1]
+    output = os.path.join(workspace, "raw-sample.json")
+    taken, attempts = 0, 0
+    while taken < wanted and attempts < wanted + SPARE_ATTEMPTS:
+        attempts += 1
+        if os.path.exists(output):
+            os.remove(output)
+        try:
+            with browser.Chrome(workspace, chrome) as session:
+                session.put_preview_cookie(store_url, cookie)
+                report = lighthouse.take(workspace, chrome, measured, args.device, session.port,
+                                         output)
+        except lighthouse.Rejected as rejection:
+            reject(inv, args, rejection.reason)
+            continue
+        finally:
             if os.path.exists(output):
                 os.remove(output)
-            try:
-                report = lighthouse.take(workspace, chrome, url, args.device, flags, output)
-            except lighthouse.Rejected as rejection:
-                reject(inv, args, rejection.reason)
-                continue
-            finally:
-                if os.path.exists(output):
-                    os.remove(output)
-            if record(inv, args, url, theme, report, source="lighthouse",
-                      secrets=(cookie.split("=", 1)[1],)) is not None:
-                taken += 1
-        return taken
-    finally:
-        if os.path.exists(flags):
-            os.remove(flags)
+        if record(inv, args, url, theme, report, source="lighthouse", secrets=(secret,)) is not None:
+            taken += 1
+    return taken
 
 
 def record(inv, args, url, theme, report, source, secrets=()):
     try:
-        figures = lighthouse.check(report, url, args.device, inv.data["tools"].get("lighthouse"),
-                                   theme.get("asset_path"))
+        figures = lighthouse.check(report, storefront.preview_url(url), args.device,
+                                   inv.data["tools"].get("lighthouse"), theme.get("asset_path"))
     except lighthouse.Rejected as rejection:
         reject(inv, args, rejection.reason)
         return None

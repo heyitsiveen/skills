@@ -4,12 +4,13 @@ Both run through pnpm's on-demand runner with the pnpm store and cache pointed
 inside the invocation's temp workspace, so nothing is installed globally and
 cleanup is one folder removal. The developer's own browser never runs a Sample.
 
-The two versions are pinned together: Chrome for Testing 154.0.8037.57 is the
+The versions are pinned together: Chrome for Testing 154.0.8037.57 is the
 build puppeteer-core 25.12.0 pins, and Lighthouse 13.5.0 depends on that same
-puppeteer-core, so one download serves Lighthouse and the smoke checker.
-Lighthouse 13 is the major version PageSpeed Insights runs.
+puppeteer-core, so one download serves Lighthouse, the jar helper and the smoke
+checker. Lighthouse 13 is the major version PageSpeed Insights runs.
 """
 
+import json
 import os
 import shutil
 import subprocess
@@ -22,6 +23,7 @@ LIGHTHOUSE = "13.5.0"
 CHROME_BUILD = "154.0.8037.57"
 CHROME_MAJOR = CHROME_BUILD.split(".")[0]
 BROWSERS_CLI = "@puppeteer/browsers@3.2.3"
+PUPPETEER = "25.12.0"
 CFT_DOMAIN = "com.google.chrome.for.testing"
 
 
@@ -38,6 +40,37 @@ def pnpm_env(workspace, **extra):
         PNPM_CONFIG_DLX_CACHE_MAX_AGE="10080",
         BREAKPAD_DUMP_LOCATION=os.path.join(workspace, "crashpad"),
         **extra)
+
+
+def node_project(workspace):
+    """The Node project in the workspace that holds puppeteer-core for the Node helpers."""
+    return os.path.join(workspace, "node")
+
+
+def install_puppeteer(workspace):
+    """puppeteer-core for the jar helper and the smoke checker, into the workspace.
+
+    It is an ordinary project dependency of a throwaway project inside the
+    workspace, installed through the workspace's own pnpm store, so removing the
+    workspace removes it.
+    """
+    project = node_project(workspace)
+    os.makedirs(project, exist_ok=True)
+    with open(os.path.join(project, "package.json"), "w", encoding="utf-8") as f:
+        json.dump({"name": "speed-tune-browser", "private": True, "type": "module"}, f)
+        f.write("\n")
+    proc = run(["pnpm", "add", "--save-exact", "puppeteer-core@" + PUPPETEER],
+               cwd=project, env=pnpm_env(workspace), timeout=600)
+    installed = os.path.join(project, "node_modules", "puppeteer-core", "package.json")
+    try:
+        with open(installed, encoding="utf-8") as f:
+            version = json.load(f).get("version")
+    except (OSError, ValueError):
+        version = None
+    if proc.returncode != 0 or version != PUPPETEER:
+        raise Failed("puppeteer-install", "puppeteer-core@%s did not install: %s"
+                     % (PUPPETEER, (proc.stderr or proc.stdout).strip()[-300:]))
+    return version
 
 
 def install_chrome(workspace):

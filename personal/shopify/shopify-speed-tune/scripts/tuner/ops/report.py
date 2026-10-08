@@ -89,9 +89,9 @@ def render(inv):
         "",
         "Each figure is the median of five Samples, with their range in brackets. Mobile is "
         "Lighthouse's emulated phone with simulated throttling; desktop is its desktop preset. "
-        "The Control theme is measured through its preview cookie on the plain page URL, so "
-        "every Sample also loads Shopify's preview bar and a page rendered without the "
-        "storefront cache: these figures read lower than the published store's.",
+        "The Control theme is measured through its preview cookie, on each page's URL with "
+        "`?pb=0` so Shopify's preview bar stays out. A preview is still rendered without the "
+        "storefront cache, so these figures read lower than the published store's.",
         "",
         "| Page | Device | %s |" % " | ".join(COLUMNS),
         "|---|---|%s" % ("---|" * len(COLUMNS)),

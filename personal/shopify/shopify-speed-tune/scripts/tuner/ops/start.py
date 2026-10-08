@@ -4,7 +4,8 @@ Refuses, changing nothing, when the store is not the repo's, when another
 invocation is unfinished on this machine, or when the theme library has no
 room for two themes. Then it takes the machine lock, opens the ledger, creates
 the invocation's branch, duplicates the published theme into the Working theme
-and the Control theme, downloads Chrome for Testing and pins Lighthouse.
+and the Control theme, downloads Chrome for Testing, pins Lighthouse and
+installs puppeteer-core for the browser helpers.
 
 Each thing it creates is written to the ledger the moment it exists, so a
 failure part-way leaves a ledger that `finish --discard` can clean up from.
@@ -136,6 +137,10 @@ def prepare(inv, store, published):
     inv.log("start", "pinned lighthouse %s and chrome %s" % (tools.LIGHTHOUSE, tools.CHROME_BUILD))
     inv.save()
     say("START", "lighthouse=%s" % data["tools"]["lighthouse"])
+    data["tools"]["puppeteer"] = tools.install_puppeteer(workspace)
+    inv.log("start", "installed puppeteer-core %s in the workspace" % tools.PUPPETEER)
+    inv.save()
+    say("START", "puppeteer-core=%s" % data["tools"]["puppeteer"])
 
 
 def live_theme(library):

@@ -32,6 +32,16 @@ class StoreMustMatchTheRepo(unittest.TestCase):
         for theme_id in themes.values():
             self.assertEqual(library[theme_id]["role"], "unpublished")
 
+    def test_start_installs_puppeteer_core_for_the_browser_helpers_in_its_workspace(self):
+        box = Sandbox(self)
+
+        _, result = box.start()
+
+        self.assertIn("START puppeteer-core=25.12.0", result.lines("START"))
+        workspaces = [p for p in box.tmp.iterdir() if p.name.startswith("shopify-speed-tune-")]
+        self.assertEqual(len(workspaces), 1)
+        self.assertTrue((workspaces[0] / "node" / "node_modules" / "puppeteer-core").is_dir())
+
 
 class BothThemesMustPreview(unittest.TestCase):
     def test_a_store_that_refuses_to_share_a_preview_stops_start(self):

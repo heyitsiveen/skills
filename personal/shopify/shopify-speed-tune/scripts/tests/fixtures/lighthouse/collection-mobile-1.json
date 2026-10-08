@@ -1,8 +1,8 @@
 {
  "lighthouseVersion": "13.5.0",
- "requestedUrl": "https://store.example/collections/example-collection",
- "mainDocumentUrl": "https://store.example/collections/example-collection",
- "finalDisplayedUrl": "https://store.example/collections/example-collection",
+ "requestedUrl": "https://store.example/collections/example-collection?pb=0",
+ "mainDocumentUrl": "https://store.example/collections/example-collection?pb=0",
+ "finalDisplayedUrl": "https://store.example/collections/example-collection?pb=0",
  "fetchTime": "2026-10-07T21:31:20.862Z",
  "runWarnings": [
   "The page loaded too slowly to finish within the time limit. Results may be incomplete."

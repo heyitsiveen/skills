@@ -1,8 +1,9 @@
 """Scaffolding for the decision program's tests.
 
 Each test gets a Sandbox: a throwaway client theme repo, a fake store behind
-fake `shopify`, `curl` and `pnpm` executables placed first on the path, and its
-own machine lock and temp dir. The program is driven only through its command
+fake `shopify`, `curl`, `pnpm` and `node` executables placed first on the path
+(pnpm installs a stand-in Chrome for Testing), and its own machine lock and
+temp dir. The program is driven only through its command
 line, the way the skill drives it.
 """
 
@@ -102,6 +103,24 @@ class Sandbox:
 
     def theme_ids(self):
         return {t["id"] for t in self.store()["themes"]}
+
+    # -- the invocation's workspace and its browsers ----------------------
+
+    def workspace(self):
+        found = [p for p in self.tmp.iterdir() if p.name.startswith("shopify-speed-tune-")]
+        self.test.assertEqual(len(found), 1, "one invocation workspace expected")
+        return found[0]
+
+    def chromes_started(self):
+        """Every stand-in Chrome the program started: its pid and profile."""
+        registry = self.root / "chromes"
+        if not registry.is_dir():
+            return []
+        return [json.loads(p.read_text()) for p in sorted(registry.iterdir()) if p.name.isdigit()]
+
+    def secrets_seen(self):
+        """Every preview cookie value the fake store handed out, as it would appear anywhere."""
+        return ["fake-%d-cookie" % t["id"] for t in self.store()["themes"]]
 
     # -- client theme repos -----------------------------------------------
 

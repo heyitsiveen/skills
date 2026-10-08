@@ -92,6 +92,16 @@ def fetch(url, cookie=None, timeout=30):
     return response
 
 
+def preview_url(url):
+    """The URL an unpublished theme's page is loaded from: the page URL plus `pb=0`.
+
+    With the preview cookie, the plain URL renders the theme but also injects
+    Shopify's preview bar; `pb=0` leaves the bar out, and unlike
+    `preview_theme_id` it adds no redirect.
+    """
+    return url + ("&" if "?" in url else "?") + "pb=0"
+
+
 SHARING = "/services/access_tokens/create_sharing/"
 
 

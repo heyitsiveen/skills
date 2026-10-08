@@ -23,7 +23,7 @@ Each guardrail below protects something the developer relies on:
 
 - **Customers see only what the developer publishes.** The program is the only thing that writes to the store, and it writes only to the two themes it created. Leave every `shopify theme` command to it, push no branch, publish nothing.
 - **A refusal is an answer.** On `REFUSED` or `FAILED`, follow the step's instruction for that line, or stop and show the developer the line with its `NOTE`s. The ledger, the lock and the program stay as they are.
-- **The preview cookie stays inside the program.** It fetches every preview itself; leave the workspace's `secrets/` folder unopened.
+- **The preview cookie stays inside the program.** It fetches each theme's cookie itself and gives it only to its own test Chrome, for the store's host alone. An unpublished theme's page loads from its own URL plus `?pb=0`, which keeps Shopify's preview bar out without the redirect `preview_theme_id` would add to every load.
 - **The developer's other work keeps running.** Leave stopping processes to the program, which kills only the Chrome it started, and leave the Shopify CLI logged in.
 
 This version runs four steps: Preflight → Baseline → Report → Cleanup. It changes no theme code.
@@ -32,7 +32,7 @@ This version runs four steps: Preflight → Baseline → Report → Cleanup. It 
 
 Run `start --store <store-url>`, adding `--score <n>` when the developer gave one. Allow it 10 minutes.
 
-It refuses, changing nothing, unless the store is the one this repo's `shopify.theme.toml` names, no other invocation is unfinished on this Mac, and the theme library has room for two more themes. Then it takes the machine lock, creates the branch `speed-tune/<invocation>`, duplicates the published theme into the Working theme and the Control theme, checks that both preview, downloads Chrome for Testing into a temp workspace and pins Lighthouse 13.5.0.
+It refuses, changing nothing, unless the store is the one this repo's `shopify.theme.toml` names, no other invocation is unfinished on this Mac, and the theme library has room for two more themes. Then it takes the machine lock, creates the branch `speed-tune/<invocation>`, duplicates the published theme into the Working theme and the Control theme, checks that both preview, downloads Chrome for Testing into a temp workspace, pins Lighthouse 13.5.0 and installs puppeteer-core beside them.
 
 **Done when** the output ends with `START ready`.
 
@@ -65,10 +65,10 @@ Run `report`. It writes the baseline report to `.agent/shopify-speed-tune/<invoc
 
 ## 4. Cleanup
 
-Run `finish`. It deletes the Control theme, keeps the Working theme, puts the repo back on the branch it started from while keeping `speed-tune/<invocation>`, restores Chrome for Testing's preferences, removes the temp workspace with Chrome in it, and releases the lock. Run it after a stop in any step too: whatever exists, it cleans up.
+Run `finish`. It deletes the Control theme, keeps the Working theme, puts the repo back on the branch it started from while keeping `speed-tune/<invocation>`, restores Chrome for Testing's preferences, removes the temp workspace with Chrome and puppeteer-core in it, and releases the lock. Run it after a stop in any step too: whatever exists, it cleans up.
 
 **Done when** the output ends with `FINISH done`. Tell the developer what stays: the Working theme from the `FINISH working-theme kept` line, and the branch.
 
 ## Files
 
-Everything the invocation keeps is in `.agent/shopify-speed-tune/<invocation>/` in the theme repo, kept out of git through `.git/info/exclude`: `ledger.json`, the program's record of the invocation; `samples/`, each Sample's Lighthouse report with the cookie and screenshots removed; and `report.md`. Chrome, the pnpm store and the cookie files live in a temp workspace that `finish` deletes. The machine lock is `~/Library/Caches/shopify-speed-tune.lock`.
+Everything the invocation keeps is in `.agent/shopify-speed-tune/<invocation>/` in the theme repo, kept out of git through `.git/info/exclude`: `ledger.json`, the program's record of the invocation; `samples/`, each Sample's Lighthouse report without its screenshots; and `report.md`. Chrome, puppeteer-core and the pnpm store live in a temp workspace that `finish` deletes. The machine lock is `~/Library/Caches/shopify-speed-tune.lock`.

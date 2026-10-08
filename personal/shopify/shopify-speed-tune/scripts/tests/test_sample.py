@@ -7,9 +7,18 @@ editing the one field that breaks it.
 """
 
 import json
+import os
 import unittest
 
 from support import Sandbox, read_report, report
+
+
+def running(pid):
+    try:
+        os.kill(pid, 0)
+    except ProcessLookupError:
+        return False
+    return True
 
 
 def write_variant(box, name, change):
@@ -64,6 +73,16 @@ class RecordingASampleFromAReportFile(unittest.TestCase):
         self.assertEqual(result.lines("SAMPLE"), [
             "SAMPLE rejected home mobile control: redirected https://store.example/password"])
 
+    def test_a_report_of_the_page_with_shopifys_preview_bar_is_rejected(self):
+        with_bar = write_variant(self.box, "home-mobile-4", lambda r: r.update(
+            requestedUrl="https://store.example/", mainDocumentUrl="https://store.example/"))
+
+        result = self.box.run("sample", "--page", "home", "--device", "mobile", "--report", with_bar)
+
+        self.assertEqual(result.code, 1, result)
+        self.assertEqual(result.lines("SAMPLE"), [
+            "SAMPLE rejected home mobile control: wrong-page https://store.example/"])
+
     def test_a_report_from_another_lighthouse_version_is_rejected(self):
         older = write_variant(self.box, "home-mobile-5",
                               lambda r: r.update(lighthouseVersion="12.8.2"))
@@ -97,9 +116,10 @@ class RecordingASampleFromAReportFile(unittest.TestCase):
 
 class TakingASample(unittest.TestCase):
     """The fake pnpm stands in for `pnpm dlx lighthouse@13.5.0` and holds the program
-    to the real contract: an isolated pnpm store, the invocation's own Chrome, the
-    URL first, the cookie in a flags file. It serves the theme the cookie selects,
-    and the preview query parameter redirects, as a real store does."""
+    to the real contract: an isolated pnpm store, the invocation's own Chrome already
+    running at `--port` with the preview cookie in its jar and in no header, `?pb=0`
+    on an unpublished theme's page, the URL first. It serves the theme the jar's
+    cookie selects, and the preview query parameter redirects, as a real store does."""
 
     def setUp(self):
         self.box = Sandbox(self)
@@ -120,12 +140,31 @@ class TakingASample(unittest.TestCase):
         self.assertRegex(result.out, r"(?m)^SAMPLE s0001 baseline home desktop control \| "
                                      r"performance 88 \| ")
 
-    def test_a_control_theme_sample_carries_its_preview_cookie_on_the_plain_url(self):
+    def test_a_control_theme_sample_carries_its_preview_cookie_in_the_browsers_jar(self):
         result = self.box.run("sample", "--page", "home", "--device", "mobile", "--count", "2")
 
         self.assertEqual(result.code, 0, result)
         self.assertEqual(len(result.lines("SAMPLE")), 2)
         self.assertEqual(result.lines("FAILED"), [])
+
+    def test_each_sample_gets_a_chrome_of_its_own_stopped_and_deleted_after_it(self):
+        self.box.run("sample", "--page", "home", "--device", "mobile", "--count", "2")
+
+        started = self.box.chromes_started()
+        self.assertEqual(len(started), 2)
+        for chrome in started:
+            self.assertFalse(running(chrome["pid"]), "Chrome %d still runs" % chrome["pid"])
+            self.assertFalse(os.path.exists(chrome["profile"]), "its profile is still there")
+
+    def test_the_preview_cookie_reaches_no_report_ledger_or_output(self):
+        result = self.box.run("sample", "--page", "home", "--device", "mobile", "--count", "1")
+
+        self.assertEqual(result.code, 0, result)
+        folder = self.box.repo / ".agent" / "shopify-speed-tune"
+        kept = "".join(p.read_text() for p in folder.rglob("*") if p.is_file())
+        for secret in self.box.secrets_seen():
+            self.assertNotIn(secret, kept)
+            self.assertNotIn(secret, result.out + result.err)
 
     def test_a_sample_that_lost_the_cookie_measured_the_published_theme_and_is_rejected(self):
         self.box.edit_store(lambda s: s["lighthouse"].update(drops_cookie=True))

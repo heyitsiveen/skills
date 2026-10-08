@@ -101,24 +101,29 @@ def keepable(report, secrets=()):
     return text
 
 
-def take(workspace, chrome, url, device, flags_file, output, timeout=300):
-    """One Sample: the pinned Lighthouse through pnpm's on-demand runner, on the
-    invocation's Chrome, with the theme's preview cookie in a flags file.
+def take(workspace, chrome, url, device, port, output, timeout=300, blocked=()):
+    """One Sample: the pinned Lighthouse through pnpm's on-demand runner, driving
+    the invocation's Chrome already running at `port`, with `blocked` URL
+    patterns for a Ceiling Sample.
 
-    The URL goes first: Lighthouse's array flags swallow any argument after them.
-    Returns the parsed report, or raises Rejected.
+    That Chrome holds the theme's preview cookie in its jar (tuner.browser), so
+    Lighthouse is given no cookie at all. The URL goes first: Lighthouse's array
+    flags swallow any argument after them. Returns the parsed report, or raises
+    Rejected.
     """
     require("pnpm")
     argv = ["pnpm", "dlx", "--silent", "lighthouse@" + tools.LIGHTHOUSE, url,
-            "--cli-flags-path=" + flags_file,
+            "--port=%d" % port,
             "--only-categories=performance,accessibility",
             "--output=json", "--output-path=" + output,
-            "--chrome-flags=--headless=new",
             "--quiet", "--no-enable-error-reporting",
             "--skip-audits=bf-cache,modern-http-insight",
             "--disable-full-page-screenshot"]
     if device == "desktop":
         argv.append("--preset=desktop")
+    argv += ["--blocked-url-patterns=" + pattern for pattern in blocked]
+    # CHROME_PATH matters only if the Chrome at `port` has died: chrome-launcher
+    # then starts one of its own, and it must be this one, never the developer's.
     env = tools.pnpm_env(workspace, CHROME_PATH=chrome)
     before = _launcher_profiles()
     proc = subprocess.Popen(argv, cwd=workspace, env=env, stdin=subprocess.DEVNULL,
@@ -140,10 +145,11 @@ def take(workspace, chrome, url, device, flags_file, output, timeout=300):
     return report
 
 
-# chrome-launcher starts Chrome in its own process group, so killing Lighthouse
-# leaves Chrome running. Its throwaway profile (lighthouse.XXXXXXX.*) holds the
-# pid. Only a profile that appeared during this Sample, whose process runs this
-# invocation's own Chrome binary, is killed: never a process found by name.
+# If the Chrome at the port died, chrome-launcher starts its own in a process
+# group of its own, so killing Lighthouse would leave it running. Its throwaway
+# profile (lighthouse.XXXXXXX.*) holds the pid. Only a profile that appeared
+# during this Sample, whose process runs this invocation's own Chrome binary, is
+# killed: never a process found by name.
 
 def _launcher_root():
     try:

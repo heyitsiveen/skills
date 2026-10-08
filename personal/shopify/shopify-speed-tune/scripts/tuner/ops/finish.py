@@ -2,7 +2,7 @@
 
 Deletes the Control theme, puts the repo back on the branch the invocation
 started from, restores Chrome for Testing's preferences, removes the temp
-workspace (Chrome, the pnpm store, every cookie file), marks the ledger
+workspace (Chrome, puppeteer-core, the pnpm store), marks the ledger
 finished and releases the machine lock. Each step is recorded as it completes,
 so a `finish` that stops part-way can simply be run again.
 
@@ -46,7 +46,7 @@ def run(args):
     if workspace and os.path.isdir(workspace) and \
             os.path.basename(workspace).startswith("shopify-speed-tune-"):
         shutil.rmtree(workspace)
-        say("FINISH", "workspace removed", "(Chrome, pnpm store, cookie files)")
+        say("FINISH", "workspace removed", "(Chrome, puppeteer-core, the pnpm store)")
 
     data["state"] = "finished"
     data["finished_at"] = ledger.now()
