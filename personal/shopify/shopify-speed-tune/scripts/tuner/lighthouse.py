@@ -138,7 +138,7 @@ def take(workspace, chrome, url, device, port, output, blocked=()):
     argv += ["--blocked-url-patterns=" + pattern for pattern in blocked]
     # CHROME_PATH matters only if the Chrome at `port` has died: chrome-launcher
     # then starts one of its own, and it must be this one, never the developer's.
-    env = tools.pnpm_env(workspace, CHROME_PATH=chrome)
+    env = tools.workspace_env(workspace, CHROME_PATH=chrome)
     before = _launcher_profiles()
     proc = subprocess.Popen(argv, cwd=workspace, env=env, stdin=subprocess.DEVNULL,
                             stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True,

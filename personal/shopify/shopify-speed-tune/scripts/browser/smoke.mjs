@@ -26,7 +26,7 @@
  */
 
 import { readFileSync, writeFileSync } from 'node:fs';
-import { connect, guarded, options, putPreviewCookie, readStdin } from './preview.mjs';
+import { connect, guarded, options, putPreviewCookie, readStdin } from './shared.mjs';
 
 const PAGES = ['home', 'collection', 'product'];
 const ROLES = ['control', 'working'];

@@ -87,7 +87,7 @@ class Chrome:
         self.profile = tempfile.mkdtemp(prefix="chrome-", dir=profiles)
         argv = [self.binary, *LAUNCHER_FLAGS, "--headless=new",
                 "--user-data-dir=" + self.profile, "--remote-debugging-port=0", "about:blank"]
-        self.proc = subprocess.Popen(argv, env=tools.pnpm_env(self.workspace),
+        self.proc = subprocess.Popen(argv, env=tools.workspace_env(self.workspace),
                                      stdin=subprocess.DEVNULL, stdout=subprocess.DEVNULL,
                                      stderr=subprocess.DEVNULL, start_new_session=True)
         # Deleted with the profile when this Chrome stops; left behind, it is how `finish`
@@ -185,7 +185,7 @@ def running_from(folder, wait=5.0):
 def node(workspace, script, *args, stdin="", timeout=120):
     """Run one of the Node helpers beside this package, on the workspace's puppeteer-core."""
     require("node")
-    env = tools.pnpm_env(workspace, SPEED_TUNE_NODE_PROJECT=tools.node_project(workspace))
+    env = tools.workspace_env(workspace, SPEED_TUNE_NODE_PROJECT=tools.node_project(workspace))
     try:
         return subprocess.run(["node", os.path.join(NODE_SCRIPTS, script), *args],
                               input=stdin, env=env, cwd=workspace, capture_output=True,

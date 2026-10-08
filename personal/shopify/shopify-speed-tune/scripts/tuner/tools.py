@@ -30,11 +30,13 @@ PUPPETEER = "25.12.0"
 CFT_DOMAIN = "com.google.chrome.for.testing"
 
 
-def pnpm_env(workspace, **extra):
-    """The environment every pnpm child gets: an isolated store and cache.
+def workspace_env(workspace, **extra):
+    """The environment of every child that runs from the workspace: pnpm, Lighthouse, the
+    Node helpers and Chrome itself, all kept inside it.
 
-    BREAKPAD_DUMP_LOCATION moves Chrome's crash database into the workspace;
-    without it every launch writes under ~/Library/Application Support.
+    pnpm gets a store and a cache of its own there. BREAKPAD_DUMP_LOCATION moves
+    Chrome's crash database there too; without it every launch writes under
+    ~/Library/Application Support.
     """
     return child_env(
         PNPM_CONFIG_STORE_DIR=os.path.join(workspace, "pnpm", "store"),
@@ -63,7 +65,7 @@ def install_puppeteer(workspace):
         json.dump({"name": "speed-tune-browser", "private": True, "type": "module"}, f)
         f.write("\n")
     proc = run(["pnpm", "add", "--save-exact", "puppeteer-core@" + PUPPETEER],
-               cwd=project, env=pnpm_env(workspace), timeout=600)
+               cwd=project, env=workspace_env(workspace), timeout=600)
     installed = os.path.join(project, "node_modules", "puppeteer-core", "package.json")
     try:
         with open(installed, encoding="utf-8") as f:
@@ -80,7 +82,7 @@ def install_chrome(workspace):
     target = os.path.join(workspace, "chrome")
     proc = run(["pnpm", "dlx", BROWSERS_CLI, "install", "chrome@" + CHROME_BUILD,
                 "--path", target, "--format", "{{path}}"],
-               cwd=workspace, env=pnpm_env(workspace), timeout=900)
+               cwd=workspace, env=workspace_env(workspace), timeout=900)
     lines = proc.stdout.strip().splitlines()
     path = lines[-1].strip() if lines else ""
     if proc.returncode != 0 or not os.access(path, os.X_OK):
@@ -91,7 +93,7 @@ def install_chrome(workspace):
 
 def pin_lighthouse(workspace):
     proc = run(["pnpm", "dlx", "lighthouse@" + LIGHTHOUSE, "--version"],
-               cwd=workspace, env=pnpm_env(workspace), timeout=600)
+               cwd=workspace, env=workspace_env(workspace), timeout=600)
     version = proc.stdout.strip().splitlines()[-1].strip() if proc.stdout.strip() else ""
     if proc.returncode != 0 or version != LIGHTHOUSE:
         raise Failed("lighthouse-pin", "lighthouse@%s did not run: %s"

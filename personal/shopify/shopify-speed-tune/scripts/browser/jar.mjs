@@ -9,7 +9,7 @@
  * store's host only. Prints `JAR <host>` once the jar holds it.
  */
 
-import { connect, guarded, options, putPreviewCookie, readStdin } from './preview.mjs';
+import { connect, guarded, options, putPreviewCookie, readStdin } from './shared.mjs';
 
 await guarded(async () => {
   const { port, store } = options(process.argv.slice(2), ['port', 'store']);
