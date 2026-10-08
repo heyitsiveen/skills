@@ -12,10 +12,11 @@ Then it reads back what it leaves, rather than trusting its own steps: the
 theme library must list no Control theme and still the Working theme, the repo
 must hold the branch, nothing may run from the workspace, which must be gone,
 Chrome for Testing's preferences must hold what they held before the
-invocation, and the lock must be free. Only then does it print `FINISH done`. Anything left
-fails it with `cleanup-incomplete`, keeping the invocation open, so `finish`
-can simply be run again once it is dealt with. Each step is recorded as it
-completes, so a `finish` that stops part-way is finished by running it again.
+invocation, and the lock must be free. Only then does it print `FINISH done`.
+Anything left fails it with `cleanup-incomplete`, keeping the invocation open,
+so `finish` can simply be run again once it is dealt with. Each step is
+recorded as it completes, so a `finish` that stops part-way is finished by
+running it again.
 
 `--discard` is for an invocation no Round kept anything in, such as a `start`
 that failed part-way: it deletes the Working theme too, and the branch when the
