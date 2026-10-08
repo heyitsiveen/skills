@@ -97,7 +97,7 @@ After approval the Rounds run without the developer until a `STOP` line. Each Ro
 1. **Open.** Run `round`. **Done when** it prints `ROUND <n> opened item=<id>` with that item's `PLAN item` line. When the Rounds are over it prints a `TARGET` line per page and a `STOP` line instead: go to step 5, Report. On `REFUSED`, stop and show the developer.
 2. **Apply.** Make the change the `PLAN item` line describes, in the theme files, and nothing beyond it. It stays uncommitted until its verdict. Write it as theme code that treats every visitor alike:
    - theme files only, with `config/settings_data.json` left as the merchant set it: going live would overwrite their edits
-   - apps, app embeds, app blocks and tags left as they are: the smoke check catches a lost app block
+   - every app, app embed, app block and tag left on or off as the merchant set it: never switch one, and the smoke check catches a lost app block. Code an uninstalled app left behind in the theme files is theme code: an item may remove it like any other dead code
    - no code that reads the user agent, `navigator.platform` or `navigator.webdriver`, and no theme file that names Lighthouse, PageSpeed or a test device, comments included: `push` refuses the change. Vendored libraries get no exception: a change that adds, updates or moves one that reads the user agent, such as a slider bundle, is refused like the theme's own code, so leave it as it is, or delete it when the item removes it
    - files the repo's `.shopifyignore` matches left alone: the CLI skips them without a word, so `push` refuses them
    - template JSON only when the item needs it; the program flags each template JSON change for the report
