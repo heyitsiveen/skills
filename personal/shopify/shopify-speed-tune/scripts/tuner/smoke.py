@@ -101,8 +101,9 @@ def judge(pages):
                 judgement.findings.append(("new error", "%s new-error liquid: %s" % (page, text)))
         present = Counter(app_block_key(block) for block in working.get("app_blocks") or [])
         for block in control.get("app_blocks") or []:
-            if present[app_block_key(block)]:
-                present[app_block_key(block)] -= 1
+            key = app_block_key(block)
+            if present[key]:
+                present[key] -= 1
             else:
                 judgement.findings.append(("missing app block", "%s missing-app-block: %s"
                                            % (page, block)))
