@@ -369,6 +369,25 @@ class AnInvocationWithoutItsFinalDesktopMeasurement(unittest.TestCase):
                       section(text, "### Performance by page"))
 
 
+REFERENCE = Path(__file__).resolve().parents[2] / "references" / "team-summary-format.md"
+
+
+def headings(text):
+    """The report's parts and sections, in order: every `##` and `###` heading."""
+    return re.findall(r"(?m)^#{2,3} .+$", text)
+
+
+class TheReferenceDescribesTheReport(unittest.TestCase):
+    """references/team-summary-format.md describes each section of the report under the
+    report's own heading, in the report's order, so neither can change without the other."""
+
+    def test_names_every_part_and_section_the_report_writes_in_its_order(self):
+        # The missed scenario writes every section, the conditional ones included.
+        _, text = written(self, ran(self, "missed"))
+
+        self.assertEqual(headings(REFERENCE.read_text(encoding="utf-8")), headings(text))
+
+
 class WhileARoundIsOpen(unittest.TestCase):
     def test_the_report_waits_for_its_verdict(self):
         box = pushed(self)
