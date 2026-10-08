@@ -24,9 +24,9 @@
      }
     },
     "app_blocks": [
-     "shopify-block-AExampleBlock1Q__example_app_block_1",
-     "shopify-block-AExampleBlock2Q__example_app_block_2",
-     "shopify-block-AExampleBlock3Q__example_app_block_3"
+     "shopify-block-AHomeControlTokenQ__example_feed_app_feed_block_Xk4Rq2",
+     "shopify-block-AEmbedTokenNumber1__4100000000000000001",
+     "shopify-block-AEmbedTokenNumber2__4100000000000000002"
     ],
     "console_errors": [
      {
@@ -61,9 +61,9 @@
      }
     },
     "app_blocks": [
-     "shopify-block-AExampleBlock1Q__example_app_block_1",
-     "shopify-block-AExampleBlock2Q__example_app_block_2",
-     "shopify-block-AExampleBlock3Q__example_app_block_3"
+     "shopify-block-AHomeWorkingTokenQ__example_feed_app_feed_block_Xk4Rq2",
+     "shopify-block-AEmbedTokenNumber2__4100000000000000002",
+     "shopify-block-AEmbedTokenNumber1__4100000000000000001"
     ],
     "console_errors": [
      {
@@ -100,8 +100,8 @@
      }
     },
     "app_blocks": [
-     "shopify-block-AExampleBlock2Q__example_app_block_2",
-     "shopify-block-AExampleBlock3Q__example_app_block_3"
+     "shopify-block-AEmbedTokenNumber2__4100000000000000002",
+     "shopify-block-AEmbedTokenNumber1__4100000000000000001"
     ],
     "console_errors": [],
     "liquid_errors": []
@@ -127,8 +127,8 @@
      }
     },
     "app_blocks": [
-     "shopify-block-AExampleBlock3Q__example_app_block_3",
-     "shopify-block-AExampleBlock2Q__example_app_block_2"
+     "shopify-block-AEmbedTokenNumber2__4100000000000000002",
+     "shopify-block-AEmbedTokenNumber1__4100000000000000001"
     ],
     "console_errors": [],
     "liquid_errors": []
@@ -168,9 +168,9 @@
      }
     },
     "app_blocks": [
-     "shopify-block-AExampleBlock4Q__example_app_block_4",
-     "shopify-block-AExampleBlock3Q__example_app_block_3",
-     "shopify-block-AExampleBlock2Q__example_app_block_2"
+     "shopify-block-AProdControlTokenQ__example_restock_app_restock_form_Pz8Lm3",
+     "shopify-block-AEmbedTokenNumber2__4100000000000000002",
+     "shopify-block-AEmbedTokenNumber1__4100000000000000001"
     ],
     "console_errors": [],
     "liquid_errors": []
@@ -208,9 +208,9 @@
      }
     },
     "app_blocks": [
-     "shopify-block-AExampleBlock4Q__example_app_block_4",
-     "shopify-block-AExampleBlock3Q__example_app_block_3",
-     "shopify-block-AExampleBlock2Q__example_app_block_2"
+     "shopify-block-AProdWorkingTokenQ__example_restock_app_restock_form_Pz8Lm3",
+     "shopify-block-AEmbedTokenNumber1__4100000000000000001",
+     "shopify-block-AEmbedTokenNumber2__4100000000000000002"
     ],
     "console_errors": [],
     "liquid_errors": []

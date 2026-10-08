@@ -1,10 +1,13 @@
 """The smoke check: the Working theme must still do what the Control theme does.
 
-The results fixture is a real smoke-checker run on a real store's three pages,
-with the same theme on both sides and the store's identity replaced: the store
-is store.example, the app blocks have neutral ids, and the themes are the
-sandbox's (Working 200, Control 201). Each case is derived from it by editing
-the one field that makes the case.
+The results fixture is a real store's baseline smoke check: its three pages on
+two duplicates of its published theme, with the store's identity replaced. The
+store is store.example, and the themes are the sandbox's (Working 200, Control
+201). Each app block id keeps its real shape, `shopify-block-<token>__<key>`,
+with a neutral token and key: Shopify gives a section's app block a token of the
+theme's own, so the same block has a different id on each duplicate, while an
+app embed's id is the same on both. Each case is derived from it by editing the
+one field that makes the case.
 """
 
 import json
@@ -135,19 +138,33 @@ class JudgingRecordedResults(unittest.TestCase):
             "(the check did not run)",
             "SMOKE baseline home regression menu-close: control pass, working missing "
             "(the check did not run)",
-            "SMOKE baseline home missing-app-block: shopify-block-AExampleBlock1Q__example_app_block_1",
-            "SMOKE baseline home missing-app-block: shopify-block-AExampleBlock2Q__example_app_block_2",
-            "SMOKE baseline home missing-app-block: shopify-block-AExampleBlock3Q__example_app_block_3",
+            "SMOKE baseline home missing-app-block: "
+            "shopify-block-AHomeControlTokenQ__example_feed_app_feed_block_Xk4Rq2",
+            "SMOKE baseline home missing-app-block: shopify-block-AEmbedTokenNumber1__4100000000000000001",
+            "SMOKE baseline home missing-app-block: shopify-block-AEmbedTokenNumber2__4100000000000000002",
             "SMOKE baseline result fail: 3 regressions, 3 missing app blocks"])
 
     def test_an_app_block_missing_on_the_working_theme_fails(self):
         result = self.record(lambda r: r["pages"]["product"]["working"]["app_blocks"].remove(
-            "shopify-block-AExampleBlock4Q__example_app_block_4"))
+            "shopify-block-AProdWorkingTokenQ__example_restock_app_restock_form_Pz8Lm3"))
 
         self.assertEqual(result.code, 0, result)
         self.assertEqual(result.lines("SMOKE")[-2:], [
             "SMOKE baseline product missing-app-block: "
-            "shopify-block-AExampleBlock4Q__example_app_block_4",
+            "shopify-block-AProdControlTokenQ__example_restock_app_restock_form_Pz8Lm3",
+            "SMOKE baseline result fail: 1 missing app block"])
+
+    def test_one_of_two_app_blocks_of_the_same_key_gone_from_the_working_theme_fails(self):
+        def feed_twice_on_control_once_on_working(r):
+            r["pages"]["home"]["control"]["app_blocks"].append(
+                "shopify-block-AHomeControlTokenR__example_feed_app_feed_block_Xk4Rq2")
+
+        result = self.record(feed_twice_on_control_once_on_working)
+
+        self.assertEqual(result.code, 0, result)
+        self.assertEqual(result.lines("SMOKE")[-2:], [
+            "SMOKE baseline home missing-app-block: "
+            "shopify-block-AHomeControlTokenR__example_feed_app_feed_block_Xk4Rq2",
             "SMOKE baseline result fail: 1 missing app block"])
 
 
@@ -164,6 +181,13 @@ class RecordingResults(unittest.TestCase):
         status = self.box.run("status")
 
         self.assertIn("SMOKE round-1 result fail: 2 regressions", status.lines("SMOKE"))
+
+    def test_status_judges_the_stored_results_by_the_rule_in_force_on_each_read(self):
+        """The ledger keeps what the checker saw, never a verdict on it, so a result recorded
+        under an earlier rule reads by today's."""
+        self.box.run("smoke", "--results", results_file(self.box))
+
+        self.assertEqual(self.box.run("status").lines("SMOKE"), ["SMOKE baseline result pass"])
 
     def test_a_label_holds_one_result_so_a_failed_check_cannot_be_retried_away(self):
         self.box.run("smoke", "--label", "round-1", "--results", results_file(

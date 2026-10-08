@@ -9,6 +9,7 @@ differentially, so a store's existing quirks never count against a change.
 import json
 import os
 import re
+from collections import Counter
 
 from tuner import browser, stats
 from tuner.output import Failed, Refused
@@ -70,7 +71,8 @@ def judge(pages):
 
     A check counts only when it passes on the Control theme and does not pass
     on the Working theme; an error counts only when the Control theme lacks it;
-    an app block counts when the Control theme has it and the Working theme not.
+    an app block counts when the Control theme has it and the Working theme not,
+    each block known by its key (app_block_key), each copy of a key counted.
     """
     judgement = Judgement()
     for page in stats.PAGE_ORDER:
@@ -91,12 +93,29 @@ def judge(pages):
         for text in unique_texts(working.get("liquid_errors") or []):
             if same_error(text) not in known:
                 judgement.findings.append(("new error", "%s new-error liquid: %s" % (page, text)))
-        present = set(working.get("app_blocks") or [])
-        for block in dict.fromkeys(control.get("app_blocks") or []):
-            if block not in present:
+        present = Counter(app_block_key(block) for block in working.get("app_blocks") or [])
+        for block in control.get("app_blocks") or []:
+            if present[app_block_key(block)]:
+                present[app_block_key(block)] -= 1
+            else:
                 judgement.findings.append(("missing app block", "%s missing-app-block: %s"
                                            % (page, block)))
     return judgement
+
+
+# An app block's element id is `shopify-block-<token>__<key>`. The token is
+# Shopify's own and differs between two duplicates of one theme: a section's app
+# block gets a different one on each copy. The key is the block's: the app's
+# handle, the block's handle and the suffix the theme editor gave that instance,
+# or an app embed's id. So the same block on both themes shares its key alone.
+APP_BLOCK_ID = re.compile(r"shopify-block-.+?__(.+)")
+
+
+def app_block_key(block):
+    """What identifies an app block on any copy of its theme: its id after the token, or the
+    whole id (or class) when it has no token."""
+    found = APP_BLOCK_ID.fullmatch(block)
+    return found.group(1) if found else block
 
 
 # What may differ between two themes' copies of the same error: each theme's own

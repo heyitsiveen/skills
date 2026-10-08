@@ -127,7 +127,7 @@ def new_liquid_error(results):
 
 def app_block_gone(results):
     results["pages"]["product"]["working"]["app_blocks"].remove(
-        "shopify-block-AExampleBlock4Q__example_app_block_4")
+        "shopify-block-AProdWorkingTokenQ__example_restock_app_restock_form_Pz8Lm3")
 
 
 def checked(box, change=None):
