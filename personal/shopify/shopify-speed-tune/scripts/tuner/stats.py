@@ -61,6 +61,8 @@ def members(samples, label, page, url, device, theme):
 
 
 BASELINE = "baseline"
+# Each page on desktop once more, on the Working theme, after the Rounds.
+FINAL = "final"
 PAGE_ORDER = ("home", "collection", "product")
 DEVICES = ("mobile", "desktop")
 
