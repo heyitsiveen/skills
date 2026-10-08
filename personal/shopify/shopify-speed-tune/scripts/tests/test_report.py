@@ -344,8 +344,21 @@ class AReportAfterAnEarlyStop(unittest.TestCase):
                          (self.box.repo / ".agent" / "shopify-speed-tune").resolve())
 
 
-class AStoppedInvocationWithoutItsFinalDesktopMeasurement(unittest.TestCase):
-    def test_the_report_names_each_one_to_take(self):
+FINAL_DESKTOP_NOTES = [
+    "NOTE the %s page's final desktop Measurement holds 0 of 5 Samples: take it with "
+    "`final --page %s`, then write the report again" % (page, page)
+    for page in ("home", "collection", "product")]
+
+
+def final_desktop_notes(result):
+    return [line for line in result.lines("NOTE") if "final desktop" in line]
+
+
+class AnInvocationWithoutItsFinalDesktopMeasurement(unittest.TestCase):
+    """Desktop is measured again at the end of every invocation that reaches its report,
+    whatever ended it, and the report flags each final desktop Measurement not taken."""
+
+    def test_the_report_names_each_one_to_take_after_a_stop_line(self):
         # Requested 40: every page is past its target before the first Round.
         box = approved(self, ITEMS, "--score", "40")
         box.run("round")
@@ -353,9 +366,18 @@ class AStoppedInvocationWithoutItsFinalDesktopMeasurement(unittest.TestCase):
         result = box.run("report")
 
         self.assertEqual(result.code, 0, result)
-        self.assertIn("NOTE the home page's final desktop Measurement holds 0 of 5 Samples: take "
-                      "it with `final --page home`, then write the report again", result.out)
-        self.assertEqual(len([l for l in result.lines("NOTE") if "final desktop" in l]), 3)
+        self.assertEqual(final_desktop_notes(result), FINAL_DESKTOP_NOTES)
+
+    def test_the_report_names_each_one_to_take_after_rounds_cut_off_without_a_stop_line(self):
+        box = pushed(self)
+        self.assertEqual(box.run("verdict", "--remove").code, 0)
+
+        result, text = written(self, box)
+
+        self.assertEqual(final_desktop_notes(result), FINAL_DESKTOP_NOTES)
+        self.assertIn("The final desktop Measurement was not taken on Home, Collection and "
+                      "Product, so their Desktop after reads –.",
+                      section(text, "### Performance by page"))
 
 
 class WhileARoundIsOpen(unittest.TestCase):

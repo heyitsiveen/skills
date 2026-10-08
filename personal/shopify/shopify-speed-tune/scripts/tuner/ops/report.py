@@ -12,6 +12,10 @@ know: `--missed FILE` records them, written for each page that missed, and the
 report carries them. Until then each such page prints `REPORT missed <page>
 unexplained`.
 
+Desktop is measured again at the end of every invocation, whatever ended it. A
+final desktop Measurement not taken is flagged in the report, and while the
+invocation is open a NOTE names the `final` call that takes it.
+
 The store's setup is read from the repo, and its published theme from the
 theme library, at the time of the report: how to go live depends on both.
 """
@@ -60,7 +64,7 @@ def run(args):
                                                                  recorded["name"], recorded["id"]))
     for result in results:
         say("REPORT", page_line(result))
-    if inv.data.get("stopped"):
+    if inv.data.get("state") == "open":
         for result in results:
             if result.desktop[1] is None:
                 note("the %s page's final desktop Measurement holds %d of %d Samples: take it "
@@ -236,7 +240,16 @@ def performance(inv, results):
               "| Page | Desktop before | Desktop after |", "|---|---|---|"]
     lines += ["| %s | %s | %s |" % (PAGE_NAMES[r.page], score(r.desktop[0]), score(r.desktop[1]))
               for r in results]
+    untaken = [PAGE_NAMES[r.page] for r in results if r.desktop[1] is None]
+    if untaken:
+        lines += ["", "The final desktop Measurement was not taken on %s, so %s Desktop after "
+                      "reads –." % (listed(untaken), "its" if len(untaken) == 1 else "their")]
     return lines + [""]
+
+
+def listed(names):
+    """`Home`, `Home and Product`, or `Home, Collection and Product`."""
+    return names[0] if len(names) == 1 else "%s and %s" % (", ".join(names[:-1]), names[-1])
 
 
 def pagespeed(inv):
