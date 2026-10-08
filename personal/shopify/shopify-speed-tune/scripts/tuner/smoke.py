@@ -66,6 +66,12 @@ class Judgement:
 MISSING = {"status": "missing", "detail": "the check did not run"}
 
 
+def recorded(data, label):
+    """The results the ledger `data` holds under `label`, or None. The ledger keeps what the
+    checker saw, never a verdict on it: every reader judges them by the rule in force."""
+    return next((r for r in data.get("smoke", []) if r["label"] == label), None)
+
+
 def judge(pages):
     """Every way the Working theme does worse than the Control theme, page by page.
 

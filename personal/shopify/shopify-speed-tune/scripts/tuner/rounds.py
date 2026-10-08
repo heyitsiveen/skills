@@ -188,7 +188,7 @@ def item_of(inv, rnd):
 
 
 def smoke_record(inv, rnd):
-    return next((r for r in inv.data.get("smoke", []) if r["label"] == label(rnd["n"])), None)
+    return smoke.recorded(inv.data, label(rnd["n"]))
 
 
 def complete(inv, rnd):

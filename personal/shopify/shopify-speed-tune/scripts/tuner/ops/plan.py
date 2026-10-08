@@ -7,11 +7,15 @@ checks every item, puts the known-defect items first (the rest keep the order
 given), numbers them P1, P2, … and writes `plan.md` into the invocation's
 folder for the developer. Recording again replaces the draft.
 
+The plan carries the baseline smoke check's SMOKE lines, judged from its stored
+results by the rule in force: a Round whose check fails is removed unmeasured,
+so the developer approves knowing whether the check holds on this store.
+
 `plan --approve` makes the plan final. From then on a Round may use only an
 item of this plan, and each item once. `plan` alone shows the plan again.
 """
 
-from tuner import findings, ledger, planning, stats
+from tuner import findings, ledger, planning, smoke, stats
 from tuner.output import Refused, note, say
 from tuner.text import COLUMNS, cell, page_name, psi_table, score, when
 
@@ -40,6 +44,9 @@ def run(args):
 
     for page in stats.PAGE_ORDER:
         say("PLAN", page_line(inv, page))
+    checked = baseline_smoke(inv)
+    for line in checked[1] if checked else []:
+        say("SMOKE", line)
     for name, cells in table:
         say("COST", findings.cost_line(name, cells, stats.PAGE_ORDER))
     for item in plan["items"]:
@@ -69,6 +76,33 @@ def page_line(inv, page):
     return "page %s %s baseline=%s ceiling=%s target=%d" % (
         page, inv.page_url(page), _figures(planning.performance(inv, stats.BASELINE, page)),
         _figures(planning.ceiling(inv, page)), planning.target(inv, page))
+
+
+def baseline_smoke(inv):
+    """(passed, [SMOKE line text]) for the baseline smoke check, judged from its stored results
+    by the rule in force: a line per finding, then its result line. None while it has none."""
+    record = smoke.recorded(inv.data, stats.BASELINE)
+    if record is None:
+        return None
+    judgement = smoke.judge(record["pages"])
+    return judgement.passed, judgement.lines(record["label"]) + [
+        smoke.result_line(record["label"], judgement)]
+
+
+def smoke_section(inv):
+    checked = baseline_smoke(inv)
+    if checked is None:
+        return ["No baseline smoke result is recorded: the smoke check did not reach a result "
+                "before this plan."]
+    passed, lines = checked
+    if passed:
+        return ["Before any change, the smoke check loaded each page on both themes as a phone "
+                "and found the Working theme doing everything the Control theme does: "
+                "`SMOKE %s`." % lines[-1]]
+    return ["Before any change, the smoke check loaded each page on both themes as a phone. Both "
+            "are still copies of the published theme, yet it found the Working theme doing "
+            "worse, so the check is unsteady on this store, and a Round it fails the same way is "
+            "removed without being measured:", ""] + ["- `SMOKE %s`" % line for line in lines]
 
 
 def render(inv, table):
@@ -117,6 +151,7 @@ def render(inv, table):
         figures = stats.summary(samples)
         lines.append("| %s | %s |" % (page_name(page),
                                       " | ".join(cell(m, *figures[m]) for m in stats.METRICS)))
+    lines += ["", "### Smoke check", ""] + smoke_section(inv)
     lines += ["", "## Apps and tags", ""] + findings.cost_table(table, stats.PAGE_ORDER)
     lines += ["", "## Plan", ""]
     for n, item in enumerate(plan["items"], 1):

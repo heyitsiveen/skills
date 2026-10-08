@@ -1,8 +1,9 @@
 """The plan: what the developer approves at the skill's only stop.
 
 The plan shows each page's baseline median and range, its Ceiling and its
-target, the app and tag cost table, and the plan items in order: known Golden
-theme defects first, then the rest in the order given. Approval makes it final.
+target, the baseline smoke check, the app and tag cost table, and the plan
+items in order: known Golden theme defects first, then the rest in the order
+given. Approval makes it final.
 """
 
 import re
@@ -11,6 +12,7 @@ from pathlib import Path
 
 from plan_support import (DEFECTIVE, PAGES, ceiling_reports, diagnosed, measured, record,
                           write_items)
+from round_support import app_block_gone, checked
 
 ITEMS = [
     {"change": "Batch the header-height script's layout reads behind one ResizeObserver",
@@ -72,6 +74,48 @@ class ThePlanShowsWhatTheDeveloperApproves(unittest.TestCase):
 
     def test_it_is_a_draft_until_approved(self):
         self.assertEqual(self.result.lines("PLAN")[-1], "PLAN draft items=3")
+
+
+class ThePlanCarriesTheBaselineSmokeCheck(unittest.TestCase):
+    """A Round whose smoke check fails is removed unmeasured, so the developer approves the
+    plan knowing whether the check holds on this store: its baseline SMOKE lines are in the
+    plan's Pages section, judged by the rule in force when the plan is shown."""
+
+    def plan(self, box):
+        result = box.run("plan", "--items", write_items(box, ITEMS[:1]))
+        self.assertEqual(result.code, 0, result)
+        text = Path(re.search(r"(?m)^PLAN file (\S+)$", result.out).group(1)).read_text()
+        return result, text.split("\n## Pages\n", 1)[1].split("\n## Apps and tags\n", 1)[0]
+
+    def test_a_check_the_two_copies_already_fail_comes_with_what_it_found(self):
+        box = diagnosed(self)
+        checked(box, app_block_gone)
+
+        result, pages = self.plan(box)
+
+        found = ["SMOKE baseline product missing-app-block: "
+                 "shopify-block-AProdControlTokenQ__example_restock_app_restock_form_Pz8Lm3",
+                 "SMOKE baseline result fail: 1 missing app block"]
+        self.assertEqual(result.lines("SMOKE"), found)
+        for line in found:
+            self.assertIn(line, pages)
+
+    def test_stored_results_read_by_the_rule_in_force(self):
+        box = diagnosed(self)
+        checked(box)  # each section app block with its own theme's token, as the store renders it
+
+        result, pages = self.plan(box)
+
+        self.assertEqual(result.lines("SMOKE"), ["SMOKE baseline result pass"])
+        self.assertIn("SMOKE baseline result pass", pages)
+
+    def test_a_plan_with_no_baseline_check_says_so(self):
+        box = diagnosed(self)
+
+        result, pages = self.plan(box)
+
+        self.assertEqual(result.lines("SMOKE"), [])
+        self.assertIn("No baseline smoke result is recorded", pages)
 
 
 class ADraftPlanIsChecked(unittest.TestCase):
