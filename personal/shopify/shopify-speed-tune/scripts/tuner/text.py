@@ -7,20 +7,22 @@ PAGE_NAMES = {"home": "Home", "collection": "Collection", "product": "Product"}
 COLUMNS = ("Performance", "LCP", "TBT", "CLS", "FCP", "Speed Index", "Accessibility")
 
 
-def _half_up(value, places=0):
+def half_up(value, places=0):
+    """`value` rounded half up, as people round (2.5 is 3), to `places` decimals: an int at 0."""
     factor = 10 ** places
-    return math.floor(value * factor + 0.5) / factor
+    rounded = math.floor(value * factor + 0.5)
+    return int(rounded) if places == 0 else rounded / factor
 
 
 def human(metric, value):
     """A figure as PageSpeed shows it: seconds for paint times, ms for TBT."""
     if metric in ("performance", "accessibility"):
-        return "%d" % _half_up(value)
+        return "%d" % half_up(value)
     if metric == "cls":
         return "%.3f" % value
     if metric == "tbt":
-        return "{:,}".format(int(_half_up(value)))
-    return "%.1f" % _half_up(value / 1000.0, 1)
+        return "{:,}".format(half_up(value))
+    return "%.1f" % half_up(value / 1000.0, 1)
 
 
 def cell(metric, median, low, high):

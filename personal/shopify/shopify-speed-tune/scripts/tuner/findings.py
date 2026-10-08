@@ -18,6 +18,7 @@ from urllib.parse import urlsplit
 
 from tuner import probe, stats
 from tuner.output import Refused
+from tuner.text import half_up
 
 EXTENSION = re.compile(r"^https://cdn\.shopify\.com/extensions/[^/]+/([^/]+?)(?:-\d+)?/")
 SUBPARTS = (("timeToFirstByte", "time to first byte"),
@@ -104,16 +105,12 @@ def costs(reports_by_page):
     return table
 
 
-def _half_up(value):
-    return int(value + 0.5)
-
-
 def cost_cell(cell):
     if cell is None:
         return "-"
     time, size = cell
     kib = size / 1024.0
-    return "%d ms %s KiB" % (_half_up(time), ("%d" % _half_up(kib)) if kib >= 0.5 else "<1")
+    return "%d ms %s KiB" % (half_up(time), ("%d" % half_up(kib)) if kib >= 0.5 else "<1")
 
 
 def cost_line(name, cells, pages):
@@ -157,7 +154,7 @@ def _file(url):
 
 
 def _ms(value):
-    return "%d ms" % _half_up(value)
+    return "%d ms" % half_up(value)
 
 
 def lcp_line(reports):
@@ -215,7 +212,7 @@ def render_blocking_line(reports, owners):
     ordered = sorted(groups.items(), key=lambda g: (-len(g[1]), g[0]))
     shown = []
     for owner, members in ordered:
-        text = "%s %d (%d KiB)" % (owner, len(members), _half_up(sum(s for s, _ in members) / 1024.0))
+        text = "%s %d (%d KiB)" % (owner, len(members), half_up(sum(s for s, _ in members) / 1024.0))
         if owner == "theme":
             text += ": %s" % ", ".join(_file(u) for _, u in sorted(members, reverse=True)[:SHOWN])
         shown.append(text)
@@ -263,4 +260,4 @@ def long_tasks_line(reports, owners):
     if not ranked:
         return "long-tasks: none"
     return "long-tasks (median ms per Sample, simulated): %s" % ", ".join(
-        "%s %d" % (owner, _half_up(ms)) for owner, ms in ranked)
+        "%s %d" % (owner, half_up(ms)) for owner, ms in ranked)

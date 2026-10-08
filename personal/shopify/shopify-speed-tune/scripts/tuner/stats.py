@@ -4,10 +4,10 @@ A Measurement is never stored. It is computed from the ledger's Samples each
 time it is read, so there is one source of truth for every figure.
 """
 
-import math
 from collections import namedtuple
 
 from tuner.lighthouse import METRICS
+from tuner.text import half_up
 
 SAMPLES_PER_MEASUREMENT = 5
 
@@ -54,17 +54,13 @@ def summary(samples):
     return out
 
 
-def _half_up(value):
-    return int(math.floor(value + 0.5))
-
-
 def show(metric, value):
     """One figure the way every line and report prints it."""
     if metric == "cls":
         return "%.3f" % value
     if metric in ("performance", "accessibility"):
-        return str(_half_up(value))
-    return "%dms" % _half_up(value)
+        return str(half_up(value))
+    return "%dms" % half_up(value)
 
 
 def show_range(metric, low, high):
