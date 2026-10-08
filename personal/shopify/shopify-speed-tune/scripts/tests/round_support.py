@@ -102,6 +102,30 @@ def pushed(test, items=ITEMS, item="P1"):
     return box
 
 
+# Edits to the real smoke results, each making the Working theme do one thing worse.
+
+def add_to_cart_fails(results):
+    results["pages"]["product"]["working"]["checks"].update({
+        "add-to-cart": {"status": "fail", "detail": "the cart still holds 0 item(s)"},
+        "cart-count": {"status": "skip", "detail": "nothing was added"}})
+
+
+def new_console_error(results):
+    results["pages"]["home"]["working"]["console_errors"].append({
+        "text": "Uncaught ReferenceError: Swiper is not defined",
+        "url": "https://store.example/cdn/shop/t/22/assets/slider.js?v=172"})
+
+
+def new_liquid_error(results):
+    results["pages"]["product"]["working"]["liquid_errors"].append(
+        "Liquid error (sections/main-product line 214): Could not find asset snippets/price.liquid")
+
+
+def app_block_gone(results):
+    results["pages"]["product"]["working"]["app_blocks"].remove(
+        "shopify-block-AExampleBlock4Q__example_app_block_4")
+
+
 def checked(box, change=None):
     """Record the Round's smoke check: the real results, with one change."""
     data = json.loads(SMOKE_RESULTS.read_text(encoding="utf-8"))

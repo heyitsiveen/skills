@@ -13,8 +13,8 @@ from round_support import ITEMS, NEUTRAL, WIN_4, apply_item, approved, checked, 
 
 
 def decide(box, gains):
-    measure(box, gains)
     checked(box)
+    measure(box, gains)
     result = box.run("verdict")
     box.test.assertEqual(result.code, 0, result)
     return result

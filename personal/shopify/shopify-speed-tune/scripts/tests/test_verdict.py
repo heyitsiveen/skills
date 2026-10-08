@@ -1,12 +1,14 @@
 """The verdict: the program keeps a Round's change only when it wins clearly and breaks nothing.
 
 A change is kept only when all of these hold:
+- every smoke check that passes on the Control theme passes on the Working theme
+- no console error or Liquid error appears that the Control theme lacks
 - it wins at least 4 of the 5 pairs on at least one of its target pages, and a
   tie is not a win
 - no page loses 4 or more of its 5 pairs
 - no page's median accessibility score is lower on the Working theme
-- every smoke check that passes on the Control theme passes on the Working theme
-- no console error or Liquid error appears that the Control theme lacks
+
+The smoke check comes first, so a Round it fails is removed without pairs.
 
 Each case below is the real reports and the real smoke results with the one
 field edited that makes the case. Plan item P1 targets the home page only.
@@ -14,39 +16,18 @@ field edited that makes the case. Plan item P1 targets the home page only.
 
 import unittest
 
-from round_support import (LOSS_3, LOSS_4, NEUTRAL, WIN_3, WIN_3_TIE_2, WIN_4, checked, measure,
-                           pushed, record_pairs)
-
-
-def add_to_cart_fails(results):
-    results["pages"]["product"]["working"]["checks"].update({
-        "add-to-cart": {"status": "fail", "detail": "the cart still holds 0 item(s)"},
-        "cart-count": {"status": "skip", "detail": "nothing was added"}})
-
-
-def new_console_error(results):
-    results["pages"]["home"]["working"]["console_errors"].append({
-        "text": "Uncaught ReferenceError: Swiper is not defined",
-        "url": "https://store.example/cdn/shop/t/22/assets/slider.js?v=172"})
-
-
-def new_liquid_error(results):
-    results["pages"]["product"]["working"]["liquid_errors"].append(
-        "Liquid error (sections/main-product line 214): Could not find asset snippets/price.liquid")
-
-
-def app_block_gone(results):
-    results["pages"]["product"]["working"]["app_blocks"].remove(
-        "shopify-block-AExampleBlock4Q__example_app_block_4")
+from round_support import (CONTROL, LAZY, LOSS_3, LOSS_4, NEUTRAL, WIN_3, WIN_3_TIE_2, WIN_4,
+                           WORKING, add_to_cart_fails, app_block_gone, checked, measure,
+                           new_console_error, new_liquid_error, pushed, record_pairs)
 
 
 class TheVerdict(unittest.TestCase):
     def setUp(self):
         self.box = pushed(self)
 
-    def verdict(self, gains, accessibility=None, smoke=None):
+    def verdict(self, gains, accessibility=None):
+        checked(self.box)
         measure(self.box, gains, accessibility)
-        checked(self.box, smoke)
         result = self.box.run("verdict")
         self.assertEqual(result.code, 0, result)
         return result.lines("VERDICT")
@@ -78,32 +59,14 @@ class TheVerdict(unittest.TestCase):
         self.assertEqual(self.verdict({"home": WIN_4}, accessibility={"product": -1}),
                          ["VERDICT 1 remove item=P1 reasons=accessibility:product"])
 
-    def test_a_smoke_check_that_passes_only_on_the_control_theme_removes_it(self):
-        self.assertEqual(self.verdict({"home": WIN_4}, smoke=add_to_cart_fails),
-                         ["VERDICT 1 remove item=P1 reasons=smoke-regression"])
-
-    def test_an_app_block_missing_on_the_working_theme_removes_it(self):
-        self.assertEqual(self.verdict({"home": WIN_4}, smoke=app_block_gone),
-                         ["VERDICT 1 remove item=P1 reasons=smoke-regression"])
-
-    def test_a_new_console_error_removes_it(self):
-        self.assertEqual(self.verdict({"home": WIN_4}, smoke=new_console_error),
-                         ["VERDICT 1 remove item=P1 reasons=new-error"])
-
-    def test_a_new_liquid_error_removes_it(self):
-        self.assertEqual(self.verdict({"home": WIN_4}, smoke=new_liquid_error),
-                         ["VERDICT 1 remove item=P1 reasons=new-error"])
-
     def test_every_reason_is_named(self):
         self.assertEqual(
-            self.verdict({"home": WIN_3, "product": LOSS_4}, accessibility={"collection": -2},
-                         smoke=new_liquid_error),
-            ["VERDICT 1 remove item=P1 reasons=no-win,loss:product,accessibility:collection,"
-             "new-error"])
+            self.verdict({"home": WIN_3, "product": LOSS_4}, accessibility={"collection": -2}),
+            ["VERDICT 1 remove item=P1 reasons=no-win,loss:product,accessibility:collection"])
 
     def test_the_verdict_shows_each_pages_pairs_first(self):
-        measure(self.box, {"home": WIN_4, "collection": LOSS_3})
         checked(self.box)
+        measure(self.box, {"home": WIN_4, "collection": LOSS_3})
 
         result = self.box.run("verdict")
 
@@ -114,11 +77,58 @@ class TheVerdict(unittest.TestCase):
         ])
 
 
+class AFailedSmokeCheckRemovesTheRoundWithoutPairs(unittest.TestCase):
+    def setUp(self):
+        self.box = pushed(self)
+
+    def verdict(self, smoke):
+        checked(self.box, smoke)
+        result = self.box.run("verdict")
+        self.assertEqual(result.code, 0, result)
+        return result
+
+    def test_a_check_that_passes_only_on_the_control_theme_removes_it(self):
+        self.assertEqual(self.verdict(add_to_cart_fails).lines("VERDICT"),
+                         ["VERDICT 1 remove item=P1 reasons=smoke-regression"])
+
+    def test_an_app_block_missing_on_the_working_theme_removes_it(self):
+        self.assertEqual(self.verdict(app_block_gone).lines("VERDICT"),
+                         ["VERDICT 1 remove item=P1 reasons=smoke-regression"])
+
+    def test_a_new_console_error_removes_it(self):
+        self.assertEqual(self.verdict(new_console_error).lines("VERDICT"),
+                         ["VERDICT 1 remove item=P1 reasons=new-error"])
+
+    def test_a_new_liquid_error_removes_it(self):
+        self.assertEqual(self.verdict(new_liquid_error).lines("VERDICT"),
+                         ["VERDICT 1 remove item=P1 reasons=new-error"])
+
+    def test_the_round_is_put_back_and_marked_not_measured(self):
+        result = self.verdict(add_to_cart_fails)
+
+        self.assertEqual(result.lines("SMOKE"), ["SMOKE round-1 result fail: 2 regressions"])
+        self.assertEqual(result.lines("PAIRS"), [])
+        self.assertEqual((self.box.repo / "snippets" / "image.liquid").read_text(), LAZY)
+        self.assertEqual(self.box.theme_files(WORKING), self.box.theme_files(CONTROL))
+        status = self.box.run("status")
+        self.assertIn("ROUND 1 removed item=P1 not-measured", status.lines("ROUND"))
+        self.assertNotIn("MEASUREMENT round-1", status.out)
+
+
 class AVerdictNeedsTheWholeRound(unittest.TestCase):
+    def test_it_is_refused_until_the_smoke_check_ran(self):
+        box = pushed(self)
+
+        result = box.run("verdict")
+
+        self.assertEqual(result.code, 1, result)
+        self.assertRegex(result.out, r"(?m)^REFUSED round-unchecked: ")
+        self.assertEqual(result.lines("VERDICT"), [])
+
     def test_it_is_refused_until_every_page_holds_five_pairs(self):
         box = pushed(self)
-        record_pairs(box, "home", WIN_4)
         checked(box)
+        record_pairs(box, "home", WIN_4)
 
         result = box.run("verdict")
 
@@ -126,19 +136,10 @@ class AVerdictNeedsTheWholeRound(unittest.TestCase):
         self.assertRegex(result.out, r"(?m)^REFUSED round-unmeasured: ")
         self.assertEqual(result.lines("VERDICT"), [])
 
-    def test_it_is_refused_until_the_smoke_check_ran(self):
-        box = pushed(self)
-        measure(box, {"home": WIN_4})
-
-        result = box.run("verdict")
-
-        self.assertEqual(result.code, 1, result)
-        self.assertRegex(result.out, r"(?m)^REFUSED round-unchecked: ")
-
     def test_a_measured_and_checked_round_is_not_removed_on_request(self):
         box = pushed(self)
-        measure(box, {"home": WIN_4})
         checked(box)
+        measure(box, {"home": WIN_4})
 
         result = box.run("verdict", "--remove")
 

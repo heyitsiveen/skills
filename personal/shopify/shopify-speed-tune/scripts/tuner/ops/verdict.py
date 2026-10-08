@@ -5,7 +5,11 @@ The program decides; nothing here rests on reading a transcript:
 - keep only when the change wins at least 4 of 5 pairs on one of its target
   pages, no page loses 4 or more, no page's median accessibility score drops,
   and the smoke check finds nothing the Working theme does worse
-- remove a Round whose push failed, without measuring it
+- remove a Round whose push failed, or whose smoke check, which runs before
+  the pairs, found the Working theme worse, without measuring it
+
+Every verdict records `measured`: true only when the pairs decided it. The
+report marks the others not measured.
 
 Keep: one Conventional Commit of exactly the Round's change on the invocation's
 branch, running the repo's own commit hooks unless the developer approved
@@ -71,17 +75,22 @@ def judge(inv, rnd, forced):
     if change.fingerprint(root, entries) != rnd["change"]["fingerprint"]:
         # What was measured is not what the tree holds, so the tree cannot be kept.
         return rounds.removal("changed-since-push")
+    record = rounds.smoke_record(inv, rnd)
+    if record is None:
+        if forced:
+            return rounds.removal("unchecked")
+        raise Refused("round-unchecked", "Round %d has no smoke check yet" % rnd["n"],
+                      "Run `smoke`. When it cannot run, `verdict --remove` ends the Round.")
+    broken = rounds.smoke_reasons(smoke.judge(record["pages"]))
+    if broken:
+        # The smoke check runs before the pairs: a change it finds broken is never measured.
+        return rounds.removal(*broken)
     if not rounds.complete(inv, rnd):
         if forced:
             return rounds.removal("unmeasured")
         raise Refused("round-unmeasured", "Round %d does not hold five pairs on every page yet"
                       % rnd["n"], "Run `pairs` until it prints `PAIRS %d complete`. When pairs "
                       "cannot be taken, `verdict --remove` ends the Round." % rnd["n"])
-    if rounds.smoke_record(inv, rnd) is None:
-        if forced:
-            return rounds.removal("unchecked")
-        raise Refused("round-unchecked", "Round %d has no smoke check yet" % rnd["n"],
-                      "Run `smoke`. When it cannot run, `verdict --remove` ends the Round.")
     if forced:
         raise Refused("round-measured", "Round %d is measured and smoke-checked, so the rule "
                       "decides it" % rnd["n"], "Run `verdict` without --remove.")
@@ -108,7 +117,8 @@ def show(inv, rnd):
     if rnd["verdict"].get("pages"):
         for page in stats.PAGE_ORDER:
             say("PAIRS", rounds.summary_line(rnd, page, rnd["verdict"]["pages"][page]))
-        record = rounds.smoke_record(inv, rnd)
+    record = rounds.smoke_record(inv, rnd)
+    if record is not None:
         say("SMOKE", smoke.result_line(record["label"], smoke.judge(record["pages"])))
     say("VERDICT", rounds.verdict_line(rnd))
     for line in rnd.get("commit_refused") or []:

@@ -1,5 +1,9 @@
 """pairs: measure the open Round as five interleaved pairs on each of the three pages.
 
+Pairs follow the Round's smoke check, and only a passing one: the check warms
+the store's cache with the changed files, and a change it finds broken is
+removed by `verdict` without pairs.
+
 Each pair is one Control theme Sample, then one Working theme Sample, back to
 back on mobile, so whatever the store and the network do at that moment meets
 both themes. A pair is a win when the Working theme's Performance score is
@@ -41,6 +45,7 @@ def run(args):
     inv = ledger.current("pairs")
     rnd = rounds.require_open(inv)
     rounds.require_measurable(inv, rnd)
+    rounds.require_smoke_passed(inv, rnd)
     pages = [args.page] if args.page else list(stats.PAGE_ORDER)
     for page in pages:
         rounds.discard_unpaired(inv, rnd, page)
