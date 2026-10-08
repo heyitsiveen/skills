@@ -153,8 +153,10 @@ class Chrome:
 
 def _ps(pid, field):
     try:
-        return subprocess.run(["ps", "-o", field + "=", "-p", str(pid)], stdin=subprocess.DEVNULL,
-                              capture_output=True, text=True, timeout=10).stdout.strip()
+        # -ww: the whole command line, however long, on macOS and Linux alike
+        return subprocess.run(["ps", "-ww", "-o", field + "=", "-p", str(pid)],
+                              stdin=subprocess.DEVNULL, capture_output=True, text=True,
+                              timeout=10).stdout.strip()
     except (OSError, subprocess.TimeoutExpired):
         return ""
 
@@ -208,7 +210,7 @@ def running_from(folder, wait=5.0):
     deadline = time.monotonic() + wait
     while True:
         try:
-            listing = subprocess.run(["ps", "-A", "-o", "pid=", "-o", "command="],
+            listing = subprocess.run(["ps", "-A", "-ww", "-o", "pid=", "-o", "command="],
                                      stdin=subprocess.DEVNULL, capture_output=True, text=True,
                                      timeout=10).stdout
         except (OSError, subprocess.TimeoutExpired):

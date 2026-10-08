@@ -24,6 +24,7 @@ import os
 import re
 import shutil
 import stat
+import subprocess
 import sys
 import time
 from urllib.parse import urlsplit
@@ -157,14 +158,15 @@ except (OSError, ValueError, KeyError):
     fail("Unable to connect to Chrome")
 
 # hang: a page that never settles holds Lighthouse for as long as its Chrome runs, as a
-# real one does, so a program cut off mid-Sample leaves both running.
+# real one does, so a program cut off mid-Sample leaves both running. A Chrome
+# stopped but not yet reaped counts as gone.
 if store["lighthouse"].get("hang"):
     while True:
-        try:
-            os.kill(chrome_pid, 0)
-        except OSError:
+        state = subprocess.run(["ps", "-o", "stat=", "-p", str(chrome_pid)],
+                               capture_output=True, text=True).stdout.strip()
+        if not state or state.startswith("Z"):
             fail("Lighthouse lost its connection to Chrome")
-        time.sleep(0.1)
+        time.sleep(0.2)
 try:
     with open(os.path.join(registry, port + ".jar"), encoding="utf-8") as f:
         jar = json.load(f)
