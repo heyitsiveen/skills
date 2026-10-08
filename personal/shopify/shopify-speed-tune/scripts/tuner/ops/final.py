@@ -11,10 +11,8 @@ cut off part-way is finished by running it again. --report records existing
 Lighthouse report files instead: the same checks, no Lighthouse run.
 """
 
-import json
-
 from tuner import ledger, rounds, samples, stats
-from tuner.output import Failed, Refused, say
+from tuner.output import Refused
 
 ORDER = 70
 
@@ -36,29 +34,5 @@ def run(args):
         raise Refused("round-open", "Round %d is open, so the Working theme may hold a change no "
                       "verdict kept" % open_round["n"],
                       "End it with `verdict`, or `verdict --remove`, first.")
-    theme = inv.data["themes"].get("working")
-    if not theme or theme.get("deleted"):
-        raise Refused("no-theme", "the invocation has no working theme")
-    if args.count is not None and args.count < 1:
-        raise Refused("bad-count", "--count must be at least 1")
     target = stats.Measurement.of(inv, stats.FINAL, args.page, "desktop", "working")
-    room = stats.SAMPLES_PER_MEASUREMENT - len(samples.members(inv, target))
-    wanted = len(args.report) if args.report else (args.count or room)
-    if wanted > room:
-        raise Refused("measurement-complete", "the %s page's final desktop Measurement already "
-                      "holds %d Samples" % (args.page, stats.SAMPLES_PER_MEASUREMENT))
-    if args.report:
-        for path in args.report:
-            with open(path, encoding="utf-8") as f:
-                report = json.load(f)
-            if samples.record(inv, target, theme, report, source="file") is None:
-                return 1
-    else:
-        taken = samples.take(inv, target, theme, wanted)
-        if taken < wanted:
-            raise Failed("samples-rejected", "%d of %d Samples taken; see the rejections above"
-                         % (taken, wanted), "Run the same command again to continue.")
-    done = samples.members(inv, target)
-    if len(done) == stats.SAMPLES_PER_MEASUREMENT:
-        say("MEASUREMENT", stats.measurement_line(target, done))
-    return 0
+    return samples.fill(inv, target, args.count, args.report)

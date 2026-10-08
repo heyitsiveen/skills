@@ -12,6 +12,7 @@ Every Sample belongs to one Measurement (a stats.Measurement), which says what
 it is of: the page at its URL, the device and the theme.
 """
 
+import json
 import os
 import re
 
@@ -25,6 +26,48 @@ SPARE_ATTEMPTS = 2
 
 def members(inv, measurement):
     return stats.members(inv.data["samples"], measurement)
+
+
+def check(inv, measurement, count=None, reports=None):
+    """(the measured theme, how many Samples this call adds), or a refusal: the theme is
+    gone, the count is below one, or the Measurement has no room for that many."""
+    theme = inv.data["themes"].get(measurement.theme)
+    if not theme or theme.get("deleted"):
+        raise Refused("no-theme", "the invocation has no %s theme" % measurement.theme)
+    if count is not None and count < 1:
+        raise Refused("bad-count", "--count must be at least 1")
+    have = len(members(inv, measurement))
+    room = stats.SAMPLES_PER_MEASUREMENT - have
+    wanted = len(reports) if reports else (count or room)
+    if wanted > room:
+        raise Refused("measurement-complete", "%s already holds %d of %d Samples"
+                      % (measurement, have, stats.SAMPLES_PER_MEASUREMENT))
+    return theme, wanted
+
+
+def fill(inv, measurement, count=None, reports=None, probe=None):
+    """Add Samples to `measurement`: `count` of them, or as many as it still needs, or one per
+    report file in `reports`. Print its MEASUREMENT line once it holds five.
+
+    Returns 0, or 1 when a report file was rejected. A call whose Samples were rejected
+    fails with samples-rejected; the Samples it did take stay, so running it again carries on.
+    """
+    theme, wanted = check(inv, measurement, count, reports)
+    if reports:
+        for path in reports:
+            with open(path, encoding="utf-8") as f:
+                report = json.load(f)
+            if record(inv, measurement, theme, report, source="file", probe=probe) is None:
+                return 1
+    else:
+        taken = take(inv, measurement, theme, wanted, probe=probe)
+        if taken < wanted:
+            raise Failed("samples-rejected", "%d of %d Samples taken; see the rejections above"
+                         % (taken, wanted), "Run the same command again to continue.")
+    done = members(inv, measurement)
+    if len(done) == stats.SAMPLES_PER_MEASUREMENT:
+        say("MEASUREMENT", stats.measurement_line(measurement, done))
+    return 0
 
 
 def take(inv, measurement, theme, wanted, probe=None):

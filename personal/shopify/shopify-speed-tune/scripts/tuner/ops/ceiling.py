@@ -16,10 +16,9 @@ emitted. --report records existing Lighthouse report files instead.
 import json
 
 from tuner import findings, ledger, planning, probe, samples, stats
-from tuner.output import Failed, Refused, note, say
+from tuner.output import Refused, note, say
 
 ORDER = 35
-LABEL = "ceiling"
 
 
 def register(sub):
@@ -34,13 +33,9 @@ def register(sub):
 
 def run(args):
     inv = ledger.current("ceiling")
-    url = inv.page_url(args.page)
-    theme = inv.data["themes"].get("control")
-    if not theme or theme.get("deleted"):
-        raise Refused("no-theme", "the invocation has no control theme")
-    if args.count is not None and args.count < 1:
-        raise Refused("bad-count", "--count must be at least 1")
-    found = probe_for(inv, args.page, url)
+    target = stats.Measurement.of(inv, planning.CEILING, args.page, "mobile", "control")
+    samples.check(inv, target, args.count, args.report)  # before the probe: a refusal changes nothing
+    found = probe_for(inv, args.page, target.url)
     for pattern in found["patterns"]:
         say("CEILING", args.page, "block", pattern)
     for place in found["protect"]:
@@ -48,29 +43,11 @@ def run(args):
     for text in found["notes"]:
         note("%s: %s" % (args.page, text))
 
-    target = stats.Measurement(LABEL, args.page, "mobile", "control", url)
-    have = len(samples.members(inv, target))
-    room = stats.SAMPLES_PER_MEASUREMENT - have
-    wanted = len(args.report) if args.report else (args.count or room)
-    if wanted > room:
-        raise Refused("measurement-complete", "the %s page's Ceiling already holds %d of %d "
-                      "Samples" % (args.page, have, stats.SAMPLES_PER_MEASUREMENT))
-    if args.report:
-        for path in args.report:
-            with open(path, encoding="utf-8") as f:
-                report = json.load(f)
-            if samples.record(inv, target, theme, report, source="file", probe=found) is None:
-                return 1
-    else:
-        taken = samples.take(inv, target, theme, wanted, probe=found)
-        if taken < wanted:
-            raise Failed("samples-rejected", "%d of %d Samples taken; see the rejections above"
-                         % (taken, wanted), "Run the same command again to continue.")
-
+    if samples.fill(inv, target, args.count, args.report, probe=found):
+        return 1
     done = samples.members(inv, target)
     if len(done) == stats.SAMPLES_PER_MEASUREMENT:
-        say("MEASUREMENT", stats.measurement_line(target, done))
-        found["findings"] = read_ceiling(inv, args.page, url, done)
+        found["findings"] = read_ceiling(inv, args.page, done)
         inv.save()
         for text in found["findings"]:
             note("%s: %s" % (args.page, text))
@@ -85,20 +62,20 @@ def _painted(found):
     return (found["kind"], found["selector"])
 
 
-def _reports(inv, samples):
+def _reports(inv, chosen):
     out = []
-    for s in samples:
+    for s in chosen:
         with open(inv.file(s["report"]), encoding="utf-8") as f:
             out.append(json.load(f))
     return out
 
 
-def read_ceiling(inv, page, url, samples):
+def read_ceiling(inv, page, taken):
     """What the developer should know before trusting this page's Ceiling."""
     baseline = stats.members(inv.data["samples"], stats.Measurement.baseline(inv, page))
     before = _reports(inv, baseline)
     painted = {_painted(probe.lcp(r)) for r in before}
-    moved = [probe.lcp(r) for r in _reports(inv, samples)]
+    moved = [probe.lcp(r) for r in _reports(inv, taken)]
     moved = [m for m in moved if _painted(m) not in painted]
     out = []
     if moved:
@@ -116,11 +93,11 @@ def read_ceiling(inv, page, url, samples):
             out.append("the LCP image loads only through a theme script (a lazy loader), so with "
                        "theme scripts blocked it never loaded, and the largest paint moved to %s "
                        "in %d of %d Ceiling Samples. This Ceiling leaves out that image's own "
-                       "loading: read it as a rough estimate" % (where, len(moved), len(samples)))
+                       "loading: read it as a rough estimate" % (where, len(moved), len(taken)))
         else:
             out.append("the largest paint moved off the baseline's LCP element to %s in %d of %d "
                        "Ceiling Samples, so this Ceiling measures a different first screen: read "
-                       "it as a rough estimate" % (where, len(moved), len(samples)))
+                       "it as a rough estimate" % (where, len(moved), len(taken)))
     ceiling_median = planning.ceiling(inv, page)[0]
     baseline_median = planning.baseline_median(inv, page)
     if ceiling_median <= baseline_median:

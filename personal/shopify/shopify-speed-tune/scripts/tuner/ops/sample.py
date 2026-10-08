@@ -6,10 +6,7 @@ finished by running it again. --report records existing Lighthouse report files
 instead: the same checks, no Lighthouse run.
 """
 
-import json
-
 from tuner import ledger, samples, stats
-from tuner.output import Failed, Refused, say
 
 ORDER = 30
 PAGES = ("home", "collection", "product")
@@ -35,31 +32,4 @@ def register(sub):
 def run(args):
     inv = ledger.current("sample")
     measurement = stats.Measurement.of(inv, args.label, args.page, args.device, args.theme)
-    theme = inv.data["themes"].get(args.theme)
-    if not theme or theme.get("deleted"):
-        raise Refused("no-theme", "the invocation has no %s theme" % args.theme)
-    if args.count is not None and args.count < 1:
-        raise Refused("bad-count", "--count must be at least 1")
-    have = len(samples.members(inv, measurement))
-    room = stats.SAMPLES_PER_MEASUREMENT - have
-    wanted = len(args.report) if args.report else (args.count or room)
-    if wanted > room:
-        raise Refused("measurement-complete", "%s already holds %d of %d Samples"
-                      % (measurement, have, stats.SAMPLES_PER_MEASUREMENT))
-
-    if args.report:
-        for path in args.report:
-            with open(path, encoding="utf-8") as f:
-                report = json.load(f)
-            if samples.record(inv, measurement, theme, report, source="file") is None:
-                return 1
-    else:
-        taken = samples.take(inv, measurement, theme, wanted)
-        if taken < wanted:
-            raise Failed("samples-rejected", "%d of %d Samples taken; see the rejections above"
-                         % (taken, wanted), "Run the same command again to continue.")
-
-    done = samples.members(inv, measurement)
-    if len(done) == stats.SAMPLES_PER_MEASUREMENT:
-        say("MEASUREMENT", stats.measurement_line(measurement, done))
-    return 0
+    return samples.fill(inv, measurement, args.count, args.report)
