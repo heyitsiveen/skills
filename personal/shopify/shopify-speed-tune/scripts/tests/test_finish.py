@@ -51,6 +51,27 @@ class FinishLeavesOnlyTheWorkingThemeAndTheBranch(unittest.TestCase):
         self.assertEqual(box.git(box.repo, "branch", "--list", branch).strip(" *"), branch)
 
 
+class FinishLeavesTheDevelopersWorkAsItIs(unittest.TestCase):
+    """finish puts the repo back on the branch it started from only when that loses nothing."""
+
+    def test_a_switch_git_refuses_leaves_the_repo_on_the_invocations_branch_and_says_so(self):
+        box = ran(self, "reached")  # P2 kept: its commit deleted assets/slider.js
+        branch = box.git(box.repo, "branch", "--show-current")
+        rebuilt = "// rebuilt by the developer's bundler\n"
+        (box.repo / "assets" / "slider.js").write_text(rebuilt)
+
+        result = box.run("finish")
+
+        self.assertEqual(result.code, 0, result)
+        self.assertEqual(box.git(box.repo, "branch", "--show-current"), branch)
+        self.assertEqual((box.repo / "assets" / "slider.js").read_text(), rebuilt)
+        self.assertIn("FINISH branch kept %s (repo on %s)" % (branch, branch),
+                      result.lines("FINISH"))
+        self.assertRegex(result.out, r"(?m)^NOTE git did not switch the repo back to main, so it "
+                                     r"stays on %s: error: The following untracked working tree "
+                                     r"files would be overwritten by checkout" % re.escape(branch))
+
+
 class FinishReadsBackWhatItLeaves(unittest.TestCase):
     def setUp(self):
         self.box = Sandbox(self)

@@ -1,7 +1,8 @@
 """finish: end the invocation, leaving only the Working theme and the branch.
 
 Deletes the Control theme, puts the repo back on the branch the invocation
-started from, restores Chrome for Testing's preferences, stops any Chrome a job
+started from when that loses nothing (never with uncommitted changes, never
+past a switch git refuses), restores Chrome for Testing's preferences, stops any Chrome a job
 cut off part-way left running, removes the temp workspace (Chrome,
 puppeteer-core and the smoke checker's project, the pnpm store), stops the
 `caffeinate` that kept the Mac awake, marks the ledger finished and releases
@@ -105,6 +106,12 @@ def delete_theme(inv, role):
 
 
 def return_to_start_branch(inv, discard):
+    """Put the repo back on the branch the invocation started from, when that loses nothing.
+
+    Uncommitted changes keep it on the invocation's branch, and so does any switch
+    git refuses, such as one that would overwrite an untracked file: the switch is
+    never forced, so it never discards work, and what it did is read back.
+    """
     info = inv.data["repo"]
     root, branch, start = info["root"], info.get("branch"), info.get("start_branch")
     if not branch:
@@ -114,14 +121,17 @@ def return_to_start_branch(inv, discard):
         if repo.git(root, "status", "--porcelain", "--untracked-files=no").stdout.strip():
             note("%s has uncommitted changes, so the repo stays on %s" % (root, branch))
             return
-        repo.git(root, "switch", "-q", start)
-        on_branch = start
+        switched = repo.git(root, "switch", "-q", start)
+        if switched.returncode != 0:
+            note("git did not switch the repo back to %s, so it stays on %s: %s"
+                 % (start, branch, " ".join(switched.stderr.split())[:300]))
+        on_branch = repo.git(root, "branch", "--show-current").stdout.strip()
     commits = repo.git(root, "rev-list", "--count", "%s..%s" % (info["start_commit"], branch))
-    if discard and commits.stdout.strip() == "0":
-        repo.git(root, "branch", "-q", "-D", branch)
-        say("FINISH", "branch deleted", branch, "(it held no commits)")
-    else:
-        say("FINISH", "branch kept", branch, "(repo on %s)" % on_branch)
+    if discard and commits.stdout.strip() == "0" and on_branch != branch:
+        if repo.git(root, "branch", "-q", "-D", branch).returncode == 0:
+            say("FINISH", "branch deleted", branch, "(it held no commits)")
+            return
+    say("FINISH", "branch kept", branch, "(repo on %s)" % (on_branch or "a detached HEAD"))
 
 
 def remove_workspace(inv):
