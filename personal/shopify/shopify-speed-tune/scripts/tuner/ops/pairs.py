@@ -18,7 +18,6 @@ A pair cut short is retaken whole, so its two Samples are always back to back.
 no Lighthouse run.
 """
 
-import argparse
 import json
 import time
 
@@ -64,8 +63,9 @@ def run(args):
     return 0
 
 
-def target(rnd, page, role):
-    return argparse.Namespace(label=rounds.label(rnd["n"]), page=page, device="mobile", theme=role)
+def target(inv, rnd, page, role):
+    """The Round's Measurement of `page` on the `role` theme: mobile, as every pair is."""
+    return stats.Measurement.of(inv, rounds.label(rnd["n"]), page, "mobile", role)
 
 
 def next_pair(inv, rnd, page):
@@ -80,11 +80,10 @@ def finish_pair(inv, rnd, page, k, control, working):
     say("PAIR", rounds.pair_line(rnd, page, k, control, working))
     if len(rounds.pairs(inv, rnd, page)) == rounds.PAIRS_PER_PAGE:
         say("PAIRS", rounds.summary_line(rnd, page, rounds.page_summary(inv, rnd, page)))
-        url = inv.page_url(page)
-        label = rounds.label(rnd["n"])
         for role in ("control", "working"):
-            members = stats.members(inv.data["samples"], label, page, url, "mobile", role)
-            say("MEASUREMENT", stats.measurement_line(label, page, "mobile", role, members))
+            measurement = target(inv, rnd, page, role)
+            say("MEASUREMENT", stats.measurement_line(measurement,
+                                                      samples.members(inv, measurement)))
 
 
 def discard(inv, recorded):
@@ -93,7 +92,6 @@ def discard(inv, recorded):
 
 
 def record_files(inv, rnd, page, files):
-    url = inv.page_url(page)
     themes = inv.data["themes"]
     for control_file, working_file in files:
         k = next_pair(inv, rnd, page)
@@ -101,8 +99,8 @@ def record_files(inv, rnd, page, files):
         for role, path in (("control", control_file), ("working", working_file)):
             with open(path, encoding="utf-8") as f:
                 report = json.load(f)
-            recorded[role] = samples.record(inv, target(rnd, page, role), url, themes[role], report,
-                                           source="file", extra={"round": rnd["n"], "pair": k})
+            recorded[role] = samples.record(inv, target(inv, rnd, page, role), themes[role], report,
+                                            source="file", extra={"round": rnd["n"], "pair": k})
             if recorded[role] is None:
                 if role == "working":
                     discard(inv, recorded["control"])
@@ -121,12 +119,11 @@ def take(inv, rnd, pages, budget):
     for taken, (k, _, page) in enumerate(queue):
         if taken and time.monotonic() - began >= budget:
             return
-        url = inv.page_url(page)
         recorded = {}
         for role in ("control", "working"):
             if (role, page) not in cookies:
-                cookies[(role, page)] = samples.preview(inv, themes[role], url)
-            recorded[role] = attempts(inv, rnd, page, role, url, cookies[(role, page)], k)
+                cookies[(role, page)] = samples.preview(inv, themes[role], inv.page_url(page))
+            recorded[role] = attempts(inv, rnd, page, role, cookies[(role, page)], k)
             if recorded[role] is None:
                 if role == "working":
                     discard(inv, recorded["control"])
@@ -136,10 +133,10 @@ def take(inv, rnd, pages, budget):
         finish_pair(inv, rnd, page, k, recorded["control"], recorded["working"])
 
 
-def attempts(inv, rnd, page, role, url, cookie, k):
+def attempts(inv, rnd, page, role, cookie, k):
     for _ in range(1 + samples.SPARE_ATTEMPTS):
-        found = samples.attempt(inv, target(rnd, page, role), url, inv.data["themes"][role], cookie,
-                               extra={"round": rnd["n"], "pair": k})
+        found = samples.attempt(inv, target(inv, rnd, page, role), inv.data["themes"][role],
+                                cookie, extra={"round": rnd["n"], "pair": k})
         if found is not None:
             return found
     return None

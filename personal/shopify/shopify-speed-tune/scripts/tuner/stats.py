@@ -5,10 +5,35 @@ time it is read, so there is one source of truth for every figure.
 """
 
 import math
+from collections import namedtuple
 
 from tuner.lighthouse import METRICS
 
 SAMPLES_PER_MEASUREMENT = 5
+
+
+class Measurement(namedtuple("Measurement", "label page device theme url")):
+    """Which Measurement: its label (baseline, ceiling, round-<n> or final), page, device and
+    theme, and the page's URL, so that only Samples of the page as it is now count."""
+    __slots__ = ()
+
+    @classmethod
+    def of(cls, inv, label, page, device, theme):
+        """The Measurement of `page` at its current URL."""
+        return cls(label, page, device, theme, inv.page_url(page))
+
+    @classmethod
+    def baseline(cls, inv, page, device="mobile"):
+        """The page's baseline: the Control theme, measured before any Round."""
+        return cls.of(inv, BASELINE, page, device, "control")
+
+    def holds(self, sample):
+        """True when `sample` counts in this Measurement."""
+        return (sample["label"], sample["page"], sample["device"], sample["theme"],
+                sample["url"]) == tuple(self) and not sample.get("discarded")
+
+    def __str__(self):
+        return "%s %s %s %s" % (self.label, self.page, self.device, self.theme)
 
 
 def median(values):
@@ -49,15 +74,13 @@ def show_range(metric, low, high):
     return "%s-%s" % (low_text, high_text)
 
 
-def members(samples, label, page, url, device, theme):
+def members(samples, measurement):
     """The Samples that make up one Measurement, in the order they were taken.
 
     A discarded Sample (a pair's Control Sample whose Working Sample could not
     be taken) stays in the ledger for the record but counts in no Measurement.
     """
-    return [s for s in samples
-            if s["label"] == label and s["page"] == page and s["url"] == url
-            and s["device"] == device and s["theme"] == theme and not s.get("discarded")]
+    return [s for s in samples if measurement.holds(s)]
 
 
 BASELINE = "baseline"
@@ -68,7 +91,7 @@ DEVICES = ("mobile", "desktop")
 
 
 def measurements(data):
-    """Every Measurement of the invocation as ((label, page, device, theme), samples).
+    """Every Measurement of the invocation as (Measurement, samples).
 
     The baseline's six (each page on the Control theme, mobile and desktop) are
     always listed, empty or not; any other Measurement follows in the order its
@@ -82,12 +105,8 @@ def measurements(data):
         key = (s["label"], s["page"], s["device"], s["theme"])
         if key not in keys:
             keys.append(key)
-    out = []
-    for label, page, device, theme in keys:
-        url = base + pages.get(page, "")
-        out.append(((label, page, device, theme),
-                    members(data.get("samples", []), label, page, url, device, theme)))
-    return out
+    found = [Measurement(*key, url=base + pages.get(key[1], "")) for key in keys]
+    return [(m, members(data.get("samples", []), m)) for m in found]
 
 
 def sample_line(sample):
@@ -97,8 +116,8 @@ def sample_line(sample):
                                     sample["device"], sample["theme"], figures)
 
 
-def measurement_line(label, page, device, theme, samples):
-    head = "%s %s %s %s" % (label, page, device, theme)
+def measurement_line(measurement, samples):
+    head = str(measurement)
     if len(samples) < SAMPLES_PER_MEASUREMENT:
         return "%s incomplete %d/%d" % (head, len(samples), SAMPLES_PER_MEASUREMENT)
     figures = summary(samples)

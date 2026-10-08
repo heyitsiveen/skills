@@ -29,8 +29,7 @@ SHOWN = 6  # owners or elements a line names
 
 def baseline(inv, page):
     """The page's five baseline mobile Samples with their stored reports."""
-    url = inv.page_url(page)
-    samples = stats.members(inv.data["samples"], stats.BASELINE, page, url, "mobile", "control")
+    samples = stats.members(inv.data["samples"], stats.Measurement.baseline(inv, page))
     if len(samples) < stats.SAMPLES_PER_MEASUREMENT:
         raise Refused("no-baseline", "the %s page's baseline mobile Measurement holds %d of %d "
                       "Samples" % (page, len(samples), stats.SAMPLES_PER_MEASUREMENT),

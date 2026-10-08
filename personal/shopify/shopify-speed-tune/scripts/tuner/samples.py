@@ -7,6 +7,9 @@ its own URL plus `?pb=0`, which keeps Shopify's preview bar out: never the
 preview query parameter, never a redirect. The served theme is read back
 before the first Sample and checked in every report, and a report is recorded
 only once it passes every check in tuner.lighthouse.
+
+Every Sample belongs to one Measurement (a stats.Measurement), which says what
+it is of: the page at its URL, the device and the theme.
 """
 
 import os
@@ -20,21 +23,21 @@ from tuner.probe import check as probe_check
 SPARE_ATTEMPTS = 2
 
 
-def members(inv, args, url):
-    return stats.members(inv.data["samples"], args.label, args.page, url, args.device, args.theme)
+def members(inv, measurement):
+    return stats.members(inv.data["samples"], measurement)
 
 
-def take(inv, args, url, theme, wanted, probe=None):
+def take(inv, measurement, theme, wanted, probe=None):
     """Take Samples until `wanted` are recorded or the spare attempts run out.
 
     `probe` (the Ceiling probe: blocked patterns and the LCP image they spare)
     passes through to Lighthouse and to the check of every report.
     """
-    cookie = preview(inv, theme, url)
+    cookie = preview(inv, theme, measurement.url)
     taken, attempts = 0, 0
     while taken < wanted and attempts < wanted + SPARE_ATTEMPTS:
         attempts += 1
-        if attempt(inv, args, url, theme, cookie, probe=probe) is not None:
+        if attempt(inv, measurement, theme, cookie, probe=probe) is not None:
             taken += 1
     return taken
 
@@ -54,9 +57,9 @@ def preview(inv, theme, url):
     return cookie
 
 
-def attempt(inv, args, url, theme, cookie, probe=None, extra=None):
-    """One Lighthouse run in a fresh copy of the invocation's Chrome: the recorded
-    Sample, or None when its report was rejected."""
+def attempt(inv, measurement, theme, cookie, probe=None, extra=None):
+    """One Sample, in a fresh copy of the invocation's Chrome: the recorded Sample, or None
+    when its report was rejected."""
     data = inv.data
     workspace = data["workspace"]
     chrome = data["tools"]["chrome"]["path"]
@@ -66,28 +69,31 @@ def attempt(inv, args, url, theme, cookie, probe=None, extra=None):
     try:
         with browser.Chrome(workspace, chrome) as session:
             session.put_preview_cookie(data["store"]["url"], cookie)
-            report = lighthouse.take(workspace, chrome, storefront.preview_url(url), args.device,
-                                     session.port, output,
+            report = lighthouse.take(workspace, chrome, storefront.preview_url(measurement.url),
+                                     measurement.device, session.port, output,
                                      blocked=probe["patterns"] if probe else ())
     except lighthouse.Rejected as rejection:
-        reject(inv, args, rejection.reason)
+        reject(inv, measurement, rejection.reason)
         return None
     finally:
         if os.path.exists(output):
             os.remove(output)
-    return record(inv, args, url, theme, report, source="lighthouse",
+    return record(inv, measurement, theme, report, source="lighthouse",
                   secrets=(cookie.split("=", 1)[1],), probe=probe, extra=extra)
 
 
-def record(inv, args, url, theme, report, source, secrets=(), probe=None, extra=None):
+def record(inv, measurement, theme, report, source, secrets=(), probe=None, extra=None):
+    """Record `report` as a Sample of `measurement` once it passes every check: the Sample,
+    or None when the report was rejected."""
+    m = measurement
     try:
-        figures = lighthouse.check(report, storefront.preview_url(url), args.device,
+        figures = lighthouse.check(report, storefront.preview_url(m.url), m.device,
                                    inv.data["tools"].get("lighthouse"), theme.get("asset_path"),
                                    blocked=probe["patterns"] if probe else ())
         if probe:
             probe_check(report, probe)
     except lighthouse.Rejected as rejection:
-        reject(inv, args, rejection.reason)
+        reject(inv, m, rejection.reason)
         return None
     sample_id = "s%04d" % (len(inv.data["samples"]) + 1)
     os.makedirs(inv.file("samples"), exist_ok=True)
@@ -97,8 +103,8 @@ def record(inv, args, url, theme, report, source, secrets=(), probe=None, extra=
     agent = (report.get("environment") or {}).get("hostUserAgent", "")
     build = re.search(r"HeadlessChrome/[\d.]+", agent)
     sample = {
-        "id": sample_id, "label": args.label, "page": args.page, "url": url,
-        "device": args.device, "theme": args.theme, "theme_id": theme["id"],
+        "id": sample_id, "label": m.label, "page": m.page, "url": m.url,
+        "device": m.device, "theme": m.theme, "theme_id": theme["id"],
         "metrics": figures, "taken_at": report.get("fetchTime"), "source": source,
         "report": stored, "warnings": report.get("runWarnings") or [],
         "lighthouse": report.get("lighthouseVersion"),
@@ -107,14 +113,14 @@ def record(inv, args, url, theme, report, source, secrets=(), probe=None, extra=
     }
     sample.update(extra or {})
     inv.data["samples"].append(sample)
-    inv.log("sample", "%s recorded (%s %s %s %s)" % (sample_id, args.label, args.page,
-                                                    args.device, args.theme))
+    inv.log("sample", "%s recorded (%s)" % (sample_id, m))
     inv.save()
     say("SAMPLE", stats.sample_line(sample))
     return sample
 
 
-def reject(inv, args, reason):
-    inv.log("sample", "rejected %s %s %s: %s" % (args.page, args.device, args.theme, reason))
+def reject(inv, measurement, reason):
+    m = measurement
+    inv.log("sample", "rejected %s %s %s: %s" % (m.page, m.device, m.theme, reason))
     inv.save()
-    say("SAMPLE", "rejected %s %s %s: %s" % (args.page, args.device, args.theme, reason))
+    say("SAMPLE", "rejected %s %s %s: %s" % (m.page, m.device, m.theme, reason))

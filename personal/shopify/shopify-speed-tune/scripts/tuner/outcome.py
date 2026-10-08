@@ -16,8 +16,8 @@ from tuner.output import Refused
 
 def figures(inv, label, page, device, theme):
     """(median, low, high) of a complete Measurement's Performance score, or None."""
-    samples = stats.members(inv.data.get("samples", []), label, page, inv.page_url(page),
-                            device, theme)
+    samples = stats.members(inv.data.get("samples", []),
+                            stats.Measurement.of(inv, label, page, device, theme))
     if len(samples) < stats.SAMPLES_PER_MEASUREMENT:
         return None
     median, low, high = stats.summary(samples)["performance"]

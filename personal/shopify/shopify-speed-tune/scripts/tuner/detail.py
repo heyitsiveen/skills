@@ -114,9 +114,10 @@ def measurements(inv):
              "with its range in brackets.", "",
              "| Measurement | Page | Device | Theme | Samples | %s |" % " | ".join(COLUMNS),
              "|---|---|---|---|---|%s" % ("---|" * len(COLUMNS))]
-    for (label, page, device, theme), members in stats.measurements(inv.data):
-        head = "| %s | %s | %s | %s |" % (label, PAGE_NAMES.get(page, page), device,
-                                          theme.capitalize())
+    for measurement, members in stats.measurements(inv.data):
+        head = "| %s | %s | %s | %s |" % (measurement.label,
+                                          PAGE_NAMES.get(measurement.page, measurement.page),
+                                          measurement.device, measurement.theme.capitalize())
         if len(members) < stats.SAMPLES_PER_MEASUREMENT:
             lines.append("%s %d of %d | %s |" % (head, len(members), stats.SAMPLES_PER_MEASUREMENT,
                                                  " | ".join("–" for _ in COLUMNS)))

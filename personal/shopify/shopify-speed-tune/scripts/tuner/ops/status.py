@@ -28,8 +28,8 @@ def run(args):
                 "deleted" if theme.get("deleted") else "")
     for page, path in data.get("pages", {}).items():
         say("PAGE", page, inv.page_url(page))
-    for key, samples in stats.measurements(data):
-        say("MEASUREMENT", stats.measurement_line(*key, samples))
+    for measurement, samples in stats.measurements(data):
+        say("MEASUREMENT", stats.measurement_line(measurement, samples))
     for tag, text in planning.status_lines(inv):
         say(tag, text)
     for record in data.get("smoke", []):

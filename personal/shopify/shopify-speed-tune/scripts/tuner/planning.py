@@ -17,8 +17,8 @@ ITEM_FIELDS = ("change", "cause", "effect")
 
 def performance(inv, label, page):
     """(median, low, high) of the page's mobile Control theme Measurement, or None."""
-    url = inv.page_url(page)
-    samples = stats.members(inv.data["samples"], label, page, url, "mobile", "control")
+    samples = stats.members(inv.data["samples"],
+                            stats.Measurement.of(inv, label, page, "mobile", "control"))
     if len(samples) < stats.SAMPLES_PER_MEASUREMENT:
         return None
     median, low, high = stats.summary(samples)["performance"]

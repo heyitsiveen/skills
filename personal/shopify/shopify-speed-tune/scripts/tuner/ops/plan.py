@@ -122,8 +122,7 @@ def render(inv, table):
         "|---|%s" % ("---|" * len(COLUMNS)),
     ]
     for page in stats.PAGE_ORDER:
-        samples = stats.members(data["samples"], stats.BASELINE, page, inv.page_url(page),
-                                "mobile", "control")
+        samples = stats.members(data["samples"], stats.Measurement.baseline(inv, page))
         figures = stats.summary(samples)
         lines.append("| %s | %s |" % (PAGE_NAMES[page],
                                       " | ".join(cell(m, *figures[m]) for m in stats.METRICS)))

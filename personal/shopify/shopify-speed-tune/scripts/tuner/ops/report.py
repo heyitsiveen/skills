@@ -84,8 +84,8 @@ def run(args):
 
 
 def final_held(inv, page):
-    return len(stats.members(inv.data["samples"], stats.FINAL, page, inv.page_url(page),
-                             "desktop", "working"))
+    return len(stats.members(inv.data["samples"],
+                             stats.Measurement.of(inv, stats.FINAL, page, "desktop", "working")))
 
 
 def _number(figures):

@@ -13,7 +13,6 @@ Lighthouse has no allow-list, so no pattern that matches the LCP image is ever
 emitted. --report records existing Lighthouse report files instead.
 """
 
-import argparse
 import json
 
 from tuner import findings, ledger, planning, probe, samples, stats
@@ -49,8 +48,8 @@ def run(args):
     for text in found["notes"]:
         note("%s: %s" % (args.page, text))
 
-    target = argparse.Namespace(label=LABEL, page=args.page, device="mobile", theme="control")
-    have = len(samples.members(inv, target, url))
+    target = stats.Measurement(LABEL, args.page, "mobile", "control", url)
+    have = len(samples.members(inv, target))
     room = stats.SAMPLES_PER_MEASUREMENT - have
     wanted = len(args.report) if args.report else (args.count or room)
     if wanted > room:
@@ -60,17 +59,17 @@ def run(args):
         for path in args.report:
             with open(path, encoding="utf-8") as f:
                 report = json.load(f)
-            if samples.record(inv, target, url, theme, report, source="file", probe=found) is None:
+            if samples.record(inv, target, theme, report, source="file", probe=found) is None:
                 return 1
     else:
-        taken = samples.take(inv, target, url, theme, wanted, probe=found)
+        taken = samples.take(inv, target, theme, wanted, probe=found)
         if taken < wanted:
             raise Failed("samples-rejected", "%d of %d Samples taken; see the rejections above"
                          % (taken, wanted), "Run the same command again to continue.")
 
-    done = samples.members(inv, target, url)
+    done = samples.members(inv, target)
     if len(done) == stats.SAMPLES_PER_MEASUREMENT:
-        say("MEASUREMENT", stats.measurement_line(LABEL, args.page, "mobile", "control", done))
+        say("MEASUREMENT", stats.measurement_line(target, done))
         found["findings"] = read_ceiling(inv, args.page, url, done)
         inv.save()
         for text in found["findings"]:
@@ -96,7 +95,7 @@ def _reports(inv, samples):
 
 def read_ceiling(inv, page, url, samples):
     """What the developer should know before trusting this page's Ceiling."""
-    baseline = stats.members(inv.data["samples"], stats.BASELINE, page, url, "mobile", "control")
+    baseline = stats.members(inv.data["samples"], stats.Measurement.baseline(inv, page))
     before = _reports(inv, baseline)
     painted = {_painted(probe.lcp(r)) for r in before}
     moved = [probe.lcp(r) for r in _reports(inv, samples)]
@@ -136,7 +135,7 @@ def probe_for(inv, page, url):
     kept = inv.data.setdefault("ceilings", {}).get(page)
     if kept and kept.get("url") == url:
         return kept
-    baseline = stats.members(inv.data["samples"], stats.BASELINE, page, url, "mobile", "control")
+    baseline = stats.members(inv.data["samples"], stats.Measurement.baseline(inv, page))
     if len(baseline) < stats.SAMPLES_PER_MEASUREMENT:
         raise Refused("no-baseline", "the %s page's baseline mobile Measurement holds %d of %d "
                       "Samples" % (page, len(baseline), stats.SAMPLES_PER_MEASUREMENT),
