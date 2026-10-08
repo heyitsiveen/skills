@@ -1,144 +1,374 @@
-"""report: write the baseline report into the invocation's folder.
+"""report: write the invocation's report into its folder, generated from the ledger.
 
-Every figure comes from the ledger: each page's Measurement on the Control
-theme, mobile and desktop, as a median with its range, plus the Lighthouse and
-Chrome versions that took every Sample.
+The report has two parts. The part for the team says what changed; each page's
+Performance score before and after, against its target and its Ceiling, with
+desktop at the start and the end; the developer's PageSpeed scores beside the
+baseline; what every app and tag costs; the template JSON a kept Round changed;
+how this store goes live and goes back; and, for each missed target, why and
+what to try next. The detail log is the record behind it.
+
+A missed target's reason and next plan are the one part the program cannot
+know: `--missed FILE` records them, written for each page that missed, and the
+report carries them. Until then each such page prints `REPORT missed <page>
+unexplained`.
+
+The store's setup is read from the repo, and its published theme from the
+theme library, at the time of the report: how to go live depends on both.
 """
 
-import math
-from datetime import datetime
-
-from tuner import ledger, stats, tools
-from tuner.output import say
+from tuner import detail, findings, golive, ledger, outcome, planning, rounds, stats
+from tuner.output import Refused, note, say
+# COLUMNS and cell are here for `plan`, which renders its tables as the report does.
+from tuner.text import COLUMNS, PAGE_NAMES, cell, score, theme_name, when  # noqa: F401
 
 ORDER = 85
-PAGE_NAMES = {"home": "Home", "collection": "Collection", "product": "Product"}
-COLUMNS = ("Performance", "LCP", "TBT", "CLS", "FCP", "Speed Index", "Accessibility")
 
 
 def register(sub):
-    p = sub.add_parser("report", help="write the baseline report into the invocation's folder")
+    p = sub.add_parser("report", help="write the report: a part for the team and a detail log")
+    p.add_argument("--missed", metavar="FILE",
+                   help="record each missed target's reason and proposed next plan from a JSON "
+                        "file, then write the report")
     p.add_argument("--invocation", help="a finished invocation of this repo, by id")
     p.set_defaults(run=run)
 
 
 def run(args):
     inv = ledger.find(args.invocation)
+    open_round = rounds.current(inv)
+    if open_round is not None:
+        raise Refused("round-open", "Round %d is open, so the Working theme may hold a change no "
+                      "verdict kept" % open_round["n"],
+                      "End it with `verdict`, or `verdict --remove`, then write the report.")
+    if args.missed:
+        outcome.record_missed(inv, outcome.read_missed(args.missed))
+    results = outcome.results(inv)
+    live, unread = golive.live_theme(inv)
+    setup = golive.detect(inv.data["repo"]["root"], live["name"])
     path = inv.file("report.md")
     with open(path, "w", encoding="utf-8") as f:
-        f.write(render(inv))
-    inv.log("report", "baseline report written")
+        f.write(render(inv, results, setup, live))
+    inv.data.setdefault("report", {})["written_at"] = ledger.now()
+    inv.log("report", "report written")
     inv.save()
-    say("REPORT", path)
+    if unread:
+        note(unread)
+    if golive.changed(inv, live):
+        recorded = inv.data["store"]["published_theme"]
+        say("WARN", "live-theme-changed: the published theme is %s (#%s) now, not %s (#%s), the "
+                    "theme the Working theme was copied from" % (live["name"], live["id"],
+                                                                 recorded["name"], recorded["id"]))
+    for result in results:
+        say("REPORT", page_line(result))
+    if inv.data.get("stopped"):
+        for result in results:
+            if result.desktop[1] is None:
+                note("the %s page's final desktop Measurement holds %d of %d Samples: take it "
+                     "with `final --page %s`, then write the report again" % (
+                         result.page, final_held(inv, result.page), stats.SAMPLES_PER_MEASUREMENT,
+                         result.page))
+    say("REPORT", "setup", setup.kind, "branch=%s" % setup.branch if setup.branch else "")
+    missed = [r.page for r in results if r.state == "missed"]
+    for page in missed:
+        say("REPORT", "missed", page,
+            "unexplained" if outcome.explanation(inv, page) is None else "explained")
+    if any(outcome.explanation(inv, page) is None for page in missed):
+        note("each missed target needs its reason and a proposed next plan: write them to a "
+             "JSON file and run `report --missed <file>`")
+    say("REPORT", "file", path)
     return 0
 
 
-def _half_up(value, places=0):
-    factor = 10 ** places
-    return math.floor(value * factor + 0.5) / factor
+def final_held(inv, page):
+    return len(stats.members(inv.data["samples"], stats.FINAL, page, inv.page_url(page),
+                             "desktop", "working"))
 
 
-def human(metric, value):
-    """A figure as PageSpeed shows it: seconds for paint times, ms for TBT."""
-    if metric in ("performance", "accessibility"):
-        return "%d" % _half_up(value)
-    if metric == "cls":
-        return "%.3f" % value
-    if metric == "tbt":
-        return "{:,}".format(int(_half_up(value)))
-    return "%.1f" % _half_up(value / 1000.0, 1)
+def _number(figures):
+    return "-" if figures is None else "%d" % figures[0]
 
 
-def cell(metric, median, low, high):
-    unit = {"tbt": " ms", "lcp": " s", "fcp": " s", "si": " s"}.get(metric, "")
-    return "%s%s (%s–%s)" % (human(metric, median), unit, human(metric, low), human(metric, high))
+def page_line(result):
+    target = "-" if result.target is None else "%d" % result.target
+    return "page %s before=%s after=%s target=%s %s%s" % (
+        result.page, _number(result.before), _number(result.after), target, result.state,
+        " by=%d" % result.short_by if result.state == "missed" else "")
 
 
-def render(inv):
+# -- the report ------------------------------------------------------------------
+
+def render(inv, results, setup, live):
     data = inv.data
-    store = data["store"]
-    control = data["themes"].get("control", {})
-    published = store.get("published_theme", {})
-    samples = data.get("samples", [])
-    axe = sorted({s["axe"] for s in samples if s.get("axe")})
-    lines = [
-        "# Speed baseline: %s" % store["url"],
-        "",
-        "| | |",
-        "|---|---|",
-        "| Store | %s (`%s`) |" % (store["url"], store["myshopify"]),
-        "| Invocation | `%s`, started %s |" % (inv.id, when(data.get("created_at"))),
-        "| Requested score | %s |" % data.get("requested_score"),
-        "| Measured on | the Control theme `%s` (#%s), an unpublished copy of the published "
-        "theme `%s` (#%s) |" % (control.get("name"), control.get("id"), published.get("name"),
-                                published.get("id")),
-        "| Tools | Lighthouse %s%s on Chrome for Testing %s |" % (
-            data["tools"].get("lighthouse", tools.LIGHTHOUSE),
-            " (axe-core %s)" % ", ".join(axe) if axe else "",
-            data["tools"].get("chrome", {}).get("build", tools.CHROME_BUILD)),
-        "",
-        "## Pages",
-        "",
-    ]
+    table = cost_table(inv)
+    kept = any(r["state"] == "kept" for r in data.get("rounds", []))
+    pinned = data.get("tools") or {}
+    lines = ["# Speed report: %s" % data["store"]["url"], "",
+             "Invocation `%s`, started %s, measured with Lighthouse %s on Chrome for Testing %s. "
+             "Requested Performance score: %s." % (
+                 inv.id, when(data.get("created_at")), pinned.get("lighthouse", "?"),
+                 (pinned.get("chrome") or {}).get("build", "?"), data.get("requested_score")),
+             "", "**Outcome.** %s" % outcome_words(inv, results), "", "## For the team", ""]
+    lines += what_changed(inv)
+    lines += performance(inv, results)
+    lines += pagespeed(inv)
+    lines += apps_and_tags(inv, table)
+    lines += template_json(inv)
+    lines += golive.section(inv, setup, live, kept)
+    lines += missed_targets(inv, [r for r in results if r.state == "missed"], table)
+    lines += detail.render(inv)
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def no_round(plan):
+    return "No Round ran: %s" % ("the plan was not approved." if plan else
+                                 "the invocation stopped before its plan.")
+
+
+def outcome_words(inv, results):
+    plan = inv.data.get("plan") or {}
+    if not plan.get("approved_at"):
+        return no_round(plan)
+    reason = (inv.data.get("stopped") or {}).get("reason")
+    if reason == "targets-reached":
+        used = len(plan["items"]) - len(planning.unused(inv))
+        return "Every page reached its target, so the Rounds stopped after %d of the plan's %d " \
+               "items." % (used, len(plan["items"]))
+    reached = "%d of %d pages at their targets" % (
+        sum(1 for r in results if r.state == "reached"), len(results))
+    if reason == "plan-exhausted":
+        return "The plan was used up with %s." % reached
+    return "The Rounds were ended before the plan was used up, with %s." % reached
+
+
+def item_head(item):
+    return "**%s. %s.**" % (item["id"], item["change"].strip().rstrip("."))
+
+
+def item_text(item):
+    return "%s (%s)" % (item["id"], item["change"].strip().rstrip("."))
+
+
+def kept_line(rnd, item):
+    pages = rnd["verdict"]["pages"]
+    parts = []
     for page in stats.PAGE_ORDER:
-        if page in data.get("pages", {}):
-            lines.append("- %s: %s" % (PAGE_NAMES[page], inv.page_url(page)))
+        found = pages[page]
+        figures = (found["wins"], found["pairs"]) + tuple(found["performance"])
+        parts.append(("%s won %d of %d pairs (median %d → %d)" if not parts
+                      else "%s %d of %d (%d → %d)") % ((page,) + figures))
+    return "- %s Kept in Round %d, commit `%s`: %s." % (item_head(item), rnd["n"],
+                                                      rnd["commit"][:12], ", ".join(parts))
+
+
+def what_changed(inv):
+    data = inv.data
+    plan = data.get("plan") or {}
+    lines = ["### What changed", ""]
+    if not plan.get("approved_at"):
+        return lines + [no_round(plan), ""]
+    items = {item["id"]: item for item in plan["items"]}
+    done = [r for r in data.get("rounds", []) if r["state"] in ("kept", "removed")]
+    kept = [r for r in done if r["state"] == "kept"]
+    working = data["themes"].get("working", {})
+    intro = "%d of the plan's %d items %s kept." % (len(kept), len(items),
+                                                    "was" if len(kept) == 1 else "were")
+    if kept:
+        intro += " Each kept item is one commit on the branch `%s`, and the Working theme %s " \
+                 "holds them all." % (data["repo"]["branch"], theme_name(working))
+    else:
+        intro += " The Working theme %s is still a copy of the published theme." \
+                 % theme_name(working)
+    lines += [intro, ""]
+    lines += [kept_line(rnd, items[rnd["item"]]) for rnd in kept]
+    lines += ["- %s Removed in Round %d, because %s." % (
+        item_head(items[rnd["item"]]), rnd["n"], outcome.why_removed(rnd["verdict"]["reasons"]))
+        for rnd in done if rnd["state"] == "removed"]
+    reached = (data.get("stopped") or {}).get("reason") == "targets-reached"
+    lines += ["- %s Not tried: %s" % (item_head(item), "every page reached its target first."
+                                      if reached else "the Rounds were ended before it.")
+              for item in planning.unused(inv)]
+    hook = outcome.hook(data)
+    if kept and hook and hook.get("status") == "bypass-approved":
+        lines += ["", "The kept Rounds were committed with `--no-verify`: the repo's pre-commit "
+                      "hook already failed before this invocation, and the developer approved the "
+                      "bypass for it, so the hook checked none of these commits. What it said "
+                      "before the invocation:", "", "```", str(hook.get("detail") or "").strip(),
+                  "```"]
+    return lines + [""]
+
+
+RESULT = {"reached": "reached", "short": "no Round ran", "no-target": "no target: no Ceiling",
+          "not-measured": "not measured"}
+
+
+def performance(inv, results):
+    lines = ["### Performance by page", "",
+             "| Page | Before | After | Target | Ceiling (estimate) | Result |",
+             "|---|---|---|---|---|---|"]
+    for r in results:
+        after = score(r.after)
+        if r.after is not None:
+            after += ", Round %d" % r.after_from if r.after_from else ", the baseline"
+        state = "missed by %d" % r.short_by if r.state == "missed" else RESULT[r.state]
+        lines.append("| %s | %s | %s | %s | %s | %s |" % (
+            PAGE_NAMES[r.page], score(r.before), after,
+            "–" if r.target is None else r.target, score(r.ceiling), state))
     lines += [
         "",
-        "## Baseline",
+        "Mobile Performance scores, each the median of five Samples with their range: mobile "
+        "decides. **Before** is the baseline, on the Control theme. **After** is the latest "
+        "Measurement of what the Working theme now holds: its own Samples in the Round that kept "
+        "a change, or the Control theme's in a later Round, which held the same. **Target** is "
+        "the lower of the requested %d and the page's Ceiling. The **Ceiling** is an estimate of "
+        "the most theme work can reach: the page measured with the theme's scripts, fonts and "
+        "images other than its LCP image blocked, while stylesheets, apps and tags stay."
+        % inv.data["requested_score"],
         "",
-        "Each figure is the median of five Samples, with their range in brackets. Mobile is "
-        "Lighthouse's emulated phone with simulated throttling; desktop is its desktop preset. "
-        "The Control theme is measured through its preview cookie, on each page's URL with "
-        "`?pb=0` so Shopify's preview bar stays out. A preview is still rendered without the "
-        "storefront cache, so these figures read lower than the published store's.",
-        "",
-        "| Page | Device | %s |" % " | ".join(COLUMNS),
-        "|---|---|%s" % ("---|" * len(COLUMNS)),
     ]
-    for (label, page, device, theme), members in stats.measurements(data):
-        if (label, theme) != (stats.BASELINE, "control"):
+    notes = [(page, text) for page in outcome.pages(inv)
+             for text in ((inv.data.get("ceilings") or {}).get(page) or {}).get("findings", [])]
+    lines += ["- %s's Ceiling: %s." % (PAGE_NAMES[page], text) for page, text in notes]
+    lines += [""] if notes else []
+    lines += ["Desktop decides nothing. It is measured at the start, on the Control theme, and at "
+              "the end, on the Working theme:", "",
+              "| Page | Desktop before | Desktop after |", "|---|---|---|"]
+    lines += ["| %s | %s | %s |" % (PAGE_NAMES[r.page], score(r.desktop[0]), score(r.desktop[1]))
+              for r in results]
+    return lines + [""]
+
+
+def pagespeed(inv):
+    lines = ["### PageSpeed beside the baseline", ""]
+    kept = inv.data.get("psi")
+    if not kept:
+        return lines + ["The developer's PageSpeed scores were not recorded.", ""]
+    lines += ["| Page | PageSpeed | Baseline | Gap |", "|---|---|---|---|"]
+    for page in stats.PAGE_ORDER:
+        if page in kept["scores"]:
+            given, median = kept["scores"][page], kept["baseline"][page]
+            lines.append("| %s | %d | %d | %+d |" % (PAGE_NAMES[page], given, median,
+                                                     given - median))
+    lines += ["", "The developer's PageSpeed mobile scores, given at the plan stop, beside this "
+                  "skill's baseline medians.", ""]
+    _, warnings = planning.psi_lines(inv)
+    lines += ["- **Warning**, %s." % w.split(" ", 1)[1] for w in warnings]
+    return lines + ([""] if warnings else [])
+
+
+def cost_table(inv):
+    """The app and tag cost table over every page whose baseline is complete."""
+    reports = {page: [r for _, r in findings.baseline(inv, page)] for page in outcome.pages(inv)
+               if outcome.figures(inv, stats.BASELINE, page, "mobile", "control") is not None}
+    return findings.costs(reports) if reports else []
+
+
+def cost_text(cost):
+    return "–" if cost is None else findings.cost_cell(cost).replace(" ms ", " ms · ")
+
+
+def apps_and_tags(inv, table):
+    lines = ["### Apps and tags", ""]
+    if not table:
+        return lines + ["Not measured: no page has its baseline.", ""]
+    pages = outcome.pages(inv)
+    lines += ["| App or tag | %s |" % " | ".join(PAGE_NAMES[p] for p in pages),
+              "|---|%s" % ("---|" * len(pages))]
+    lines += ["| %s | %s |" % (name, " | ".join(cost_text(cells.get(p)) for p in pages))
+              for name, cells in table]
+    return lines + [
+        "",
+        "Main-thread time on this Mac without throttling, then transfer size: the median of each "
+        "page's five baseline Samples, from Lighthouse's third-party summary. – means the page "
+        "never loaded it. The skill leaves every app and tag as the merchant set them; these "
+        "figures are for the merchant.",
+        "",
+    ]
+
+
+def template_json(inv):
+    """Template JSON that kept Rounds changed: page content the merchant edits too."""
+    lines = ["### Template JSON", ""]
+    flagged = [(path, rnd) for rnd in inv.data.get("rounds", []) if rnd["state"] == "kept"
+               for path in (rnd.get("change") or {}).get("template_json") or []]
+    if not flagged:
+        return lines + ["No kept Round changed template JSON.", ""]
+    lines += ["These files are page content the merchant edits in the theme editor too. Review "
+              "each change against the published theme's copy before going live:", ""]
+    lines += ["- `%s`: Round %d, %s." % (path, rnd["n"], item_text(rounds.item_of(inv, rnd)))
+              for path, rnd in flagged]
+    return lines + [""]
+
+
+# -- missed targets ----------------------------------------------------------------
+
+def costliest(table, page, count=3):
+    here = [(cells[page][0], name) for name, cells in table if cells.get(page)]
+    return [(name, ms) for ms, name in sorted(here, key=lambda c: (-c[0], c[1]))[:count]]
+
+
+def round_here(inv, rnd, page):
+    """What one closed Round did on one page, in a sentence."""
+    head = "Round %d, %s: " % (rnd["n"], item_text(rounds.item_of(inv, rnd)))
+    if rnd["state"] == "kept":
+        head += "kept"
+    else:
+        head += "removed, because %s" % outcome.why_removed(rnd["verdict"]["reasons"])
+    if len(rounds.pairs(inv, rnd, page)) < rounds.PAIRS_PER_PAGE:
+        return head + "; not measured here."
+    found = rounds.page_summary(inv, rnd, page)
+    return head + "; won %d of %d pairs here, median %d → %d." % (
+        found["wins"], found["pairs"], found["performance"][0], found["performance"][1])
+
+
+def stop_words(inv):
+    stopped = inv.data.get("stopped") or {}
+    if stopped.get("reason") == "plan-exhausted":
+        return "stopped when the plan was used up."
+    if stopped.get("reason") == "targets-reached":
+        return "stopped when every page reached its target."
+    left = len(planning.unused(inv))
+    return "were ended before the plan was used up, with %d item%s never tried." % (
+        left, "" if left == 1 else "s")
+
+
+def missed_facts(inv, r, table):
+    requested = inv.data["requested_score"]
+    if r.target < requested:
+        target = "Its Ceiling, %d: an estimate of the most theme work can reach here, below the " \
+                 "requested %d." % (r.target, requested)
+    else:
+        target = "The requested score, %d; its Ceiling, an estimate, is %d." % (requested,
+                                                                              r.ceiling[0])
+    tried = [round_here(inv, rnd, r.page) for rnd in inv.data.get("rounds", [])
+             if rnd["state"] in ("kept", "removed")
+             and r.page in rounds.item_of(inv, rnd)["pages"]]
+    lines = ["- **Target.** %s" % target,
+             "- **Rounds on this page.** %s" % (" ".join(tried) or "None: no plan item targeted it.")]
+    top = costliest(table, r.page)
+    if top:
+        lines.append("- **Apps and tags here.** %s of main-thread time, each the median over the "
+                     "page's baseline Samples." % ", ".join("%s %d ms" % (name, round(ms))
+                                                         for name, ms in top))
+    lines.append("- **The Rounds** %s" % stop_words(inv))
+    return lines + [""]
+
+
+def missed_targets(inv, missed, table):
+    if not missed:
+        return []
+    lines = ["### Missed targets", ""]
+    for r in missed:
+        lines += ["#### %s: %d against a target of %d" % (PAGE_NAMES[r.page], r.after[0], r.target),
+                  ""]
+        lines += missed_facts(inv, r, table)
+        written = outcome.explanation(inv, r.page)
+        if written is None:
+            lines += ["**Reason and next plan:** not written yet.", ""]
             continue
-        if len(members) < stats.SAMPLES_PER_MEASUREMENT:
-            lines.append("| %s | %s | not measured (%d of %d Samples) |"
-                         % (PAGE_NAMES[page], device, len(members), stats.SAMPLES_PER_MEASUREMENT))
-            continue
-        figures = stats.summary(members)
-        cells = [cell(m, *figures[m]) for m in stats.METRICS]
-        lines.append("| %s | %s | %s |" % (PAGE_NAMES[page], device, " | ".join(cells)))
-    lines += ["", "## What stays", ""]
-    working = data["themes"].get("working")
-    if working:
-        lines.append("- The Working theme `%s` (#%s), unpublished. It holds every kept change "
-                     "and is the theme to publish." % (working.get("name"), working.get("id")))
-    if data["repo"].get("branch"):
-        lines.append("- The branch `%s` in %s." % (data["repo"]["branch"], data["repo"]["root"]))
-    lines.append("- The Control theme is deleted at cleanup, and Chrome for Testing is removed.")
-    warnings = {}
-    for s in samples:
-        for warning in s.get("warnings", []):
-            key = (s["page"], s["device"], warning)
-            warnings[key] = warnings.get(key, 0) + 1
-    if warnings:
-        lines += ["", "## Lighthouse warnings", ""]
-        for (page, device, warning), count in sorted(warnings.items(), key=page_order):
-            lines.append("- %s %s, %d Sample%s: %s" % (PAGE_NAMES.get(page, page), device, count,
-                                                      "" if count == 1 else "s", warning))
-    return "\n".join(lines) + "\n"
-
-
-def page_order(item):
-    (page, device, warning), _ = item
-    rank = stats.PAGE_ORDER.index(page) if page in stats.PAGE_ORDER else len(stats.PAGE_ORDER)
-    return rank, stats.DEVICES.index(device), warning
-
-
-def when(stamp):
-    """An ISO timestamp as `2026-10-08 06:00 (UTC+08:00)`."""
-    try:
-        moment = datetime.fromisoformat(stamp)
-    except (TypeError, ValueError):
-        return stamp or "?"
-    offset = moment.strftime("%z")
-    zone = " (UTC%s:%s)" % (offset[:3], offset[3:]) if offset else ""
-    return moment.strftime("%Y-%m-%d %H:%M") + zone
+        lines += ["**Reason.** %s" % written["reason"], "", "**Proposed next plan.**", ""]
+        for n, item in enumerate(written["next"], 1):
+            lines += ["%d. %s" % (n, item["change"]),
+                      "   - Cause: %s" % item["cause"],
+                      "   - Expected effect: %s" % item["effect"]]
+        lines.append("")
+    return lines
