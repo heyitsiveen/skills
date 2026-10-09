@@ -5,12 +5,17 @@ fake `shopify`, `curl`, `pnpm` and `node` executables placed first on the path
 (pnpm installs a stand-in Chrome for Testing), and its own machine lock and
 temp dir. The program is driven only through its command
 line, the way the skill drives it.
+
+A sandbox that many tests set up the same way, such as one `start` opened, is
+built once per test process and handed to each test as a fresh copy: see `built`.
 """
 
+import atexit
 import json
 import os
 import re
 import shutil
+import signal
 import subprocess
 import sys
 import tempfile
@@ -111,6 +116,12 @@ def running(pid):
     state = subprocess.run(["ps", "-o", "stat=", "-p", str(pid)], capture_output=True,
                            text=True).stdout.strip()
     return bool(state) and not state.startswith("Z")
+
+
+def started_at(pid):
+    """When `pid` started, as `ps` tells it and the program records it."""
+    return subprocess.run(["ps", "-ww", "-o", "lstart=", "-p", str(pid)], capture_output=True,
+                          text=True).stdout.strip()
 
 
 class Result:
@@ -222,6 +233,21 @@ class Sandbox:
                 return found
             time.sleep(0.05)
 
+    def stop_awake(self):
+        """Stop the stand-in `caffeinate` the invocation holds, by the pid and start time its
+        lock records, and wait until it is gone."""
+        try:
+            held = json.loads(self.lock.read_text(encoding="utf-8")).get("awake")
+        except (OSError, ValueError):
+            return
+        if not held or not running(held["pid"]) or started_at(held["pid"]) != held["started"]:
+            return
+        os.kill(held["pid"], signal.SIGTERM)
+        deadline = time.monotonic() + 5
+        while running(held["pid"]):
+            self.test.assertLess(time.monotonic(), deadline, "caffeinate outlived SIGTERM")
+            time.sleep(0.02)
+
     def secrets_seen(self):
         """Every preview cookie value the fake store handed out, as it would appear anywhere."""
         return ["fake-%d-cookie" % t["id"] for t in self.store()["themes"]]
@@ -305,3 +331,40 @@ class Sandbox:
         self.test.assertEqual(result.code, 0, result)
         themes = dict(re.findall(r"^START theme=(\w+) id=(\d+)", result.out, re.M))
         return {name: int(theme_id) for name, theme_id in themes.items()}, result
+
+
+BUILT = {}
+
+
+def built(test, key, build):
+    """The sandbox and the value `build(test)` returns, built once per test process.
+
+    The first test to ask for `key` builds it, and a copy is taken. Each later test gets
+    that copy put back at the same path, since every path the ledger, the lock and the
+    fake store hold lies under it: a fresh sandbox no other test touched. The stand-in
+    `caffeinate` its invocation holds is stopped before the copy is taken, so every
+    test, the first one too, finds the sandbox in the same state whatever order the
+    tests run in. A build made from another built sandbox shares its path, so a test
+    holds one built sandbox at a time.
+    """
+    if key in BUILT:
+        root, frozen, value = BUILT[key]
+        return Sandbox.restored(test, root, frozen), value
+    box, value = build(test)
+    box.stop_awake()
+    frozen = Path(tempfile.mkdtemp(prefix="speed-tune-frozen-"))
+    atexit.register(shutil.rmtree, frozen, True)
+    shutil.copytree(box.root, frozen / "copy", symlinks=True)
+    BUILT[key] = (box.root, frozen / "copy", value)
+    return box, value
+
+
+def started(test):
+    """A sandbox with an invocation open, as a built sandbox: (box, theme ids, the result of
+    `start`), as `Sandbox.start` gives them."""
+    def build(test):
+        box = Sandbox(test)
+        return box, box.start()
+
+    box, (themes, result) = built(test, "started", build)
+    return box, themes, result

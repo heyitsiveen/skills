@@ -16,7 +16,7 @@ import unittest
 from pathlib import Path
 
 import support
-from support import Sandbox, read_report, report
+from support import read_report, report, started
 
 
 def running(pid):
@@ -38,8 +38,7 @@ def write_variant(box, name, change):
 
 class RecordingASampleFromAReportFile(unittest.TestCase):
     def setUp(self):
-        self.box = Sandbox(self)
-        self.box.start()
+        self.box, _, _ = started(self)
 
     def test_a_recorded_sample_carries_the_reports_metrics(self):
         result = self.box.run("sample", "--page", "home", "--device", "mobile",
@@ -128,8 +127,7 @@ class TakingASample(unittest.TestCase):
     cookie selects, and the preview query parameter redirects, as a real store does."""
 
     def setUp(self):
-        self.box = Sandbox(self)
-        self.box.start()
+        self.box, _, _ = started(self)
 
     def test_a_sample_runs_the_pinned_lighthouse_through_pnpm_on_the_invocations_chrome(self):
         result = self.box.run("sample", "--page", "home", "--device", "mobile", "--count", "1")
@@ -218,8 +216,7 @@ class AStoreAnsweringTooManyRequests(unittest.TestCase):
     as long, before the refusal stands."""
 
     def setUp(self):
-        self.box = Sandbox(self)
-        self.box.start()
+        self.box, _, _ = started(self)
 
     def take(self, refusals, first_pause="0"):
         self.box.edit_store(lambda s: s.update(too_many_requests=refusals))
@@ -252,8 +249,7 @@ class ASampleCutOffAtItsTimeLimit(unittest.TestCase):
     its own, in a session of its own, so stopping Lighthouse leaves it running."""
 
     def test_stops_the_chrome_lighthouse_started_for_itself(self):
-        box = Sandbox(self)
-        box.start()
+        box, _, _ = started(self)
         box.edit_store(lambda s: s["lighthouse"].update(chrome_lost=True))
         self.addCleanup(self.clear_launcher_profiles, box)
 

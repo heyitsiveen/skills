@@ -10,7 +10,7 @@ from pathlib import Path
 
 from report_support import ran
 from round_support import ITEMS, approved, pushed
-from support import HOOK_ENDING, Sandbox, report
+from support import HOOK_ENDING, built, report, started
 
 
 def written(test, box, *args):
@@ -20,10 +20,20 @@ def written(test, box, *args):
     return result, path.read_text()
 
 
+def reported(test, scenario):
+    """The `scenario` invocation with its report written: (box, result, report text). The tests
+    that only read a report share one, written once (support.built)."""
+    def build(test):
+        box = ran(test, scenario)
+        return box, written(test, box)
+
+    box, (result, text) = built(test, ("reported", scenario), build)
+    return box, result, text
+
+
 class AReportOnEveryTargetReached(unittest.TestCase):
     def setUp(self):
-        self.box = ran(self, "reached")
-        self.result, self.text = written(self, self.box)
+        self.box, self.result, self.text = reported(self, "reached")
 
     def test_gives_each_pages_score_before_and_after_with_its_target_and_ceiling(self):
         self.assertEqual([l for l in self.result.lines("REPORT") if l.startswith("REPORT page ")], [
@@ -92,8 +102,7 @@ class AReportOnMissedTargets(unittest.TestCase):
     Control theme Samples, which held P1, are the latest Measurement of the kept state."""
 
     def setUp(self):
-        self.box = ran(self, "missed")
-        self.result, self.text = written(self, self.box)
+        self.box, self.result, self.text = reported(self, "missed")
 
     def test_says_by_how_much_each_page_missed_its_target(self):
         self.assertEqual([l for l in self.result.lines("REPORT") if l.startswith("REPORT page ")], [
@@ -197,8 +206,7 @@ class TheDetailLog(unittest.TestCase):
     """Round 1 kept P1 on four wins in five on home; Round 2 removed P2."""
 
     def setUp(self):
-        self.box = ran(self, "missed")
-        _, text = written(self, self.box)
+        self.box, _, text = reported(self, "missed")
         self.log = text.split("\n## Detail log\n", 1)[1]
 
     def test_gives_every_measurement_with_each_metrics_median_and_range(self):
@@ -245,8 +253,7 @@ class TheDetailLog(unittest.TestCase):
 
 class ARoundWithNoPairs(unittest.TestCase):
     def setUp(self):
-        self.box = ran(self, "first-unmeasured")
-        _, self.text = written(self, self.box)
+        self.box, _, self.text = reported(self, "first-unmeasured")
 
     def test_is_shown_as_not_measured_in_the_detail_log(self):
         first = section(self.text.split("\n## Detail log\n", 1)[1], "#### Round 1: P1, removed")
@@ -265,7 +272,7 @@ class TheCommitHookTheInvocationStartedWith(unittest.TestCase):
     and bypassed with the developer's approval (`--no-verify-approved`)."""
 
     def test_a_bypass_is_told_to_the_team_with_how_the_hook_ended(self):
-        _, text = written(self, ran(self, "hook-bypassed"))
+        _, _, text = reported(self, "hook-bypassed")
 
         changed = section(text, "### What changed")
         self.assertIn("The kept Rounds were committed with `--no-verify`: the repo's pre-commit "
@@ -293,7 +300,7 @@ class TheCommitHookTheInvocationStartedWith(unittest.TestCase):
                       "(733 problems found in 412 files).", section(text, "### What changed"))
 
     def test_a_hook_that_passed_is_only_in_the_detail_log(self):
-        _, text = written(self, ran(self, "hook-passed"))
+        _, _, text = reported(self, "hook-passed")
 
         self.assertNotIn("--no-verify", text)
         self.assertIn("- **Commit hook.** passed: The pre-commit hook .git/hooks/pre-commit "
@@ -306,7 +313,7 @@ class KeptRoundsThatChangedCss(unittest.TestCase):
     Rounds changed CSS: a style or stylesheet block, a stylesheet asset, or a tag loading one."""
 
     def setUp(self):
-        _, self.text = written(self, ran(self, "css-changed"))
+        _, _, self.text = reported(self, "css-changed")
 
     def test_are_flagged_for_a_look_before_going_live(self):
         self.assertIn("**Look before going live.** Round 1 changed CSS in "
@@ -326,7 +333,7 @@ class KeptRoundsThatChangedCss(unittest.TestCase):
                       section(rounds, "#### Round 2: P2, kept"))
 
     def test_a_kept_round_with_no_css_is_not_flagged(self):
-        _, text = written(self, ran(self, "missed"))
+        _, _, text = reported(self, "missed")
 
         self.assertNotIn("Look before going live", text)
         self.assertNotIn("(CSS)", text)
@@ -334,7 +341,7 @@ class KeptRoundsThatChangedCss(unittest.TestCase):
 
 class ARoundTheSmokeCheckRemovedBeforeItsPairs(unittest.TestCase):
     def setUp(self):
-        _, self.text = written(self, ran(self, "smoke-removed"))
+        _, _, self.text = reported(self, "smoke-removed")
 
     def test_is_told_to_the_team_as_removed_without_being_measured(self):
         self.assertIn("- **P1. Load the hero image eagerly.** Removed in Round 1 without being "
@@ -355,11 +362,14 @@ class AReportAfterAnEarlyStop(unittest.TestCase):
     its five Samples. The report is still written, and marks what is missing."""
 
     def setUp(self):
-        self.box = Sandbox(self)
-        self.box.start()
-        self.box.run("sample", "--page", "home", "--device", "mobile",
-                     *sum((["--report", report("home-mobile-%d" % i)] for i in range(1, 6)), []))
-        self.result, self.text = written(self, self.box)
+        # Every test here only reads the report.
+        def build(test):
+            box, _, _ = started(test)
+            box.run("sample", "--page", "home", "--device", "mobile",
+                    *sum((["--report", report("home-mobile-%d" % i)] for i in range(1, 6)), []))
+            return box, written(test, box)
+
+        self.box, (self.result, self.text) = built(self, "reported-early-stop", build)
 
     def test_marks_each_figure_never_measured(self):
         self.assertEqual(self.result.lines("REPORT")[0],
@@ -433,7 +443,7 @@ class TheReferenceDescribesTheReport(unittest.TestCase):
 
     def test_names_every_part_and_section_the_report_writes_in_its_order(self):
         # The missed scenario writes every section, the conditional ones included.
-        _, text = written(self, ran(self, "missed"))
+        _, _, text = reported(self, "missed")
 
         self.assertEqual(headings(REFERENCE.read_text(encoding="utf-8")), headings(text))
 

@@ -15,13 +15,12 @@ import unittest
 
 from report_support import ran
 from round_support import CONTROL, WORKING, pushed
-from support import PROGRAM, STORE_URL, Sandbox, running
+from support import PROGRAM, STORE_URL, Sandbox, built, running, started
 
 
 class FinishLeavesOnlyTheWorkingThemeAndTheBranch(unittest.TestCase):
     def test_finish_deletes_the_control_theme_and_keeps_the_working_theme(self):
-        box = Sandbox(self)
-        themes, _ = box.start()
+        box, themes, _ = started(self)
 
         result = box.run("finish")
 
@@ -32,8 +31,7 @@ class FinishLeavesOnlyTheWorkingThemeAndTheBranch(unittest.TestCase):
         self.assertIn(themes["working"], library)
 
     def test_finish_removes_chrome_and_frees_the_machine(self):
-        box = Sandbox(self)
-        box.start()
+        box, _, _ = started(self)
 
         box.run("finish")
 
@@ -42,9 +40,8 @@ class FinishLeavesOnlyTheWorkingThemeAndTheBranch(unittest.TestCase):
         box.start()
 
     def test_finish_keeps_the_invocation_branch_and_returns_to_the_starting_branch(self):
-        box = Sandbox(self)
-        _, started = box.start()
-        branch = [l.split("=", 1)[1] for l in started.lines("START") if l.startswith("START branch=")][0]
+        box, _, opened = started(self)
+        branch = [l.split("=", 1)[1] for l in opened.lines("START") if l.startswith("START branch=")][0]
 
         box.run("finish")
 
@@ -75,11 +72,15 @@ class FinishLeavesTheDevelopersWorkAsItIs(unittest.TestCase):
 
 class FinishReadsBackWhatItLeaves(unittest.TestCase):
     def setUp(self):
-        self.box = Sandbox(self)
-        self.themes, started = self.box.start()
-        self.branch = re.search(r"(?m)^START branch=(\S+)", started.out).group(1)
-        self.result = self.box.run("finish")
-        self.assertEqual(self.result.code, 0, self.result)
+        # Every test here only reads what `finish` printed.
+        def build(test):
+            box, themes, opened = started(test)
+            branch = re.search(r"(?m)^START branch=(\S+)", opened.out).group(1)
+            result = box.run("finish")
+            test.assertEqual(result.code, 0, result)
+            return box, (themes, branch, result)
+
+        self.box, (self.themes, self.branch, self.result) = built(self, "finished", build)
 
     def test_from_the_theme_library_the_repo_and_the_machine_before_it_says_done(self):
         self.assertEqual(self.result.lines("FINISH")[-5:], [
@@ -128,8 +129,7 @@ class FinishPutsChromeForTestingsPreferencesBack(unittest.TestCase):
                       "preferences=as-before", result.lines("FINISH"))
 
     def test_a_restore_defaults_refuses_keeps_the_invocation_open(self):
-        box = Sandbox(self)
-        box.start()
+        box, _, _ = started(self)
         chrome_records_itself(box)
         box.edit_store(lambda s: s.update(defaults_fails=["delete"]))
 
@@ -165,8 +165,7 @@ class FinishPutsChromeForTestingsPreferencesBack(unittest.TestCase):
 
 class FinishStopsTheChromeOfAJobCutOffPartWay(unittest.TestCase):
     def test_a_sample_killed_mid_run_leaves_a_chrome_that_finish_stops(self):
-        box = Sandbox(self)
-        box.start()
+        box, _, _ = started(self)
         box.edit_store(lambda s: s["lighthouse"].update(hang=True))
         program = subprocess.Popen(
             [sys.executable, str(PROGRAM), "sample", "--page", "home", "--device", "mobile",
@@ -186,14 +185,16 @@ class FinishStopsTheChromeOfAJobCutOffPartWay(unittest.TestCase):
 
     def wait_for_chrome(self, box):
         """The Sample's Chrome, once the preview cookie is in its jar and Lighthouse runs."""
+        lighthouse = "--output-path=%s" % box.workspace()
         deadline = time.monotonic() + 30
         while time.monotonic() < deadline:
-            started = box.chromes_started()
-            if started and (box.root / "chromes" / ("%s.jar" % self.port(box, started[0]))).exists():
-                time.sleep(0.5)
-                return started[0]
+            chromes = box.chromes_started()
+            if chromes and (box.root / "chromes" / ("%s.jar" % self.port(box, chromes[0]))).exists() \
+                    and lighthouse in subprocess.run(["ps", "-A", "-ww", "-o", "command="],
+                                                     capture_output=True, text=True).stdout:
+                return chromes[0]
             time.sleep(0.05)
-        self.fail("the Sample never started its Chrome")
+        self.fail("the Sample never started its Chrome and Lighthouse")
 
     @staticmethod
     def port(box, chrome):
@@ -203,8 +204,7 @@ class FinishStopsTheChromeOfAJobCutOffPartWay(unittest.TestCase):
 
 class FinishIsNotDoneWhileSomethingRemains(unittest.TestCase):
     def test_a_process_still_running_from_the_workspace_keeps_the_invocation_open(self):
-        box = Sandbox(self)
-        box.start()
+        box, _, _ = started(self)
         stray = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(60)",
                                   str(box.workspace() / "stray")])
         self.addCleanup(stray.wait)
@@ -227,8 +227,7 @@ class FinishIsNotDoneWhileSomethingRemains(unittest.TestCase):
         self.assertRegex(again.out, r"(?m)^FINISH done ")
 
     def test_a_control_theme_the_store_kept_after_its_delete_keeps_the_invocation_open(self):
-        box = Sandbox(self)
-        themes, _ = box.start()
+        box, themes, _ = started(self)
         box.edit_store(lambda s: s.update(deletes_ignored=[themes["control"]]))
 
         result = box.run("finish")
@@ -250,8 +249,7 @@ class FinishDeletesOnlyItsOwnThemes(unittest.TestCase):
     delete passes the same guard a push does."""
 
     def test_a_theme_named_like_the_control_themes_id_stops_the_delete(self):
-        box = Sandbox(self)
-        themes, _ = box.start()
+        box, themes, _ = started(self)
         named = str(themes["control"])
         box.edit_store(lambda s: next(t for t in s["themes"] if t["id"] == 101).update(name=named))
 

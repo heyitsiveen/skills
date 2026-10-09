@@ -8,13 +8,12 @@ every kept Round and nothing else: the theme the developer publishes.
 import unittest
 
 from round_support import pushed
-from support import Sandbox
+from support import started
 
 
 class TheFinalDesktopMeasurement(unittest.TestCase):
     def test_takes_five_desktop_samples_of_the_page_on_the_working_theme(self):
-        box = Sandbox(self)
-        box.start()
+        box, _, _ = started(self)
 
         result = box.run("final", "--page", "home")
 
@@ -24,8 +23,7 @@ class TheFinalDesktopMeasurement(unittest.TestCase):
                                      r"performance 88 \[88-88\] \| ")
 
     def test_is_finished_by_running_it_again_after_a_cut_off_call(self):
-        box = Sandbox(self)
-        box.start()
+        box, _, _ = started(self)
         box.run("final", "--page", "home", "--count", "2")
 
         result = box.run("final", "--page", "home")

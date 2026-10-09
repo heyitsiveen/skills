@@ -7,14 +7,10 @@ Working theme served it, so its requests come from the Working theme's own
 asset folder.
 """
 
-import atexit
 import json
-import shutil
-import tempfile
-from pathlib import Path
 
 from plan_support import COLLECTION, PAGES, PRODUCT, diagnosed, write_items
-from support import SMOKE_RESULTS, Sandbox, read_report
+from support import SMOKE_RESULTS, built, read_report
 
 # The sandbox duplicates the published theme twice: the Working theme first.
 WORKING, CONTROL = 200, 201
@@ -56,38 +52,32 @@ ITEMS = [
 PAGE_PATHS = {"home": "/", "collection": COLLECTION, "product": PRODUCT}
 
 
-FROZEN = {}
-
-
 def approved(test, items=ITEMS, *start_args, pre_commit=None):
     """An invocation over THEME whose plan of `items` the developer approved, started
     with `start_args` in a repo whose pre-commit hook is `pre_commit`.
 
-    Reaching approval takes some thirty program runs, so it is done once per
-    plan and kept as a copy; each test gets that copy put back at the same path,
-    a fresh sandbox none of the other tests touched.
+    Reaching approval takes some thirty program runs, so it is a built sandbox
+    (support.built): done once per plan, and each test gets a fresh copy of it.
     """
-    key = json.dumps([items, start_args, pre_commit])
-    if key not in FROZEN:
+    def build(test):
         box = diagnosed(test, *start_args, theme_files=THEME, pre_commit=pre_commit)
         for args in (("plan", "--items", write_items(box, items)), ("plan", "--approve")):
             result = box.run(*args)
             test.assertEqual(result.code, 0, result)
-        frozen = Path(tempfile.mkdtemp(prefix="speed-tune-frozen-"))
-        shutil.copytree(box.root, frozen / "copy", symlinks=True)
-        atexit.register(shutil.rmtree, frozen, True)
-        FROZEN[key] = (box.root, frozen / "copy")
-        return box
-    root, frozen = FROZEN[key]
-    return Sandbox.restored(test, root, frozen)
+        return box, None
+
+    return built(test, ("approved", json.dumps([items, start_args, pre_commit])), build)[0]
 
 
 def opened(test, items=ITEMS, item="P1"):
-    """`approved`, with a Round open for `item`."""
-    box = approved(test, items)
-    result = box.run("round", "--item", item)
-    test.assertEqual(result.code, 0, result)
-    return box
+    """`approved`, with a Round open for `item`. A built sandbox too."""
+    def build(test):
+        box = approved(test, items)
+        result = box.run("round", "--item", item)
+        test.assertEqual(result.code, 0, result)
+        return box, None
+
+    return built(test, ("opened", json.dumps(items), item), build)[0]
 
 
 def write(box, path, text):
@@ -105,12 +95,16 @@ def apply_item(box, item):
 
 
 def pushed(test, items=ITEMS, item="P1"):
-    """`opened`, with the item's change made and pushed to the Working theme."""
-    box = opened(test, items, item)
-    apply_item(box, item)
-    result = box.run("push")
-    test.assertEqual(result.code, 0, result)
-    return box
+    """`opened`, with the item's change made and pushed to the Working theme. A built sandbox
+    too."""
+    def build(test):
+        box = opened(test, items, item)
+        apply_item(box, item)
+        result = box.run("push")
+        test.assertEqual(result.code, 0, result)
+        return box, None
+
+    return built(test, ("pushed", json.dumps(items), item), build)[0]
 
 
 # Edits to the real smoke results, each making the Working theme do one thing worse.

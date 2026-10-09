@@ -11,7 +11,7 @@ import unittest
 
 from round_support import (CONTROL, EAGER, ITEMS, LAZY, NEUTRAL, THEME, WIN_4, WORKING, apply_item,
                            approved, checked, measure, opened, pushed, write)
-from support import FAILING_HOOK, HOOK_ENDING, long_failing_hook
+from support import FAILING_HOOK, HOOK_ENDING, built, long_failing_hook
 
 
 def commits_since(box, rev):
@@ -24,12 +24,17 @@ def base_of_round(box):
 
 class AKeptRound(unittest.TestCase):
     def setUp(self):
-        self.box = pushed(self)
-        self.base = base_of_round(self.box)
-        checked(self.box)
-        measure(self.box, {"home": WIN_4})
-        self.result = self.box.run("verdict")
-        self.assertEqual(self.result.code, 0, self.result)
+        # Each test reads the kept Round, on a copy of its own (support.built).
+        def build(test):
+            box = pushed(test)
+            base = base_of_round(box)
+            checked(box)
+            measure(box, {"home": WIN_4})
+            result = box.run("verdict")
+            test.assertEqual(result.code, 0, result)
+            return box, (base, result)
+
+        self.box, (self.base, self.result) = built(self, "kept-round", build)
 
     def test_makes_exactly_one_conventional_commit_without_ai_attribution(self):
         self.assertEqual(commits_since(self.box, self.base), "1")
@@ -61,16 +66,21 @@ class AKeptRound(unittest.TestCase):
 
 class ARemovedRound(unittest.TestCase):
     def setUp(self):
-        self.box = opened(self)
-        self.base = base_of_round(self.box)
-        write(self.box, "snippets/image.liquid", EAGER)
-        (self.box.repo / "assets" / "slider.js").unlink()
-        write(self.box, "snippets/hero-preload.liquid", "{{ image | image_url: width: 800 }}\n")
-        self.assertEqual(self.box.run("push").code, 0)
-        checked(self.box)
-        measure(self.box, {"home": NEUTRAL})
-        self.result = self.box.run("verdict")
-        self.assertEqual(self.result.code, 0, self.result)
+        # Each test reads the removed Round, on a copy of its own (support.built).
+        def build(test):
+            box = opened(test)
+            base = base_of_round(box)
+            write(box, "snippets/image.liquid", EAGER)
+            (box.repo / "assets" / "slider.js").unlink()
+            write(box, "snippets/hero-preload.liquid", "{{ image | image_url: width: 800 }}\n")
+            test.assertEqual(box.run("push").code, 0)
+            checked(box)
+            measure(box, {"home": NEUTRAL})
+            result = box.run("verdict")
+            test.assertEqual(result.code, 0, result)
+            return box, (base, result)
+
+        self.box, (self.base, self.result) = built(self, "removed-round", build)
 
     def test_makes_no_commit_and_restores_the_working_tree(self):
         self.assertEqual(self.result.lines("VERDICT"), ["VERDICT 1 remove item=P1 reasons=no-win"])

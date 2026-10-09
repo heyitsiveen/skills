@@ -14,7 +14,8 @@ import json
 import os
 import unittest
 
-from support import LIVE_THEME, SMOKE_RESULTS, Sandbox
+from plan_support import pages_set
+from support import LIVE_THEME, SMOKE_RESULTS
 
 RESULTS = SMOKE_RESULTS
 
@@ -29,17 +30,9 @@ def results_file(box, change=None, name="smoke-results.json"):
     return path
 
 
-def opened_invocation(test):
-    box = Sandbox(test)
-    box.start()
-    box.run("pages", "--collection", "/collections/example-collection",
-            "--product", "/products/example-product")
-    return box
-
-
 class JudgingRecordedResults(unittest.TestCase):
     def setUp(self):
-        self.box = opened_invocation(self)
+        self.box = pages_set(self)
 
     def record(self, change=None):
         return self.box.run("smoke", "--results", results_file(self.box, change))
@@ -170,7 +163,7 @@ class JudgingRecordedResults(unittest.TestCase):
 
 class RecordingResults(unittest.TestCase):
     def setUp(self):
-        self.box = opened_invocation(self)
+        self.box = pages_set(self)
 
     def test_recorded_results_stay_in_the_ledger_under_their_label(self):
         self.box.run("smoke", "--label", "round-1", "--results", results_file(
@@ -247,7 +240,7 @@ class RunningTheChecker(unittest.TestCase):
     and only while the Chrome at its port is running."""
 
     def setUp(self):
-        self.box = opened_invocation(self)
+        self.box = pages_set(self)
 
     def test_the_checker_compares_both_themes_in_the_invocations_chrome(self):
         result = self.box.run("smoke")

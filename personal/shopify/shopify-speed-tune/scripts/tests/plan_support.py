@@ -3,7 +3,7 @@ carry their five baseline mobile Samples, recorded from the real reports."""
 
 import json
 
-from support import Sandbox, hook, report
+from support import Sandbox, built, hook, report, started
 
 PAGES = ("home", "collection", "product")
 COLLECTION = "/collections/example-collection"
@@ -28,40 +28,64 @@ def record(box, op, page, reports, *extra):
     return result
 
 
+def pages_set(test):
+    """A started invocation with the three pages set and no Sample taken yet. A built sandbox
+    (support.built): each test gets a fresh copy."""
+    def build(test):
+        box, _, _ = started(test)
+        pages = box.run("pages", "--collection", COLLECTION, "--product", PRODUCT)
+        test.assertEqual(pages.code, 0, pages)
+        return box, None
+
+    return built(test, "pages-set", build)[0]
+
+
+def setup_key(name, start_args, theme_files, pre_commit):
+    """What a built sandbox of `measured` or `diagnosed` is kept under: how it was set up."""
+    return name, repr((start_args, sorted((theme_files or {}).items()), pre_commit))
+
+
 def measured(test, *start_args, theme_files=None, pre_commit=None):
     """A started invocation with the three pages set and their baseline mobile
     Measurements complete. `theme_files` ({path: text or bytes}) are committed to
     the client repo before the invocation starts, and `pre_commit` becomes its
-    pre-commit hook."""
-    box = Sandbox(test)
-    if theme_files:
-        for path, text in theme_files.items():
-            target = box.repo / path
-            target.parent.mkdir(parents=True, exist_ok=True)
-            if isinstance(text, bytes):
-                target.write_bytes(text)
-            else:
-                target.write_text(text)
-        box.git(box.repo, "add", "-A")
-        box.git(box.repo, "commit", "-q", "-m", "theme files")
-    if pre_commit:
-        hook(box.repo, pre_commit)
-    box.start(*start_args)
-    pages = box.run("pages", "--collection", COLLECTION, "--product", PRODUCT)
-    test.assertEqual(pages.code, 0, pages)
-    for page in PAGES:
-        record(box, "sample", page, baseline_reports(page))
-    return box
+    pre-commit hook. A built sandbox (support.built): each test gets a fresh copy."""
+    def build(test):
+        box = Sandbox(test)
+        if theme_files:
+            for path, text in theme_files.items():
+                target = box.repo / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                if isinstance(text, bytes):
+                    target.write_bytes(text)
+                else:
+                    target.write_text(text)
+            box.git(box.repo, "add", "-A")
+            box.git(box.repo, "commit", "-q", "-m", "theme files")
+        if pre_commit:
+            hook(box.repo, pre_commit)
+        box.start(*start_args)
+        pages = box.run("pages", "--collection", COLLECTION, "--product", PRODUCT)
+        test.assertEqual(pages.code, 0, pages)
+        for page in PAGES:
+            record(box, "sample", page, baseline_reports(page))
+        return box, None
+
+    return built(test, setup_key("measured", start_args, theme_files, pre_commit), build)[0]
 
 
 def diagnosed(test, *start_args, theme_files=None, pre_commit=None):
-    """`measured`, plus each page's Ceiling and a `diagnose`: ready for a plan."""
-    box = measured(test, *start_args, theme_files=theme_files, pre_commit=pre_commit)
-    for page in PAGES:
-        record(box, "ceiling", page, ceiling_reports(page))
-    result = box.run("diagnose")
-    test.assertEqual(result.code, 0, result)
-    return box
+    """`measured`, plus each page's Ceiling and a `diagnose`: ready for a plan. A built
+    sandbox too."""
+    def build(test):
+        box = measured(test, *start_args, theme_files=theme_files, pre_commit=pre_commit)
+        for page in PAGES:
+            record(box, "ceiling", page, ceiling_reports(page))
+        result = box.run("diagnose")
+        test.assertEqual(result.code, 0, result)
+        return box, None
+
+    return built(test, setup_key("diagnosed", start_args, theme_files, pre_commit), build)[0]
 
 
 def write_items(box, items):

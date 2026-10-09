@@ -7,8 +7,8 @@ desktop Measurements, runs its Rounds on pairs derived from the real reports,
 and takes the final desktop Measurements. Every Sample is a real report with only its score fields, and
 for the Working theme its asset folder, edited.
 
-A scenario is built once and kept as a copy; each test gets that copy back at
-the same path, as round_support does for the approved plan.
+Each scenario is a built sandbox (support.built), as the approved plan is: built
+once, and each test gets a fresh copy of it.
 
 The real figures, worked by hand from the fixtures:
 
@@ -17,16 +17,12 @@ The real figures, worked by hand from the fixtures:
     target            the Ceiling on every page: each is below the requested 80
 """
 
-import atexit
 import json
-import shutil
-import tempfile
-from pathlib import Path
 
 from plan_support import PAGES
 from round_support import (ASSET_FOLDERS, BUTTON_STYLESHEET, ITEMS, NEUTRAL, WIN_4,
                            add_to_cart_fails, apply_item, approved, checked, measure, write)
-from support import FAILING_HOOK, Sandbox, read_report
+from support import FAILING_HOOK, built, read_report
 
 # The developer's PageSpeed Insights mobile Performance scores: home 11 above its baseline
 # median (a warning), collection 3 below, product 3 above.
@@ -155,24 +151,17 @@ SCENARIOS = {
     "hook-passed": ((), "exit 0\n", reached),
     "hook-bypassed": (("--no-verify-approved",), FAILING_HOOK, reached),
 }
-FROZEN = {}
-
-
 def ran(test, scenario):
     """An invocation whose Rounds ran to their stop as `scenario` says, with every
     figure the report reads recorded and no report written yet."""
-    if scenario in FROZEN:
-        root, frozen = FROZEN[scenario]
-        return Sandbox.restored(test, root, frozen)
-    start_args, pre_commit, rounds = SCENARIOS[scenario]
-    box = approved(test, ITEMS, *start_args, pre_commit=pre_commit)
-    run(box, "psi", *sum((["--%s" % page, str(score)] for page, score in PSI.items()), []))
-    desktop(box, "sample", "control", DESKTOP_BEFORE)
-    rounds(box)
-    test.assertTrue(box.run("status").lines("STOP"), "the Rounds must have stopped")
-    desktop(box, "final", "working", DESKTOP_AFTER)
-    frozen = Path(tempfile.mkdtemp(prefix="speed-tune-frozen-"))
-    shutil.copytree(box.root, frozen / "copy", symlinks=True)
-    atexit.register(shutil.rmtree, frozen, True)
-    FROZEN[scenario] = (box.root, frozen / "copy")
-    return box
+    def build(test):
+        start_args, pre_commit, rounds = SCENARIOS[scenario]
+        box = approved(test, ITEMS, *start_args, pre_commit=pre_commit)
+        run(box, "psi", *sum((["--%s" % page, str(score)] for page, score in PSI.items()), []))
+        desktop(box, "sample", "control", DESKTOP_BEFORE)
+        rounds(box)
+        test.assertTrue(box.run("status").lines("STOP"), "the Rounds must have stopped")
+        desktop(box, "final", "working", DESKTOP_AFTER)
+        return box, None
+
+    return built(test, ("ran", scenario), build)[0]

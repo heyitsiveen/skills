@@ -2,15 +2,15 @@
 
 import unittest
 
-from support import HERE, Sandbox, report
+from plan_support import pages_set
+from support import HERE, report, started
 
 STOREFRONT = HERE / "fixtures" / "storefront"
 
 
 class ProposingThePages(unittest.TestCase):
     def test_the_first_navigation_collection_and_the_first_available_best_seller(self):
-        box = Sandbox(self)
-        box.start()
+        box, _, _ = started(self)
         box.edit_store(lambda s: s.update(pages={
             "/": str(STOREFRONT / "home.html"),
             "/collections/all?sort_by=best-selling": str(STOREFRONT / "best-selling.html"),
@@ -32,10 +32,7 @@ class ProposingThePages(unittest.TestCase):
 
 class SettingThePages(unittest.TestCase):
     def setUp(self):
-        self.box = Sandbox(self)
-        self.box.start()
-        self.box.run("pages", "--collection", "/collections/example-collection",
-                     "--product", "/products/example-product")
+        self.box = pages_set(self)
 
     def test_every_page_gets_a_mobile_and_a_desktop_baseline_measurement(self):
         for page, device in (("collection", "mobile"), ("collection", "desktop"),

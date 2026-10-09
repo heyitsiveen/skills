@@ -9,7 +9,7 @@ import unittest
 from pathlib import Path
 
 from support import (FAILING_HOOK, HOOK_ENDING, LIVE_THEME, STORE_URL, Sandbox, hook,
-                     long_failing_hook, running)
+                     long_failing_hook, running, started)
 
 # The REFUSED line for a hook that fails as FAILING_HOOK does.
 HOOK_REFUSED = ("REFUSED pre-commit-fails: the pre-commit hook .git/hooks/pre-commit exits 1 on "
@@ -131,8 +131,7 @@ class TheThemeLibraryMustHaveRoomForTwo(unittest.TestCase):
 
 class OneUnfinishedInvocationPerMachine(unittest.TestCase):
     def test_a_second_start_is_refused_while_the_first_is_unfinished(self):
-        box = Sandbox(self)
-        _, first = box.start()
+        box, _, first = started(self)
         invocation = re.search(r"^START invocation=(\S+)", first.out, re.M).group(1)
         other_repo = box.make_repo(box.root / "other-client")
         themes_before = box.theme_ids()
@@ -145,8 +144,7 @@ class OneUnfinishedInvocationPerMachine(unittest.TestCase):
         self.assertEqual(box.theme_ids(), themes_before, "a refused start creates no theme")
 
     def test_unlock_naming_the_stale_invocation_frees_the_machine(self):
-        box = Sandbox(self)
-        _, first = box.start()
+        box, _, first = started(self)
         invocation = re.search(r"^START invocation=(\S+)", first.out, re.M).group(1)
         other_repo = box.make_repo(box.root / "other-client")
 
@@ -157,8 +155,7 @@ class OneUnfinishedInvocationPerMachine(unittest.TestCase):
         box.start(cwd=other_repo)
 
     def test_unlock_naming_another_invocation_keeps_the_lock(self):
-        box = Sandbox(self)
-        box.start()
+        box, _, _ = started(self)
 
         cleared = box.run("unlock", "--invocation", "20000101-000000")
 

@@ -11,7 +11,7 @@ import json
 import unittest
 
 from plan_support import PAGES, ceiling_reports, measured, record
-from support import Sandbox, read_report, report
+from support import built, read_report, report, started
 
 HOME_MOBILE = [report("home-mobile-%d" % i) for i in range(1, 6)]
 # Requests the real home page made, as its baseline reports list them.
@@ -61,8 +61,7 @@ def probe_lines(result, page):
 
 class TheCeilingNeedsTheBaseline(unittest.TestCase):
     def test_a_page_without_its_five_baseline_mobile_samples_is_refused(self):
-        box = Sandbox(self)
-        box.start()
+        box, _, _ = started(self)
         record_baseline(box, "home", HOME_MOBILE[:4])
 
         result = box.run("ceiling", "--page", "home")
@@ -74,11 +73,15 @@ class TheCeilingNeedsTheBaseline(unittest.TestCase):
 
 class TheProbeBlocksTheThemesOptionalRequests(unittest.TestCase):
     def setUp(self):
-        self.box = Sandbox(self)
-        self.box.start()
-        record_baseline(self.box, "home", HOME_MOBILE)
-        self.result = self.box.run("ceiling", "--page", "home", "--count", "1")
-        self.assertEqual(self.result.code, 0, self.result)
+        # Every test here only reads what the one Ceiling Sample printed.
+        def build(test):
+            box, _, _ = started(test)
+            record_baseline(box, "home", HOME_MOBILE)
+            result = box.run("ceiling", "--page", "home", "--count", "1")
+            test.assertEqual(result.code, 0, result)
+            return box, result
+
+        self.box, self.result = built(self, "ceiling-probe-home", build)
         self.blocked, self.protected = probe_lines(self.result, "home")
 
     def test_theme_scripts_and_theme_fonts_are_blocked(self):
@@ -175,8 +178,7 @@ class ACeilingSampleIsChecked(unittest.TestCase):
                                      r"https://store\.example/cdn/shop/files/image-31\.png\?")
 
     def test_a_ceiling_report_cannot_pass_as_a_baseline_sample(self):
-        box = Sandbox(self)
-        box.start()
+        box, _, _ = started(self)
 
         result = box.run("sample", "--page", "home", "--device", "mobile",
                          "--report", report("home-ceiling-1"))

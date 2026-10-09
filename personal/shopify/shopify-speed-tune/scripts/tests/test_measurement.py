@@ -16,7 +16,7 @@ The expected figures are worked by hand from the five real home-page reports:
 
 import unittest
 
-from support import Sandbox, report
+from support import report, started
 
 HOME_MOBILE = [report("home-mobile-%d" % i) for i in range(1, 6)]
 HOME_MOBILE_MEASUREMENT = (
@@ -34,8 +34,7 @@ def record(box, page, device, *reports):
 
 class MedianAndRange(unittest.TestCase):
     def setUp(self):
-        self.box = Sandbox(self)
-        self.box.start()
+        self.box, _, _ = started(self)
 
     def test_five_samples_make_a_measurement_with_the_median_and_range_of_each_metric(self):
         record(self.box, "home", "mobile", *HOME_MOBILE)
