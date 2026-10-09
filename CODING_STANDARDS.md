@@ -76,7 +76,7 @@ A new skill earns its place only when the behaviour does not compose from existi
 
 This repo borrows its agent-skill conventions from [mattpocock/skills](https://github.com/mattpocock/skills), currently **v1.3.1**. Both halves of that are review material.
 
-**Adopted.** The domain-doc convention is upstream's: a root `GLOSSARY.md` plus `docs/adr/`, renamed in v1.3.0 from the filename it carried before. `docs/agents/domain.md` and `docs/agents/issue-tracker.md` are this repo's copies of the `setup-matt-pocock-skills` templates, so re-running that skill should read as a clean diff against them rather than a rewrite. Assertion 12 holds the rename down; nothing holds the templates in step, so check them by hand when upstream moves.
+**Adopted.** The domain-doc convention is upstream's: a root `GLOSSARY.md` plus `docs/adr/`, renamed in v1.3.0 from the filename it carried before. `docs/agents/domain.md` and `docs/agents/issue-tracker.md` are this repo's copies of the `setup-matt-pocock-skills` templates, so re-running that skill should read as a clean diff against them rather than a rewrite. Three sections of `issue-tracker.md` are local additions the template lacks, and a re-run must keep them: "When working in a git worktree", "When an implementation ticket is done" and "When orchestrating a feature's tickets". Assertion 12 holds the rename down; nothing holds the templates in step, so check them by hand when upstream moves.
 
 **Not adopted.** Three divergences, each deliberate:
 
