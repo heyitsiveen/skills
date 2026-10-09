@@ -15,6 +15,7 @@ invented fixtures would not have found Welding and will not find its successor.
 
 import json
 import os
+import shutil
 import sys
 import tempfile
 import unittest
@@ -248,6 +249,7 @@ class PreFlightReporting(unittest.TestCase):
 class BackupRoundTrip(unittest.TestCase):
     def setUp(self):
         self.dir = tempfile.mkdtemp()
+        self.addCleanup(shutil.rmtree, self.dir)
         self.path = os.path.join(self.dir, "backup.json")
 
     def test_values_written_come_back_unchanged(self):
