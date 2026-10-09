@@ -81,7 +81,8 @@ def run(args):
     rnd["change"] = {"entries": [list(e) for e in entries],
                      "fingerprint": change.fingerprint(root, entries),
                      "hashes": change.hashes(root, paths),
-                     "template_json": [p for _, p in entries if change.is_template_json(p)]}
+                     "template_json": [p for _, p in entries if change.is_template_json(p)],
+                     "css": [p for s, p in entries if change.changes_css(root, rnd["base"], s, p)]}
     inv.log("push", "Round %d pushed %d paths to the Working theme %s"
             % (rnd["n"], len(paths), theme["id"]))
     inv.save()

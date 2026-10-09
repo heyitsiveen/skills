@@ -301,6 +301,37 @@ class TheCommitHookTheInvocationStartedWith(unittest.TestCase):
                       text.split("\n## Detail log\n", 1)[1])
 
 
+class KeptRoundsThatChangedCss(unittest.TestCase):
+    """Neither the smoke check nor the pairs look at styling, so the team is told which kept
+    Rounds changed CSS: a style or stylesheet block, a stylesheet asset, or a tag loading one."""
+
+    def setUp(self):
+        _, self.text = written(self, ran(self, "css-changed"))
+
+    def test_are_flagged_for_a_look_before_going_live(self):
+        self.assertIn("**Look before going live.** Round 1 changed CSS in "
+                      "`snippets/button.liquid`; Round 2 in `assets/base.css` and "
+                      "`layout/theme.liquid`. Neither the smoke check nor the pairs look at how a "
+                      "page is styled, so compare the Working theme's pages with the published "
+                      "theme's by eye before publishing it.",
+                      section(self.text, "### What changed"))
+
+    def test_mark_their_css_in_the_detail_log(self):
+        rounds = self.text.split("\n## Detail log\n", 1)[1]
+
+        self.assertIn("- **Change.** modified `snippets/button.liquid` (CSS), modified "
+                      "`snippets/image.liquid`.", section(rounds, "#### Round 1: P1, kept"))
+        self.assertIn("- **Change.** added `assets/base.css` (CSS), deleted `assets/slider.js`, "
+                      "modified `layout/theme.liquid` (CSS).",
+                      section(rounds, "#### Round 2: P2, kept"))
+
+    def test_a_kept_round_with_no_css_is_not_flagged(self):
+        _, text = written(self, ran(self, "missed"))
+
+        self.assertNotIn("Look before going live", text)
+        self.assertNotIn("(CSS)", text)
+
+
 class ARoundTheSmokeCheckRemovedBeforeItsPairs(unittest.TestCase):
     def setUp(self):
         _, self.text = written(self, ran(self, "smoke-removed"))

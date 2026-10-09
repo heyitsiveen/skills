@@ -198,9 +198,11 @@ def one_round(inv, rnd):
     entries = (rnd.get("change") or {}).get("entries")
     if entries:
         flagged = set((rnd.get("change") or {}).get("template_json") or [])
+        css = set((rnd.get("change") or {}).get("css") or [])
         lines.append("- **Change.** %s." % ", ".join(
             "%s `%s`%s" % (STATUS.get(status, status), path,
-                           " (template JSON)" if path in flagged else "")
+                           " (template JSON)" if path in flagged else " (CSS)" if path in css
+                           else "")
             for status, path in entries))
     pushes = rnd.get("pushes") or []
     lines.append("- **Pushes.** %s." % ("; ".join(push_text(a) for a in pushes) if pushes

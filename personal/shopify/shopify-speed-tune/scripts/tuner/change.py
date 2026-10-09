@@ -6,7 +6,9 @@ files that differ from the base, plus untracked files that are new. Each entry
 is (status, path) with status M (modified), A (added) or D (deleted).
 
 The guards a change must pass before it may reach a theme live here too, and so
-does putting the tree back to the base commit for those paths.
+does putting the tree back to the base commit for those paths. So does what the
+report flags in a kept change for review before going live: template JSON, and
+CSS, which no check in a Round looks at.
 """
 
 import hashlib
@@ -22,6 +24,12 @@ THEME_FOLDERS = ("assets", "blocks", "config", "layout", "locales", "sections", 
                  "templates")
 # Template JSON and section groups: page content the merchant edits in the theme editor.
 TEMPLATE_JSON = re.compile(r"templates/.+\.json|sections/[^/]+\.json")
+# How a theme styles a page, which no check in a Round looks at: a stylesheet asset, and in
+# Liquid each style, stylesheet or <style> block and each line that loads a stylesheet.
+STYLESHEET = re.compile(r"assets/.+\.s?css(?:\.liquid)?")
+CSS = re.compile(r"\{%-?\s*(style|stylesheet)\s*-?%\}.*?\{%-?\s*end\1\s*-?%\}|<style\b.*?</style\s*>"
+                 r"|[^\n]*(?:stylesheet_tag|rel=[\"']?stylesheet|as=[\"']?style\b)[^\n]*",
+                 re.S | re.I)
 # How far git looks for a NUL byte before it calls a file binary.
 BINARY_PROBE = 8000
 # How long a keep commit may take, its hooks included.
@@ -65,6 +73,24 @@ def compute(root, base, snapshot):
 
 def is_template_json(path):
     return bool(TEMPLATE_JSON.fullmatch(path))
+
+
+def changes_css(root, base, status, path):
+    """True when the change touches how a page is styled: any stylesheet asset, or a Liquid
+    file whose style, stylesheet and <style> blocks or stylesheet-loading lines differ from
+    the base commit's."""
+    if STYLESHEET.fullmatch(path):
+        return True
+    if not path.endswith(".liquid"):
+        return False
+    before = "" if status == "A" else \
+        repo.git(root, "show", "%s:%s" % (base, path), errors="replace").stdout
+    after, full = "", os.path.join(root, path)
+    if status != "D" and os.path.isfile(full):
+        with open(full, encoding="utf-8", errors="replace") as f:
+            after = f.read()
+    return [m.group(0).strip() for m in CSS.finditer(before)] != \
+        [m.group(0).strip() for m in CSS.finditer(after)]
 
 
 def added_lines(root, base, status, path):

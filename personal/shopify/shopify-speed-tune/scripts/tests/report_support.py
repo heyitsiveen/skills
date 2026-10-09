@@ -24,8 +24,8 @@ import tempfile
 from pathlib import Path
 
 from plan_support import PAGES
-from round_support import (ASSET_FOLDERS, ITEMS, NEUTRAL, WIN_4, add_to_cart_fails, apply_item,
-                           approved, checked, measure, write)
+from round_support import (ASSET_FOLDERS, BUTTON_STYLESHEET, ITEMS, NEUTRAL, WIN_4,
+                           add_to_cart_fails, apply_item, approved, checked, measure, write)
 from support import FAILING_HOOK, Sandbox, read_report
 
 # The developer's PageSpeed Insights mobile Performance scores: home 11 above its baseline
@@ -91,9 +91,28 @@ def eager_hero_and_index(box):
     write(box, "templates/index.json", INDEX_EAGER)
 
 
+def eager_hero_and_button_stylesheet(box):
+    apply_item(box, "P1")
+    write(box, "snippets/button.liquid", BUTTON_STYLESHEET)
+
+
+def no_slider_and_a_stylesheet(box):
+    apply_item(box, "P2")
+    write(box, "assets/base.css", "body { margin: 0; }\n")
+    write(box, "layout/theme.liquid", "<html><head>{{ 'base.css' | asset_url | stylesheet_tag }}"
+                                      "{{ content_for_header }}</head></html>\n")
+
+
 def reached(box):
     """P2 is kept past every target, so the Rounds stop at their first verdict."""
     round_of(box, "P2", PAST_THE_TARGETS)
+
+
+def css_changed(box):
+    """Both items are kept with CSS in their change: P1 moves the button snippet's CSS into a
+    stylesheet tag, and P2 adds a stylesheet asset with the layout tag that loads it."""
+    round_of(box, "P1", {"home": WIN_4}, apply=eager_hero_and_button_stylesheet)
+    round_of(box, "P2", PAST_THE_TARGETS, apply=no_slider_and_a_stylesheet)
 
 
 def missed(box):
@@ -132,6 +151,7 @@ SCENARIOS = {
     "none-kept": ((), None, none_kept),
     "first-unmeasured": ((), None, first_unmeasured),
     "smoke-removed": ((), None, smoke_removed),
+    "css-changed": ((), None, css_changed),
     "hook-passed": ((), "exit 0\n", reached),
     "hook-bypassed": (("--no-verify-approved",), FAILING_HOOK, reached),
 }

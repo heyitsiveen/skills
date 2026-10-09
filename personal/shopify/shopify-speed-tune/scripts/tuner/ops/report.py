@@ -188,6 +188,7 @@ def what_changed(inv):
     lines += ["- %s Not tried: %s" % (item_head(item), "every page reached its target first."
                                       if reached else "the Rounds were ended before it.")
               for item in planning.unused(inv)]
+    lines += css_check(kept)
     hook = data["hook"]
     if kept and hook["status"] == "bypass-approved":
         # A ledger an earlier release wrote keeps the hook's output in its detail only.
@@ -198,6 +199,21 @@ def what_changed(inv):
                       "bypass for it, so the hook checked none of these commits. The end of what "
                       "it said before the invocation:", "", "```"] + said + ["```"]
     return lines + [""]
+
+
+def css_check(kept):
+    """A look by eye before going live, for the kept Rounds whose change touched CSS: no
+    check in a Round looks at how a page is styled."""
+    found = [(rnd["n"], (rnd.get("change") or {}).get("css")) for rnd in kept]
+    found = [(n, paths) for n, paths in found if paths]
+    if not found:
+        return []
+    rounds_said = "; ".join("Round %d %sin %s" % (n, "" if i else "changed CSS ",
+                                                  listed(["`%s`" % p for p in paths]))
+                            for i, (n, paths) in enumerate(found))
+    return ["", "**Look before going live.** %s. Neither the smoke check nor the pairs look at "
+                "how a page is styled, so compare the Working theme's pages with the published "
+                "theme's by eye before publishing it." % rounds_said]
 
 
 RESULT = {"reached": "reached", "short": "no Round ran", "no-target": "no target: no Ceiling",

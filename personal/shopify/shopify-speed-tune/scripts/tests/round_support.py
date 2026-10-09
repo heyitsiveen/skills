@@ -22,12 +22,19 @@ ASSET_FOLDERS = {"working": "/cdn/shop/t/22/", "control": "/cdn/shop/t/23/"}
 
 LAZY = '<img src="{{ image | image_url: width: 800 }}" loading="lazy">\n'
 EAGER = '<img src="{{ image | image_url: width: 800 }}" loading="eager" fetchpriority="high">\n'
+# A button snippet whose static CSS goes out with every button, and the same CSS served once
+# from a stylesheet tag, as known defect D4's fix moves it.
+BUTTON_CSS = ".btn { padding: 12px 24px; border-radius: 4px; }\n"
+BUTTON_INLINE = '{%- style -%}\n' + BUTTON_CSS + '{%- endstyle -%}\n<a class="btn">{{ label }}</a>\n'
+BUTTON_STYLESHEET = ('{% stylesheet %}\n' + BUTTON_CSS + '{% endstylesheet %}\n'
+                     '<a class="btn">{{ label }}</a>\n')
 # A vendored library saved in Latin-1, as older ones often are: its © is one byte that is
 # not UTF-8.
 LATIN1_LIBRARY = "/*! Carousel 1.4 © 2014 */\nwindow.Carousel = function () {};\n".encode("latin-1")
 
 THEME = {
     "snippets/image.liquid": LAZY,
+    "snippets/button.liquid": BUTTON_INLINE,
     "assets/theme.js": "document.documentElement.classList.add('js');\n",
     # A vendored library that reads the user agent, as Golden's swiper bundle does.
     "assets/slider.js": "window.Slider = function () { return /Mobi/.test(navigator.userAgent); };\n",

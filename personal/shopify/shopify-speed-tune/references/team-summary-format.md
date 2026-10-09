@@ -8,7 +8,7 @@ Every heading below is one of the report's own, in the report's order; a test ho
 
 ### What changed
 
-How many plan items were kept, then each item: kept, with its Round, its commit and its pairs on every page; removed, with its Round and why, "without being measured" when its pairs did not decide it; or not tried, and why. When the kept Rounds were committed with `--no-verify`, the end of what the repo's pre-commit hook said before the invocation: its summary, the lines counting its problems, then its last line.
+How many plan items were kept, then each item: kept, with its Round, its commit and its pairs on every page; removed, with its Round and why, "without being measured" when its pairs did not decide it; or not tried, and why. When a kept Round changed CSS (a stylesheet asset, a style, stylesheet or `<style>` block, or a line loading a stylesheet), a **Look before going live** note names each such Round and file: neither the smoke check nor the pairs look at styling, so the pages are compared by eye before publishing. When the kept Rounds were committed with `--no-verify`, the end of what the repo's pre-commit hook said before the invocation: its summary, the lines counting its problems, then its last line.
 
 ### Performance by page
 
@@ -58,4 +58,4 @@ Every Measurement, each metric's median and range, and every Sample rejected bef
 
 ### Rounds
 
-*Only when a Round opened.* Each Round: its item, change, pushes, pairs, smoke check and verdict, then its commit or its revert, and a table of its pairs.
+*Only when a Round opened.* Each Round: its item, change (template JSON and CSS marked), pushes, pairs, smoke check and verdict, then its commit or its revert, and a table of its pairs.

@@ -19,7 +19,7 @@ Check every plan item against this list before you write it. An item may touch t
 **R3. Inlining a large stylesheet into the HTML.**
 - `inline_asset_content` silently refuses an oversized asset and writes an HTML comment instead: inlining a 26 KB `critical.css` dropped the base stylesheet, with no push error and no console error, just an unstyled page.
 - On another store, inlining 27 KB delayed the hero's discovery and LCP went from 6 s to 7.8–14.6 s.
-- **Plan:** keep large CSS in files. Confirm the rendered page styles, not only the push.
+- **Plan:** keep large CSS in files. No check in a Round looks at styling, so a kept Round that changes CSS reaches the developer as a **Look before going live** note in the report's What changed, for the pages to be compared by eye before publishing.
 
 **R4. Splitting the hero preload by breakpoint, or preloading above the viewport tag.**
 - Lighthouse evaluates preloads before it applies mobile emulation, so a desktop preload matched the desktop-sized window and fetched the 1600 w image on every Sample.
