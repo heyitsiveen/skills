@@ -66,7 +66,7 @@ It exits 0 when every rule holds, and otherwise names the offending path and exi
 
 It runs on its own now: a pre-commit hook and a CI job both call it, so a broken invariant cannot land. Enable the hooks once per clone with `git config core.hooksPath .githooks`.
 
-The same CI job also runs every skill's Python tests: each folder outside `deprecated/` that holds `test*.py` files is one standard-library `unittest` suite, run as `python3 -m unittest discover -s <folder>`. Name a test file `test*.py`, or CI never runs it.
+The same CI job also runs every skill's Python tests through `./scripts/test.sh`: each `test*.py` file outside `deprecated/` runs as its own standard-library `unittest` process, in parallel with the others. Name a test file `test*.py`, or CI never runs it, and make each file self-contained: a unique path for everything it writes, and no state shared with another file.
 
 Commits credit their author alone: the `commit-msg` hook refuses AI attribution.
 

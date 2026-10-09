@@ -19,20 +19,13 @@ jobs:
         run: |
           bash -n scripts/check.sh
           bash -n scripts/check-leaks.sh
+          bash -n scripts/test.sh
           sh -n .githooks/pre-commit
           sh -n .githooks/commit-msg
       - name: Cross-file invariants
         run: ./scripts/check.sh
-      # Each folder holding test*.py files is one standard-library unittest
-      # suite, so a skill with no tests adds nothing to run. Hidden folders and
-      # deprecated/, a frozen snapshot, hold no skill and are not searched.
-      # Every suite runs even after one fails, so no failure hides another.
+      # Every test*.py file outside deprecated/ and the hidden folders runs as
+      # its own unittest process, several at once; every file runs even after
+      # one fails, so no failure hides another. The script's header has the rule.
       - name: Python test suites
-        run: |
-          status=0
-          while IFS= read -r dir; do
-            echo "== $dir"
-            python3 -m unittest discover -s "$dir" || status=1
-          done < <(find . \( -path './.*' -o -path ./deprecated \) -prune -o \
-                     -name 'test*.py' -print | sed 's|/[^/]*$||' | sort -u)
-          exit "$status"
+        run: ./scripts/test.sh
