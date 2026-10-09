@@ -3,6 +3,7 @@
 Defects in the agency's Golden theme that every store built on it inherits, each with the fix that worked on those stores and what it bought. The decision program's `diagnose` runs every detection rule below and prints a `DEFECT` line per entry; this file is what you plan from.
 
 - **Plan every `DEFECT … found` entry before any other item**, in this file's order. One plan item may fix several entries when they ship together (D1 with D2 and D3 is the proven bundle); name each in its `defects` list.
+- **Every D2 item carries D1.** A Round tests its item on top of the Rounds kept before it, and any earlier item may be removed, so each item that fixes D2 carries D1's fix and names D1, even when an earlier item carries it too: once that one is kept, the token is already there. `plan --items` refuses a D2 item without D1 while D1 is found.
 - **A store not on Golden** prints `DEFECT none`. Plan from the Lighthouse findings and the theme code alone.
 - **Evidence** comes from the retro of eight earlier speed sessions on seven client stores, six of them on Golden. Stores are not named. A single Sample proves little: treat a figure marked "single Sample" as a direction, and an interleaved pair result as the measured effect.
 
@@ -32,7 +33,7 @@ assign lazy_loading = lazy_loading | default: true, allow_false: true
 
 `unless lazy_loading == false … assign lazy_loading = true … endunless` is an equivalent form some stores used.
 
-**Measured effect.** None on its own; it is what makes an eager image possible. It shipped inside every D2 win below. Plan it in the same item as D2.
+**Measured effect.** None on its own; it is what makes an eager image possible. It shipped inside every D2 win below. Plan it in every item that fixes D2.
 
 ## D2. The hero image ships as a lazy-loader placeholder
 
@@ -73,7 +74,7 @@ Watch for these in the item's Round:
 - A hero with separate mobile and desktop `<img>` elements downloads both once both are eager. Count both in the item's expected effect, and keep any hero preload single (regressions R4).
 - An eager hero exposed CLS on three stores (regressions R8). The Round must show no CLS loss.
 - Callers that pass a media-condition `sizes` broke on a non-lazysizes path once and rendered empty product images (regressions R2). Read every caller before changing the snippet's signature.
-- Collection pages (roughly the first four cards eager, by `forloop.index`) and the product gallery's first image were never measured in the retro. Plan them as their own item after the hero, with the expected effect marked unmeasured.
+- Collection pages (roughly the first four cards eager, by `forloop.index`) and the product gallery's first image were never measured in the retro. Plan them as their own item after the hero, carrying D1's fix as well, with the expected effect marked unmeasured.
 
 **Measured effect.** The strongest lever in the retro.
 
@@ -102,7 +103,7 @@ The slice removes the last candidate's `w`, so the largest image reads `…&widt
 assign srcset_final = srcset | strip
 ```
 
-**Measured effect.** Never isolated; it shipped inside the D2 wins. It is a correctness fix: Lighthouse's mobile phone (about 412 px wide at 1.75×, so about 721 px) picks the 800 w candidate either way, so expect little or no mobile change. Large and high-density desktop screens get their sharp image back. Plan it in the D2 item.
+**Measured effect.** Never isolated; it shipped inside the D2 wins. It is a correctness fix: Lighthouse's mobile phone (about 412 px wide at 1.75×, so about 721 px) picks the 800 w candidate either way, so expect little or no mobile change. Large and high-density desktop screens get their sharp image back. Plan it in the first D2 item.
 
 ## D4. The button snippet repeats its static CSS for every button
 

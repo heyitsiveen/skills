@@ -7,6 +7,10 @@ checks every item, puts the known-defect items first (the rest keep the order
 given), numbers them P1, P2, … and writes `plan.md` into the invocation's
 folder for the developer. Recording again replaces the draft.
 
+Each Round measures its item alone on top of the Rounds kept before it, and any
+earlier item may be removed, so an item fixing D2 must fix D1 too while
+`diagnose` finds D1: an eager image needs D1's fix.
+
 The plan carries the baseline smoke check's SMOKE lines, judged from its stored
 results by the rule in force: a Round whose check fails is removed unmeasured,
 so the developer approves knowing whether the check holds on this store.

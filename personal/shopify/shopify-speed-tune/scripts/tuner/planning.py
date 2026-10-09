@@ -13,6 +13,10 @@ from tuner.output import Refused
 CEILING = "ceiling"
 PSI_TOLERANCE = 10  # points: the upper end of the run-to-run variance Shopify documents
 ITEM_FIELDS = ("change", "cause", "effect")
+# A known defect whose proven fix works only on top of another's (references/known-defects.md):
+# an eager image needs the image snippet to read `lazy_loading: false`. While diagnose finds
+# the second, every item fixing the first carries its fix too.
+NEEDS = {"D2": "D1"}
 
 
 def performance(inv, label, page):
@@ -158,6 +162,13 @@ def record_plan(inv, items):
             if entry not in found:
                 raise Refused("bad-plan", "item %d names %s, which diagnose did not find" % (n, entry),
                               "Name only defects with a `DEFECT … found` line.")
+            needed = NEEDS.get(entry)
+            if needed in found and needed not in named:
+                raise Refused("bad-plan", "item %d fixes %s but not %s, which %s's fix needs"
+                              % (n, entry, needed, entry),
+                              "A Round measures its item alone on top of the Rounds already "
+                              "kept, and an earlier item carrying %s may be removed: add %s to "
+                              "item %d's defects and its fix to its change." % (needed, needed, n))
         checked.append({
             "change": item["change"].strip(), "cause": item["cause"].strip(),
             "effect": item["effect"].strip(),

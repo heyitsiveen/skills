@@ -71,14 +71,15 @@ Allow each call 10 minutes. A call cut off by the timeout, or ending in `FAILED 
 2. Trace each finding the theme owns to its cause in the theme code: the LCP element's section and snippet, the theme's render-blocking stylesheets, the theme scripts and the page's own HTML in the long tasks, the elements that shift. Read the repo's `AGENTS.md` and `.agent/THEME-CAPABILITIES.md` when present. When any `DEFECT … found` line prints, plan from [references/known-defects.md](references/known-defects.md). Check every item against [references/regressions.md](references/regressions.md).
 3. Write the plan items as a JSON list to `.agent/shopify-speed-tune/<invocation>/plan-items.json`. Each item is one change a Round can test alone:
 
-       {"change": "…", "pages": ["home", "collection"], "cause": "…", "effect": "…", "defects": ["D2"]}
+       {"change": "…", "pages": ["home", "collection"], "cause": "…", "effect": "…", "defects": ["D1", "D2"]}
 
    - `cause` names the finding or defect the change answers; `effect` is the expected gain, with "unmeasured" when no evidence backs it.
    - `defects` lists the known defects an item fixes, following each entry's proven fix. The program puts those items first.
    - Order the rest by expected effect, largest first.
+   - Every item works on its own on top of the Rounds kept before it, since any earlier item may be removed: an item that needs another item's change carries that change too, as every D2 item carries D1's fix.
    - Every item is a change the rules under step 4's **Apply** allow: a Round refuses any other.
 
-   Run `plan --items <file>`. It refuses an item missing its change, pages, cause or effect, or one naming a defect `diagnose` did not find; fix the file and run it again. A `NOTE` naming a found defect no item fixes needs an item, or your reason in the message to the developer.
+   Run `plan --items <file>`. It refuses an item missing its change, pages, cause or effect, one naming a defect `diagnose` did not find, or one fixing D2 without D1 while D1 is found; fix the file and run it again. A `NOTE` naming a found defect no item fixes needs an item, or your reason in the message to the developer.
 4. Stop. Show the developer the Pages, Apps and tags, and Plan sections of `plan.md` (the `PLAN file` line names it) and every Ceiling `NOTE`, then ask in this one message for:
    - their approval, or the changes they want, a different collection or product page included
    - the mobile Performance score PageSpeed Insights gives each of the three pages, as they would screenshot it for the team

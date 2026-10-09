@@ -10,7 +10,7 @@ import re
 import unittest
 from pathlib import Path
 
-from plan_support import (DEFECTIVE, PAGES, ceiling_reports, diagnosed, measured, record,
+from plan_support import (DEFECTIVE, FIXED, PAGES, ceiling_reports, diagnosed, measured, record,
                           write_items)
 from round_support import app_block_gone, checked
 
@@ -31,6 +31,14 @@ ITEMS = [
      "effect": "+0 to +2",
      "defects": ["D4"]},
 ]
+
+
+# A second D2 item, after the hero's: the collection and product LCP images.
+EAGER_CARDS = {
+    "change": "Load the first four product cards' images and the gallery's first image eagerly",
+    "pages": ["collection", "product"],
+    "cause": "the LCP image waits for lazysizes on the collection and product pages",
+    "effect": "unmeasured", "defects": ["D2"]}
 
 
 def item_heads(result):
@@ -141,6 +149,31 @@ class ADraftPlanIsChecked(unittest.TestCase):
 
         self.assertRegex(result.out, r"(?m)^REFUSED bad-plan: item 1 names D7, which diagnose "
                                      r"did not find$")
+
+    def test_an_item_fixing_d2_without_d1_is_refused(self):
+        # The second real invocation's plan: the product cards' item relied on the hero
+        # item's allow_false, and the hero item was removed.
+        result = self.plan([ITEMS[1], EAGER_CARDS])
+
+        self.assertEqual(result.code, 1, result)
+        self.assertEqual(result.lines("REFUSED"), [
+            "REFUSED bad-plan: item 2 fixes D2 but not D1, which D2's fix needs"])
+        self.assertEqual(result.lines("NOTE"), [
+            "NOTE A Round measures its item alone on top of the Rounds already kept, and an "
+            "earlier item carrying D1 may be removed: add D1 to item 2's defects and its fix to "
+            "its change."])
+
+
+class AThemeWhoseImageSnippetReadsFalse(unittest.TestCase):
+    """D1 is fixed in the theme already, so every Round starts with it."""
+
+    def test_takes_an_item_fixing_d2_alone(self):
+        box = diagnosed(self, theme_files=FIXED)
+
+        result = box.run("plan", "--items", write_items(box, [EAGER_CARDS]))
+
+        self.assertEqual(result.code, 0, result)
+        self.assertEqual(item_heads(result), ["PLAN item P1 known=D2"])
 
 
 class AStoreNotOnGolden(unittest.TestCase):
