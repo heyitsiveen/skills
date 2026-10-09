@@ -70,6 +70,8 @@ The same CI job also runs every skill's Python tests: each folder outside `depre
 
 Commits credit their author alone: the `commit-msg` hook refuses AI attribution.
 
+The repo is public: write placeholders for client data. The pre-commit hook refuses the client identifiers the gitignored `.leak-denylist` lists; run `scripts/check-leaks.sh --all` before a push.
+
 The rules that need **judgement** — the three permitted Phase 4 variations, which duplication is deliberate and which divergence is, whether a `description` fires at the right time — cannot be asserted and live in [`CODING_STANDARDS.md`](CODING_STANDARDS.md), read at review time. When a check turns out to be wrong, change the rule here and the assertion in `check.sh` in the same commit.
 
 ## Distribution

@@ -11,3 +11,7 @@ __pycache__/
 
 # Local issue tracker (see docs/agents/issue-tracker.md)
 .scratch/
+
+# Client identifiers scripts/check-leaks.sh refuses. Committing the list would
+# publish every name on it.
+.leak-denylist

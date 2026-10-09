@@ -1,15 +1,26 @@
 #!/bin/sh
-# Assert this repo's cross-file invariants before a commit lands.
+# Before a commit lands, assert this repo's cross-file invariants, then refuse
+# any staged line that names a client. Both run, so one failure hides no other.
 # Enable once per clone:
 #     git config core.hooksPath .githooks
-# Bypass a single commit with `git commit --no-verify`.
+# Bypass a single commit with `git commit --no-verify` — it skips both checks.
 #
-# check.sh resolves the repo root itself, so the working directory does not matter.
+# Both scripts resolve the repo root themselves, so the working directory does not matter.
 
 repo_root=$(git rev-parse --show-toplevel) || exit 0
+
+status=0
 
 "$repo_root/scripts/check.sh" || {
     echo
     echo "pre-commit: repo invariants broken. Fix them, or commit with --no-verify if the rule is wrong." >&2
-    exit 1
+    status=1
 }
+
+"$repo_root/scripts/check-leaks.sh" || {
+    echo
+    echo "pre-commit: a staged line names a client, and this repo is public. Replace it, or drop the entry from .leak-denylist if it names no client." >&2
+    status=1
+}
+
+exit "$status"

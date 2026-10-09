@@ -18,6 +18,8 @@ jobs:
       - name: Shell syntax
         run: |
           bash -n scripts/check.sh
+          bash -n scripts/check-leaks.sh
+          sh -n .githooks/pre-commit
           sh -n .githooks/commit-msg
       - name: Cross-file invariants
         run: ./scripts/check.sh
