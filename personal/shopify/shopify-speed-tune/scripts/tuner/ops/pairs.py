@@ -13,7 +13,12 @@ Pairs go round the pages: the first pair on home, collection and product, then
 the second, and so on. A call starts no new pair once --minutes have passed
 (default 6: a pair takes about two minutes, so a call fits a 10-minute window),
 and the next call carries on.
-A pair cut short is retaken whole, so its two Samples are always back to back.
+
+A pair's two Samples are always back to back. Both themes' preview cookies are
+had before its first Sample, so a pause the store's HTTP 429 forces comes
+before the pair, never inside it. A pair cut short, or whose Working Sample is
+rejected, is retaken whole; the Control Sample it leaves is set aside, kept in
+the ledger as unpaired but counted nowhere.
 --pair records a pair from two existing report files instead: the same checks,
 without running Lighthouse.
 """
@@ -22,10 +27,11 @@ import json
 import time
 
 from tuner import ledger, rounds, samples, stats
-from tuner.output import Failed, Refused, say
+from tuner.output import Failed, Refused, note, say
 
 ORDER = 64
 MINUTES = 6
+ROLES = ("control", "working")
 
 
 def register(sub):
@@ -119,24 +125,34 @@ def take(inv, rnd, pages, budget):
     for taken, (k, _, page) in enumerate(queue):
         if taken and time.monotonic() - began >= budget:
             return
-        recorded = {}
-        for role in ("control", "working"):
+        # Both cookies before the pair's first Sample: a pause the store's HTTP 429 forces
+        # then comes before the pair, never between its two Samples.
+        for role in ROLES:
             if (role, page) not in cookies:
                 cookies[(role, page)] = samples.preview(inv, themes[role], inv.page_url(page))
-            recorded[role] = attempts(inv, rnd, page, role, cookies[(role, page)], k)
-            if recorded[role] is None:
-                if role == "working":
-                    discard(inv, recorded["control"])
-                raise Failed("samples-rejected", "pair %d on the %s page: no %s Sample could be "
-                             "taken; see the rejections above" % (k, page, role),
-                             "Run `pairs` again; the pair is retaken whole.")
-        finish_pair(inv, rnd, page, k, recorded["control"], recorded["working"])
+        control, working = take_pair(inv, rnd, page, k,
+                                     {role: cookies[(role, page)] for role in ROLES})
+        finish_pair(inv, rnd, page, k, control, working)
 
 
-def attempts(inv, rnd, page, role, cookie, k):
+def take_pair(inv, rnd, page, k, cookies):
+    """(Control Sample, Working Sample), taken back to back. A rejected Working Sample
+    would leave a whole Sample's time after its Control Sample, so that Control Sample is
+    set aside and the pair taken again whole, within the spare attempts."""
     for _ in range(1 + samples.SPARE_ATTEMPTS):
-        found = samples.attempt(inv, target(inv, rnd, page, role), inv.data["themes"][role],
-                                cookie, extra={"round": rnd["n"], "pair": k})
-        if found is not None:
-            return found
-    return None
+        recorded = {}
+        for role in ROLES:
+            recorded[role] = samples.attempt(inv, target(inv, rnd, page, role),
+                                             inv.data["themes"][role], cookies[role],
+                                             extra={"round": rnd["n"], "pair": k})
+            if recorded[role] is None:
+                break
+        else:
+            return recorded["control"], recorded["working"]
+        if recorded["control"] is not None:
+            discard(inv, recorded["control"])
+            note("pair %d on the %s page is retaken whole: its Working Sample was rejected, so "
+                 "its Control Sample %s is set aside" % (k, page, recorded["control"]["id"]))
+    raise Failed("samples-rejected", "pair %d on the %s page: no %s Sample could be taken; see "
+                 "the rejections above" % (k, page, role),
+                 "Run `pairs` again; the pair is retaken whole.")

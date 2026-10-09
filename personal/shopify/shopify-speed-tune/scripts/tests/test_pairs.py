@@ -9,8 +9,8 @@ and a tie otherwise.
 import re
 import unittest
 
-from round_support import (add_to_cart_fails, checked, opened, pair_files, pushed, record_pairs,
-                           write)
+from round_support import (WORKING, add_to_cart_fails, checked, opened, pair_files, pushed,
+                           record_pairs, write)
 
 
 class RecordingPairsFromReportFiles(unittest.TestCase):
@@ -107,8 +107,23 @@ class TakingPairs(unittest.TestCase):
         checked(self.box)
 
     def taken(self, result):
-        return [tuple(re.match(r"SAMPLE s\d+ round-1 (\w+) mobile (\w+) ", line).groups())
-                for line in result.lines("SAMPLE")]
+        """(page, theme) of each Sample recorded, in order; a rejected one is not."""
+        found = [re.match(r"SAMPLE s\d+ round-1 (\w+) mobile (\w+) ", line)
+                 for line in result.lines("SAMPLE")]
+        return [m.groups() for m in found if m]
+
+    def assert_back_to_back(self, result):
+        """Each PAIR line comes straight after its two Samples: its Control Sample, then its
+        Working Sample, with nothing between them."""
+        lines = result.out.splitlines()
+        pairs = [n for n, line in enumerate(lines) if line.startswith("PAIR ")]
+        self.assertTrue(pairs, result)
+        for n in pairs:
+            page = lines[n].split()[2]
+            halves = [re.match(r"SAMPLE s\d+ round-1 (\w+) mobile (\w+) ", line)
+                      for line in lines[n - 2:n]]
+            self.assertEqual([m.groups() if m else None for m in halves],
+                             [(page, "control"), (page, "working")], result)
 
     def test_pairs_alternate_control_then_working_and_go_round_the_pages(self):
         result = self.box.run("pairs")
@@ -133,6 +148,37 @@ class TakingPairs(unittest.TestCase):
         second = self.box.run("pairs", "--minutes", "0")
 
         self.assertEqual(second.lines("PAIR")[0][:19], "PAIR 1 collection 1")
+
+    def test_both_preview_cookies_come_before_a_pair_so_no_pause_falls_inside_it(self):
+        # The store answers the Working theme's preview request with HTTP 429 once, as it did
+        # a real Round: the program waits and asks again.
+        self.box.edit_store(lambda s: s.update(
+            too_many_requests_on={"preview_theme_id=%d" % WORKING: 1}))
+
+        result = self.box.run("pairs", "--page", "home", "--minutes", "0")
+
+        self.assertEqual(result.code, 0, result)
+        self.assertEqual([line.split(" ", 1)[0] for line in result.out.splitlines()],
+                         ["NOTE", "SAMPLE", "SAMPLE", "PAIR", "PAIRS"], result)
+        self.assertIn("preview_theme_id=%d answered HTTP 429" % WORKING, result.lines("NOTE")[0])
+        self.assert_back_to_back(result)
+
+    def test_a_working_sample_rejected_after_its_control_sample_retakes_the_pair_whole(self):
+        # The rejected Sample took a whole Sample's time after the Control Sample.
+        self.box.edit_store(lambda s: s["lighthouse"].update(drops_cookie_once_of=[WORKING]))
+
+        result = self.box.run("pairs", "--page", "home", "--minutes", "0")
+
+        self.assertEqual(result.code, 0, result)
+        self.assertEqual(self.taken(result), [("home", "control"), ("home", "control"),
+                                              ("home", "working")])
+        self.assert_back_to_back(result)
+        set_aside = re.match(r"SAMPLE (s\d+) ", result.lines("SAMPLE")[0]).group(1)
+        self.assertIn("NOTE pair 1 on the home page is retaken whole: its Working Sample was "
+                      "rejected, so its Control Sample %s is set aside" % set_aside,
+                      result.lines("NOTE"))
+        status = self.box.run("status")
+        self.assertRegex(status.out, r"(?m)^MEASUREMENT round-1 home mobile control incomplete 1/5")
 
     def test_a_working_sample_that_cannot_be_taken_discards_its_control_sample(self):
         self.box.edit_store(lambda s: s["lighthouse"].update(drops_cookie_of=[200]))
