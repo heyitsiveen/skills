@@ -1,6 +1,6 @@
 # Skills
 
-A Claude Code marketplace of agent skills, organised as bucket → domain → skill. The language below covers the skills in `personal/shopify/`, where most of the shared vocabulary lives — the theme-build suite first, then the sheet-to-metafields work, which shares none of its vocabulary and needed its own.
+A Claude Code marketplace of agent skills, organised as bucket → domain → skill. The language below covers the skills in `personal/shopify/`, where most of the shared vocabulary lives — the theme-build suite first, then the sheet-to-metafields work and the store-speed work, which share none of its vocabulary and needed their own.
 
 ## Language
 
@@ -104,3 +104,37 @@ The path a Run takes when the store has Matrixify. One export is the Backup; one
 
 **Browser mode**:
 The path a Run takes without Matrixify. The Backup and the write both go through the admin's bulk editor, fifty products at a time, saving every twenty.
+
+### Making a store faster
+
+**Performance score**:
+Lighthouse's 0–100 score for its Performance category, for one page on one device. It is the number clients quote, and a diagnostic rather than the goal: the goal is the speed real visitors get.
+_Avoid_: Lighthouse score, speed score, PageSpeed score
+
+**Sample**:
+One Lighthouse load of one page on one device, giving one Performance score and its metrics. One Sample decides nothing.
+_Avoid_: run, Lighthouse run, try, test
+
+**Measurement**:
+Five Samples of the same page, device and theme under the same conditions, reported as their median and range.
+_Avoid_: score, result, reading
+
+**Round**:
+One change applied to the Working theme, measured, then kept or reverted.
+_Avoid_: try, attempt, iteration
+
+**Ceiling**:
+The highest Performance score a page can reach by changing its theme alone, with the store's apps and tags left as they are. Measured before the first Round; no page's target is set above it.
+_Avoid_: max score, cap, limit
+
+**Working theme**:
+The unpublished copy of the store's published theme where each Round's change is tested. When the Rounds end it holds every kept Round, ready for a person to publish.
+_Avoid_: dev theme, test theme, preview theme, draft theme
+
+**Control theme**:
+A second unpublished copy that holds every kept Round but never the change under test. It is measured in turn with the Working theme, so both meet the same conditions.
+_Avoid_: original theme, baseline theme, A theme
+
+**Golden theme**:
+The agency's own base theme, which most client themes are built from. A defect found in one store built on it is usually in all of them.
+_Avoid_: base theme, starter theme

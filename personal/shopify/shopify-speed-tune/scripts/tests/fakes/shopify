@@ -1,0 +1,241 @@
+#!/usr/bin/env python3
+"""Fake Shopify CLI for the decision program's tests: a theme library kept in FAKE_STORE.
+
+It answers `theme list`, `theme duplicate`, `theme delete` and `theme push` the
+way CLI 4.8.2 does, including its traps: duplicate and push exit 0 when they
+fail, and every command talks to whichever store `--store` names, so a missing
+or wrong store fails.
+
+Each theme's files are kept in FAKE_STORE as {path: text}; a duplicate copies
+its source's. `delete` deletes every theme whose id or name its `--theme`
+matches. `push` follows the CLI's own source: `--theme` matches an id or a
+name, live themes first, and a live target needs `--allow-live`; every local
+theme file is read, and `--only`/`--ignore` filter both what is uploaded (a
+local file whose content differs) and what is deleted (a theme file missing
+locally). It answers with one JSON line whose `warning` and `errors` report the
+files that failed, as the real one does: the Shopify parser refuses a
+multi-line `{%- # … -%}` comment whose lines do not all start with `#`.
+
+It also holds the program to its contract: every push names a numeric theme,
+the repo's absolute path, exact `--only` paths and `--ignore
+config/settings_data.json`, asks for JSON, and never passes a flag that could
+reach the live theme or delete files beyond the named ones. Each push is
+recorded in FAKE_STORE's `pushes`, so a test can see every write.
+"""
+
+import json
+import os
+import re
+import sys
+
+state_path = os.environ["FAKE_STORE"]
+with open(state_path, encoding="utf-8") as f:
+    store = json.load(f)
+
+
+def save():
+    with open(state_path, "w", encoding="utf-8") as f:
+        json.dump(store, f, indent=2)
+
+
+def flag(name, many=False):
+    values = []
+    args = sys.argv[1:]
+    for i, a in enumerate(args):
+        if a == name and i + 1 < len(args):
+            values.append(args[i + 1])
+        elif a.startswith(name + "="):
+            values.append(a.split("=", 1)[1])
+    return values if many else (values[0] if values else None)
+
+
+def fail(message, code=1):
+    sys.stderr.write(message + "\n")
+    sys.exit(code)
+
+
+args = sys.argv[1:]
+if args[:1] != ["theme"] or len(args) < 2:
+    fail("fake shopify: unsupported command %r" % args, 2)
+
+if flag("--store") != store["shop"]["myshopify_domain"]:
+    fail("fake shopify: --store must name %s, got %r"
+         % (store["shop"]["myshopify_domain"], flag("--store")))
+
+command = args[1]
+themes = store["themes"]
+
+if command == "list":
+    if "--json" not in args:
+        fail("fake shopify: the program must ask for --json", 2)
+    picked = themes
+    if flag("--id"):
+        picked = [t for t in picked if str(t["id"]) == flag("--id")]
+    if flag("--role"):
+        picked = [t for t in picked if t["role"] == flag("--role")]
+    if (flag("--id") or flag("--role")) and not picked:
+        fail("No themes on the store match the filter")
+    rows = [dict(t) for t in picked]
+    # A fresh copy reports processing once, then settles.
+    for t in themes:
+        if t.get("processing"):
+            t["processing"] = False
+    save()
+    print(json.dumps(rows, indent=2))
+    sys.exit(0)
+
+if command == "duplicate":
+    if "--force" not in args and "-f" not in args:
+        fail("Failed to prompt: run with --force", 1)
+    source = next((t for t in themes if str(t["id"]) == flag("--theme")), None)
+    # duplicate_errors_after: that many copies succeed, then the library is full.
+    made = store.get("duplicates_made", 0)
+    store["duplicates_made"] = made + 1
+    save()
+    errors = store.get("duplicate_errors") or (
+        ["Maximum number of themes reached"]
+        if made >= store.get("duplicate_errors_after", 10 ** 6) else [])
+    if errors:
+        print(json.dumps({"message": "The theme '%s' could not be duplicated due to errors"
+                          % (source or {}).get("name"),
+                          "errors": errors, "requestId": "fake"}))
+        sys.exit(0)
+    if source is None:
+        print(json.dumps({"message": "No theme with ID %s could be found." % flag("--theme"),
+                          "errors": []}))
+        sys.exit(0)
+    new_id = store["next_theme_id"]
+    store["next_theme_id"] += 1
+    themes.append({"id": new_id, "name": flag("--name") or "Copy of " + source["name"],
+                   "role": "unpublished", "processing": True})
+    files = store.setdefault("files", {})
+    files[str(new_id)] = dict(files.get(str(source["id"]), {}))
+    numbers = store.setdefault("asset_numbers", {})
+    numbers[str(new_id)] = store.get("next_asset_number", 50)
+    store["next_asset_number"] = numbers[str(new_id)] + 1
+    save()
+    print(json.dumps({"theme": {"id": new_id, "name": flag("--name"), "role": "unpublished",
+                                "shop": store["shop"]["myshopify_domain"]}}))
+    sys.exit(0)
+
+if command == "delete":
+    if "--force" not in args and "-f" not in args:
+        fail("Failed to prompt: run with --force", 1)
+    for wanted in flag("--theme", many=True):
+        # Like push, delete matches an id or a name; unlike push, it deletes every match.
+        match = [t for t in themes
+                 if str(t["id"]) == wanted or t["name"].lower() == wanted.lower()]
+        if not match:
+            fail('No themes on the store match the ID or name "%s"' % wanted)
+        for theme in match:
+            if theme["role"] == "live":
+                fail("The published theme cannot be deleted")
+            if theme["id"] in store.get("deletes_ignored", []):  # it says so, and the theme stays
+                print("The theme '%s' (#%s) was deleted." % (theme["name"], theme["id"]))
+                continue
+            themes.remove(theme)
+            store.get("files", {}).pop(str(theme["id"]), None)
+            print("The theme '%s' (#%s) was deleted." % (theme["name"], theme["id"]))
+    save()
+    sys.exit(0)
+
+# The local files `theme push` reads, as CLI 4.8.2 globs them (chunk-ZKWJX5GE `ts`).
+LOCAL = (r"assets/[^/]+\.[^/]+", r"config/[^/]+\.json", r"layout/[^/]+\.liquid",
+         r"locales/[^/]+\.json", r"sections/[^/]+\.(liquid|json)", r"blocks/[^/]+\.liquid",
+         r"snippets/[^/]+\.liquid", r"templates/(customers/)?[^/]+\.(liquid|json)")
+NEVER = ("--live", "-l", "--allow-live", "-a", "--publish", "-p", "--unpublished", "-u",
+         "--development", "-d", "--environment", "-e", "--nodelete", "-n", "--listing")
+
+
+def local_files(root):
+    found = {}
+    for folder, _, names in os.walk(root):
+        for name in names:
+            path = os.path.relpath(os.path.join(folder, name), root).replace(os.sep, "/")
+            if any(re.fullmatch(p, path) for p in LOCAL):
+                # Any bytes: an image, or a library that is not UTF-8.
+                with open(os.path.join(folder, name), encoding="utf-8",
+                          errors="surrogateescape") as f:
+                    found[path] = f.read()
+    return found
+
+
+def parser_errors(text):
+    """What Shopify's Liquid parser says about a file: only the multi-line comment trap."""
+    for m in re.finditer(r"\{%-?\s*#(.*?)-?%\}", text, re.S):
+        inner = m.group(1).split("\n")[1:]
+        if any(line.strip() and not line.strip().startswith("#") for line in inner):
+            line = text[:m.start()].count("\n") + 1
+            return ["Liquid syntax error (line %d): Syntax error in tag '#' - Each line of "
+                    "comments must be prefixed by the '#' character" % line]
+    return []
+
+
+if command == "push":
+    for name in NEVER:
+        if name in args or any(a.startswith(name + "=") for a in args):
+            fail("fake shopify: the program must never pass %s to a push" % name, 2)
+    if "--json" not in args:
+        fail("fake shopify: the program must ask for --json", 2)
+    wanted = flag("--theme") or ""
+    if not wanted.isdigit():
+        fail("fake shopify: a push must name its theme by numeric id, got %r" % wanted, 2)
+    root = flag("--path") or ""
+    if not os.path.isabs(root) or not os.path.isfile(os.path.join(root, "layout", "theme.liquid")):
+        fail("fake shopify: --path must be the theme repo's absolute root, got %r" % root, 2)
+    only = flag("--only", many=True)
+    if not only:
+        fail("fake shopify: a push without --only deletes every file the store holds and the "
+             "repo does not", 2)
+    if any(re.search(r"[*?\[\]{}()!]", p) for p in only):
+        fail("fake shopify: --only takes exact paths; a pattern widens what is deleted", 2)
+    ignore = flag("--ignore", many=True)
+    if "config/settings_data.json" not in ignore:
+        fail("fake shopify: every push must --ignore config/settings_data.json", 2)
+    # renamed_before_push: someone renames a theme between the program's last read of the
+    # theme library and this push.
+    for renamed in store.pop("renamed_before_push", []):
+        next(t for t in themes if t["id"] == renamed["id"])["name"] = renamed["name"]
+    order = {"live": 0, "unpublished": 1, "development": 2}
+    matches = [t for t in sorted(themes, key=lambda t: order.get(t["role"], 3))
+               if str(t["id"]) == wanted or t["name"].lower() == wanted.lower()]
+    if not matches:
+        fail('No themes on the store %s match the ID or name "%s"'
+             % (store["shop"]["myshopify_domain"], wanted))
+    target = matches[0]
+    if target["role"] == "live":
+        fail("Failed to prompt: Push theme files to the live theme on %s? This usually happens "
+             "when running a command non-interactively" % store["shop"]["myshopify_domain"])
+    remote = store.setdefault("files", {}).setdefault(str(target["id"]), {})
+    local = local_files(root)
+    named = [p for p in only if p not in ignore]
+    failed = {}
+    for path in named:
+        if path in local:
+            if remote.get(path) == local[path]:
+                continue
+            problems = parser_errors(local[path]) if path.endswith(".liquid") else []
+            if path in store.get("fails_without_detail", []):
+                failed[path] = None
+            elif problems:
+                failed[path] = problems
+            else:
+                remote[path] = local[path]
+        elif path in remote:
+            del remote[path]
+    store.setdefault("pushes", []).append({"theme": target["id"], "only": only, "ignore": ignore})
+    save()
+    domain = store["shop"]["myshopify_domain"]
+    out = {"environment": "default", "theme": {
+        "id": target["id"], "name": target["name"], "role": target["role"], "shop": domain,
+        "editor_url": "https://%s/admin/themes/%d/editor" % (domain, target["id"]),
+        "preview_url": "https://%s?preview_theme_id=%d" % (domain, target["id"])}}
+    if failed:
+        out["theme"]["warning"] = "[default] The theme '%s' was pushed with errors" % target["name"]
+        detail = {p: e for p, e in failed.items() if e}
+        if detail:
+            out["theme"]["errors"] = detail
+    print(json.dumps(out))
+    sys.exit(0)
+
+fail("fake shopify: unsupported theme command %r" % command, 2)

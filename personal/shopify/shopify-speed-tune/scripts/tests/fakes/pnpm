@@ -1,0 +1,253 @@
+#!/usr/bin/env python3
+"""Fake pnpm for the decision program's tests: the tools it runs through pnpm.
+
+- `dlx @puppeteer/browsers@3.2.3 install chrome@<build> --path <dir>` lays out
+  the stand-in Chrome for Testing (chrome-for-testing beside this file) and
+  prints its path.
+- `dlx lighthouse@13.5.0 --version` prints the version.
+- `dlx lighthouse@13.5.0 <url> …` writes the next real report from FAKE_STORE's
+  queue for the device the flags ask for, as the page the theme in the cookie
+  jar of the Chrome at `--port` renders.
+- `add --save-exact puppeteer-core@25.12.0` installs a stand-in puppeteer-core.
+
+It holds the program to the same contract the real tools do: the pnpm store and
+cache must be isolated, Chrome must be the invocation's own and already running
+at `--port` with the preview cookie in its jar (never in a header, which would
+reach every third-party host), an unpublished theme's page is loaded with
+`?pb=0`, the URL comes first and error reporting is off. Blocked URL patterns
+fail the requests they match, by Chrome's own rule, and are recorded in the
+report's settings as Lighthouse records them. FAKE_STORE's lighthouse `hang`
+and `chrome_lost` play a page that never settles, the second with the Chrome
+at `--port` gone, so chrome-launcher starts a Chrome of its own.
+"""
+
+import json
+import os
+import re
+import shutil
+import stat
+import subprocess
+import sys
+import tempfile
+import time
+from urllib.parse import urlsplit
+
+state_path = os.environ["FAKE_STORE"]
+with open(state_path, encoding="utf-8") as f:
+    store = json.load(f)
+
+
+def fail(message, code=1):
+    sys.stderr.write(message + "\n")
+    sys.exit(code)
+
+
+args = sys.argv[1:]
+if args[:1] not in (["dlx"], ["add"]):
+    fail("fake pnpm: only `pnpm dlx` and `pnpm add` are expected, got %r" % args, 2)
+
+for var in ("PNPM_CONFIG_STORE_DIR", "PNPM_CONFIG_CACHE_DIR"):
+    if not os.environ.get(var):
+        fail("fake pnpm: %s is not set, so this would write the global pnpm store" % var)
+
+if args[0] == "add":
+    # `pnpm add --save-exact puppeteer-core@<version>` in a project of its own.
+    specs = [a for a in args[1:] if not a.startswith("-")]
+    if specs != ["puppeteer-core@25.12.0"] or "--save-exact" not in args:
+        fail("fake pnpm: only `pnpm add --save-exact puppeteer-core@25.12.0` is expected, got %r" % args)
+    if not os.path.isfile("package.json"):
+        fail("fake pnpm: no package.json in %s, so pnpm would look for one further up" % os.getcwd())
+    package = os.path.join("node_modules", "puppeteer-core")
+    os.makedirs(package, exist_ok=True)
+    with open(os.path.join(package, "package.json"), "w", encoding="utf-8") as f:
+        json.dump({"name": "puppeteer-core", "version": "25.12.0", "type": "module"}, f)
+    sys.exit(0)
+
+args = args[1:]
+while args and args[0].startswith("--"):  # pnpm's own options precede the spec
+    args = args[1:]
+if not args:
+    fail("fake pnpm: no package spec", 2)
+
+spec, rest = args[0], args[1:]
+
+if spec == "@puppeteer/browsers@3.2.3":
+    if rest[:1] != ["install"]:
+        fail("fake pnpm: unsupported browsers command %r" % rest, 2)
+    build = rest[1].split("@", 1)[1]
+    path = rest[rest.index("--path") + 1]
+    if not os.path.isabs(path):
+        fail("fake pnpm: --path must be absolute, got %r" % path)
+    exe = os.path.join(path, "chrome", "mac_arm-%s" % build, "chrome-mac-arm64",
+                       "Google Chrome for Testing.app", "Contents", "MacOS",
+                       "Google Chrome for Testing")
+    os.makedirs(os.path.dirname(exe), exist_ok=True)
+    shutil.copyfile(os.path.join(os.path.dirname(os.path.abspath(__file__)), "chrome-for-testing"), exe)
+    os.chmod(exe, os.stat(exe).st_mode | stat.S_IXUSR)
+    fmt = rest[rest.index("--format") + 1] if "--format" in rest else "{{browser}}@{{buildId}} {{path}}"
+    print(fmt.replace("{{browser}}", "chrome").replace("{{buildId}}", build).replace("{{path}}", exe))
+    sys.exit(0)
+
+if not spec.startswith("lighthouse@"):
+    fail("fake pnpm: unexpected package %r" % spec, 2)
+if spec != "lighthouse@13.5.0":
+    fail("fake pnpm: this store only has lighthouse@13.5.0, not %r" % spec)
+
+if rest == ["--version"]:
+    print("13.5.0")
+    sys.exit(0)
+
+if not rest or rest[0].startswith("-"):
+    fail("Please provide a url")
+url, flags = rest[0], rest[1:]
+
+chrome = os.environ.get("CHROME_PATH", "")
+if not (os.path.isfile(chrome) and os.access(chrome, os.X_OK)):
+    fail("ChromeNotInstalledError: CHROME_PATH %r is not an executable" % chrome)
+if "--no-enable-error-reporting" not in flags:
+    fail("fake pnpm: without --no-enable-error-reporting Lighthouse writes ~/.config/configstore")
+if any(re.search(r"fake-\d+-cookie", f) for f in flags):
+    fail("fake pnpm: a cookie in argv shows in `ps`")
+if any(f.startswith("--extra-headers") for f in flags):
+    fail("fake pnpm: a Cookie header reaches every third-party host; the cookie belongs in the jar")
+
+
+def value(name):
+    for f in flags:
+        if f.startswith(name + "="):
+            return f.split("=", 1)[1]
+    return None
+
+
+output_path = value("--output-path")
+if not output_path:
+    fail("fake pnpm: no --output-path")
+# --blocked-url-patterns repeats once per pattern; Lighthouse never splits on commas.
+blocked = [f.split("=", 1)[1] for f in flags if f.startswith("--blocked-url-patterns=")]
+
+
+def blocks(url):
+    """Chrome's rule: '*' matches any run, and every pattern is wrapped in '*'."""
+    for pattern in blocked:
+        position = 0
+        for part in pattern.split("*"):
+            position = url.find(part, position)
+            if position < 0:
+                break
+            position += len(part)
+        else:
+            return True
+    return False
+
+
+settings = {}
+if value("--cli-flags-path"):
+    with open(value("--cli-flags-path"), encoding="utf-8") as f:
+        settings = json.load(f)
+if (settings.get("extraHeaders") or {}).get("Cookie"):
+    fail("fake pnpm: a Cookie header reaches every third-party host; the cookie belongs in the jar")
+device = "desktop" if value("--preset") == "desktop" else "mobile"
+
+# Without --port, Lighthouse starts a Chrome of its own, whose jar is empty.
+port = value("--port")
+if not port:
+    fail("fake pnpm: no --port, so Lighthouse would start its own Chrome with an empty cookie jar")
+registry = os.path.join(os.path.dirname(state_path), "chromes")
+
+
+def mktemp_folder():
+    """Where `mktemp -d -t` makes its folder: the Darwin user temp folder, else TMPDIR, else /tmp."""
+    try:
+        found = subprocess.run(["getconf", "DARWIN_USER_TEMP_DIR"], capture_output=True,
+                               text=True).stdout.strip()
+    except OSError:
+        found = ""
+    return found or os.environ.get("TMPDIR") or "/tmp"
+
+
+# chrome_lost: the Chrome at --port is gone, so chrome-launcher starts one of its own from
+# CHROME_PATH, in a session of its own, with a throwaway profile `lighthouse.XXXXXXX` made by
+# `mktemp -d -t` holding its pid; and the page never settles. Each profile is listed in the
+# sandbox's `launcher-profiles`.
+if store["lighthouse"].get("chrome_lost"):
+    profile = tempfile.mkdtemp(prefix="lighthouse.", dir=mktemp_folder())
+    with open(os.path.join(os.path.dirname(state_path), "launcher-profiles"), "a",
+              encoding="utf-8") as f:
+        f.write(profile + "\n")
+    own = subprocess.Popen([chrome, "--headless=new", "--remote-debugging-port=0",
+                            "--user-data-dir=" + profile], stdin=subprocess.DEVNULL,
+                           stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL,
+                           start_new_session=True)
+    with open(os.path.join(profile, "chrome.pid"), "w", encoding="utf-8") as f:
+        f.write("%d" % own.pid)
+    time.sleep(600)
+    fail("fake pnpm: the page never settled")
+
+try:
+    with open(os.path.join(registry, port), encoding="utf-8") as f:
+        chrome_pid = json.load(f)["pid"]
+    os.kill(chrome_pid, 0)
+except (OSError, ValueError, KeyError):
+    fail("Unable to connect to Chrome")
+
+# hang: a page that never settles holds Lighthouse for as long as its Chrome runs, as a
+# real one does, so a program cut off mid-Sample leaves both running. A Chrome
+# stopped but not yet reaped counts as gone.
+if store["lighthouse"].get("hang"):
+    while True:
+        state = subprocess.run(["ps", "-o", "stat=", "-p", str(chrome_pid)],
+                               capture_output=True, text=True).stdout.strip()
+        if not state or state.startswith("Z"):
+            fail("Lighthouse lost its connection to Chrome")
+        time.sleep(0.2)
+try:
+    with open(os.path.join(registry, port + ".jar"), encoding="utf-8") as f:
+        jar = json.load(f)
+except (OSError, ValueError):
+    jar = {}
+
+served = next(t for t in store["themes"] if t["role"] == "live")
+host = urlsplit(url).hostname
+match = re.match(r"_shopify_essential=fake-(\d+)-cookie$", jar.get("cookie", ""))
+# drops_cookie: the jar lost the cookie, so the store served its published theme;
+# drops_cookie_of: the same, for those themes' cookies only; drops_cookie_once_of: the
+# same, once for each theme listed.
+once = store["lighthouse"].get("drops_cookie_once_of") or []
+dropped = store["lighthouse"].get("drops_cookie") or \
+    (match and int(match.group(1)) in (store["lighthouse"].get("drops_cookie_of") or [])) or \
+    (match and int(match.group(1)) in once)
+if match and int(match.group(1)) in once:
+    once.remove(int(match.group(1)))
+if match and jar.get("host") == host and not dropped:
+    served = next((t for t in store["themes"] if t["id"] == int(match.group(1))), served)
+if served["role"] != "live" and "pb=0" not in urlsplit(url).query.split("&"):
+    fail("fake pnpm: without ?pb=0 the unpublished theme's page also loads Shopify's preview bar")
+
+# A Ceiling Sample (any blocked pattern) comes from the "ceiling" queue when there is one.
+key = "ceiling" if blocked and store["lighthouse"].get("ceiling") else device
+queue = store["lighthouse"][key]
+count = store["lighthouse"].setdefault("taken", {}).get(key, 0)
+fixture = queue[count % len(queue)]
+store["lighthouse"]["taken"][key] = count + 1
+with open(state_path, "w", encoding="utf-8") as f:
+    json.dump(store, f, indent=2)
+
+with open(fixture, encoding="utf-8") as f:
+    report = json.load(f)
+
+# The preview query parameter redirects to the plain URL, as on a real store.
+landed = url.split("?preview_theme_id")[0]
+report["requestedUrl"] = url
+report["mainDocumentUrl"] = report["finalDisplayedUrl"] = landed
+number = store.get("asset_numbers", {}).get(str(served["id"]), 1)
+for item in report["audits"]["network-requests"]["details"]["items"]:
+    item["url"] = re.sub(r"^https://[^/]+", "https://" + host, item["url"])
+    item["url"] = re.sub(r"/cdn/shop/t/\d+/", "/cdn/shop/t/%d/" % number, item["url"])
+    if blocks(item["url"]):  # a blocked request fails before any response
+        item.update(statusCode=-1, transferSize=0)
+report.setdefault("configSettings", {})["extraHeaders"] = settings.get("extraHeaders")
+report["configSettings"]["blockedUrlPatterns"] = blocked or None  # Lighthouse's default is null
+
+with open(output_path, "w", encoding="utf-8") as f:
+    json.dump(report, f)
+sys.exit(0)

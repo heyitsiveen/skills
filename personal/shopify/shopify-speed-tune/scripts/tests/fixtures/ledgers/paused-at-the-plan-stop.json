@@ -1,0 +1,2048 @@
+{
+  "state": "open",
+  "requested_score": 80,
+  "store": {
+    "url": "https://store.example/",
+    "myshopify": "example-store.myshopify.com",
+    "name": "Example store",
+    "published_theme": {
+      "id": 100,
+      "name": "example/main"
+    }
+  },
+  "repo": {
+    "root": "<repo>",
+    "start_branch": "main",
+    "start_commit": "<start-commit>",
+    "branch": "speed-tune/20261008-213521"
+  },
+  "hook": {
+    "status": "bypass-approved",
+    "detail": "The pre-commit hook .husky/_/pre-commit exits 1 on the unchanged repo (...snippets/image.liquid:3 MissingAsset | 733 problems found in 412 files - pre-commit script failed (code 1)). The developer approved committing this invocation's kept Rounds with --no-verify."
+  },
+  "workspace": "<workspace>",
+  "tools": {
+    "chrome_preferences": {
+      "saved": true,
+      "existed": true,
+      "file": "<workspace>/cft-preferences.plist"
+    },
+    "chrome": {
+      "build": "154.0.8037.57",
+      "path": "<workspace>/chrome/chrome/mac_arm-154.0.8037.57/chrome-mac-arm64/Google Chrome for Testing.app/Contents/MacOS/Google Chrome for Testing"
+    },
+    "lighthouse": "13.5.0",
+    "puppeteer": "25.12.0"
+  },
+  "themes": {
+    "working": {
+      "id": 200,
+      "name": "speed-tune 20261008-213521 working",
+      "asset_path": "/cdn/shop/t/29/"
+    },
+    "control": {
+      "id": 201,
+      "name": "speed-tune 20261008-213521 control",
+      "asset_path": "/cdn/shop/t/30/"
+    }
+  },
+  "pages": {
+    "home": "/",
+    "collection": "/collections/example-collection",
+    "product": "/products/example-product"
+  },
+  "samples": [
+    {
+      "id": "s0001",
+      "label": "baseline",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 47,
+        "accessibility": 94,
+        "lcp": 15891.407499999994,
+        "tbt": 580.5,
+        "cls": 0.0,
+        "fcp": 3718.8375000000005,
+        "si": 6714.931940527971
+      },
+      "taken_at": "2026-10-08T13:36:53.913Z",
+      "source": "lighthouse",
+      "report": "samples/s0001.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0002",
+      "label": "baseline",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 54,
+        "accessibility": 94,
+        "lcp": 8339.425611633302,
+        "tbt": 501.4999999999982,
+        "cls": 0.0,
+        "fcp": 3581.835877349854,
+        "si": 4293.750348506344
+      },
+      "taken_at": "2026-10-08T13:37:49.699Z",
+      "source": "lighthouse",
+      "report": "samples/s0002.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0003",
+      "label": "baseline",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 54,
+        "accessibility": 94,
+        "lcp": 8343.3106116333,
+        "tbt": 545.0,
+        "cls": 0.0,
+        "fcp": 3591.5633773498535,
+        "si": 3668.1993586585463
+      },
+      "taken_at": "2026-10-08T13:38:45.611Z",
+      "source": "lighthouse",
+      "report": "samples/s0003.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0004",
+      "label": "baseline",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 56,
+        "accessibility": 94,
+        "lcp": 10775.547111633296,
+        "tbt": 431.5,
+        "cls": 0.0,
+        "fcp": 3752.6428773498537,
+        "si": 3752.6428773498537
+      },
+      "taken_at": "2026-10-08T13:39:41.211Z",
+      "source": "lighthouse",
+      "report": "samples/s0004.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0005",
+      "label": "baseline",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 59,
+        "accessibility": 94,
+        "lcp": 8633.574611633298,
+        "tbt": 361.0000000000009,
+        "cls": 0.0,
+        "fcp": 3575.8388773498536,
+        "si": 3575.8388773498536
+      },
+      "taken_at": "2026-10-08T13:40:36.853Z",
+      "source": "lighthouse",
+      "report": "samples/s0005.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0006",
+      "label": "baseline",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 93,
+        "accessibility": 94,
+        "lcp": 1606.767877349854,
+        "tbt": 1.5,
+        "cls": 3.318767694013951e-05,
+        "fcp": 830.5327928771974,
+        "si": 1240.7403028934114
+      },
+      "taken_at": "2026-10-08T13:41:38.770Z",
+      "source": "lighthouse",
+      "report": "samples/s0006.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0007",
+      "label": "baseline",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 90,
+        "accessibility": 94,
+        "lcp": 1903.3353773498525,
+        "tbt": 4.0,
+        "cls": 3.318767694013951e-05,
+        "fcp": 838.4522928771972,
+        "si": 1124.3272730926249
+      },
+      "taken_at": "2026-10-08T13:42:34.575Z",
+      "source": "lighthouse",
+      "report": "samples/s0007.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0008",
+      "label": "baseline",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 89,
+        "accessibility": 94,
+        "lcp": 1824.6443773498536,
+        "tbt": 5.0,
+        "cls": 3.318767694013951e-05,
+        "fcp": 902.1847928771974,
+        "si": 1616.8606396260034
+      },
+      "taken_at": "2026-10-08T13:43:30.328Z",
+      "source": "lighthouse",
+      "report": "samples/s0008.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0009",
+      "label": "baseline",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 90,
+        "accessibility": 94,
+        "lcp": 1992.128818756103,
+        "tbt": 2.0,
+        "cls": 3.318767694013951e-05,
+        "fcp": 873.1418773498535,
+        "si": 1002.2799870150783
+      },
+      "taken_at": "2026-10-08T13:44:26.275Z",
+      "source": "lighthouse",
+      "report": "samples/s0009.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0010",
+      "label": "baseline",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 89,
+        "accessibility": 94,
+        "lcp": 2052.923377349854,
+        "tbt": 5.5,
+        "cls": 3.318767694013951e-05,
+        "fcp": 835.9807928771972,
+        "si": 958.4274327381872
+      },
+      "taken_at": "2026-10-08T13:45:22.630Z",
+      "source": "lighthouse",
+      "report": "samples/s0010.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0011",
+      "label": "baseline",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 61,
+        "accessibility": 95,
+        "lcp": 6451.503377349853,
+        "tbt": 465.5,
+        "cls": 0.0009350098907921974,
+        "fcp": 2414.0054999999998,
+        "si": 3917.3042713458144
+      },
+      "taken_at": "2026-10-08T13:46:25.931Z",
+      "source": "lighthouse",
+      "report": "samples/s0011.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0012",
+      "label": "baseline",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 61,
+        "accessibility": 95,
+        "lcp": 5535.085377349852,
+        "tbt": 531.5000000000018,
+        "cls": 0.0009350098907921974,
+        "fcp": 2266.7479999999996,
+        "si": 4349.98652179454
+      },
+      "taken_at": "2026-10-08T13:47:20.961Z",
+      "source": "lighthouse",
+      "report": "samples/s0012.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0013",
+      "label": "baseline",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 60,
+        "accessibility": 95,
+        "lcp": 7683.155685852055,
+        "tbt": 422.5,
+        "cls": 0.0009350098907921974,
+        "fcp": 2367.444,
+        "si": 4235.301456829196
+      },
+      "taken_at": "2026-10-08T13:48:16.186Z",
+      "source": "lighthouse",
+      "report": "samples/s0013.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0014",
+      "label": "baseline",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 58,
+        "accessibility": 95,
+        "lcp": 7912.080185852053,
+        "tbt": 475.0,
+        "cls": 0.0009350098907921974,
+        "fcp": 2408.04,
+        "si": 4663.573963209759
+      },
+      "taken_at": "2026-10-08T13:49:10.901Z",
+      "source": "lighthouse",
+      "report": "samples/s0014.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0015",
+      "label": "baseline",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 57,
+        "accessibility": 95,
+        "lcp": 7266.661877349856,
+        "tbt": 564.5,
+        "cls": 0.0009726172315021452,
+        "fcp": 2472.118,
+        "si": 3492.890605667767
+      },
+      "taken_at": "2026-10-08T13:50:07.020Z",
+      "source": "lighthouse",
+      "report": "samples/s0015.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0016",
+      "label": "baseline",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 93,
+        "accessibility": 95,
+        "lcp": 1660.0873773498527,
+        "tbt": 5.499999999999773,
+        "cls": 0.0005904861111111111,
+        "fcp": 671.2483773498536,
+        "si": 823.9741377335936
+      },
+      "taken_at": "2026-10-08T13:51:08.847Z",
+      "source": "lighthouse",
+      "report": "samples/s0016.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0017",
+      "label": "baseline",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 92,
+        "accessibility": 95,
+        "lcp": 1760.0451510620114,
+        "tbt": 4.0,
+        "cls": 0.0005904861111111111,
+        "fcp": 638.860837890625,
+        "si": 872.517856527464
+      },
+      "taken_at": "2026-10-08T13:52:03.377Z",
+      "source": "lighthouse",
+      "report": "samples/s0017.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0018",
+      "label": "baseline",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 95,
+        "accessibility": 95,
+        "lcp": 1546.6238773498549,
+        "tbt": 3.0,
+        "cls": 0.0008052897257975074,
+        "fcp": 376.2823378906251,
+        "si": 583.7259544395085
+      },
+      "taken_at": "2026-10-08T13:52:57.824Z",
+      "source": "lighthouse",
+      "report": "samples/s0018.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0019",
+      "label": "baseline",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 91,
+        "accessibility": 95,
+        "lcp": 1881.5398425598153,
+        "tbt": 6.5,
+        "cls": 0.0005904861111111111,
+        "fcp": 683.385,
+        "si": 855.1345745698882
+      },
+      "taken_at": "2026-10-08T13:53:52.359Z",
+      "source": "lighthouse",
+      "report": "samples/s0019.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0020",
+      "label": "baseline",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 95,
+        "accessibility": 95,
+        "lcp": 1488.180877349854,
+        "tbt": 4.5,
+        "cls": 0.0005904861111111111,
+        "fcp": 694.4952773498536,
+        "si": 895.4381138182137
+      },
+      "taken_at": "2026-10-08T13:54:46.761Z",
+      "source": "lighthouse",
+      "report": "samples/s0020.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0021",
+      "label": "baseline",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 38,
+        "accessibility": 94,
+        "lcp": 15073.794877349848,
+        "tbt": 900.4999999999964,
+        "cls": 0.002618623893134092,
+        "fcp": 3963.929377349853,
+        "si": 9453.422285559976
+      },
+      "taken_at": "2026-10-08T13:55:47.577Z",
+      "source": "lighthouse",
+      "report": "samples/s0021.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0022",
+      "label": "baseline",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 44,
+        "accessibility": 94,
+        "lcp": 21809.237877349857,
+        "tbt": 913.4999999999964,
+        "cls": 0.004274184519212366,
+        "fcp": 2314.8450000000003,
+        "si": 8345.241869522153
+      },
+      "taken_at": "2026-10-08T13:56:43.478Z",
+      "source": "lighthouse",
+      "report": "samples/s0022.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0023",
+      "label": "baseline",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 44,
+        "accessibility": 94,
+        "lcp": 19192.305877349845,
+        "tbt": 855.9999999999964,
+        "cls": 0.004274184519212366,
+        "fcp": 2212.0057928771976,
+        "si": 9821.783757743504
+      },
+      "taken_at": "2026-10-08T13:57:39.279Z",
+      "source": "lighthouse",
+      "report": "samples/s0023.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0024",
+      "label": "baseline",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 46,
+        "accessibility": 94,
+        "lcp": 20269.890377349857,
+        "tbt": 764.7540000000081,
+        "cls": 0.004456403692017734,
+        "fcp": 2303.69,
+        "si": 8546.434751938124
+      },
+      "taken_at": "2026-10-08T13:58:35.282Z",
+      "source": "lighthouse",
+      "report": "samples/s0024.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0025",
+      "label": "baseline",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 44,
+        "accessibility": 94,
+        "lcp": 20989.725877349847,
+        "tbt": 856.0,
+        "cls": 0.004048426252019874,
+        "fcp": 2245.0470000000005,
+        "si": 8415.170071181812
+      },
+      "taken_at": "2026-10-08T13:59:31.124Z",
+      "source": "lighthouse",
+      "report": "samples/s0025.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0026",
+      "label": "baseline",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 73,
+        "accessibility": 97,
+        "lcp": 4281.016377349853,
+        "tbt": 61.5,
+        "cls": 0.001891926385605464,
+        "fcp": 670.3788773498536,
+        "si": 2287.6671823607003
+      },
+      "taken_at": "2026-10-08T14:00:38.997Z",
+      "source": "lighthouse",
+      "report": "samples/s0026.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0027",
+      "label": "baseline",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 80,
+        "accessibility": 97,
+        "lcp": 2839.9258773498523,
+        "tbt": 50.5,
+        "cls": 0.0018553881008668246,
+        "fcp": 675.1333773498536,
+        "si": 1958.023286895596
+      },
+      "taken_at": "2026-10-08T14:01:35.352Z",
+      "source": "lighthouse",
+      "report": "samples/s0027.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0028",
+      "label": "baseline",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 72,
+        "accessibility": 97,
+        "lcp": 4740.161318756103,
+        "tbt": 43.0,
+        "cls": 0.0019066426976622015,
+        "fcp": 646.1108773498536,
+        "si": 2506.0419526783717
+      },
+      "taken_at": "2026-10-08T14:02:31.727Z",
+      "source": "lighthouse",
+      "report": "samples/s0028.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0029",
+      "label": "baseline",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 72,
+        "accessibility": 97,
+        "lcp": 4661.956377349854,
+        "tbt": 36.5,
+        "cls": 0.0019068549893471094,
+        "fcp": 648.6728773498535,
+        "si": 2470.364784032316
+      },
+      "taken_at": "2026-10-08T14:03:32.962Z",
+      "source": "lighthouse",
+      "report": "samples/s0029.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0030",
+      "label": "baseline",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "desktop",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 74,
+        "accessibility": 97,
+        "lcp": 4624.924877349853,
+        "tbt": 40.97900000000209,
+        "cls": 0.001891926385605464,
+        "fcp": 679.432877349853,
+        "si": 2036.8633528404428
+      },
+      "taken_at": "2026-10-08T14:04:29.145Z",
+      "source": "lighthouse",
+      "report": "samples/s0030.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0031",
+      "label": "ceiling",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 57,
+        "accessibility": 97,
+        "lcp": 5610.839877349854,
+        "tbt": 534.5,
+        "cls": 0.0,
+        "fcp": 3743.377877349854,
+        "si": 3743.377877349854
+      },
+      "taken_at": "2026-10-08T14:07:33.287Z",
+      "source": "lighthouse",
+      "report": "samples/s0031.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0032",
+      "label": "ceiling",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 60,
+        "accessibility": 97,
+        "lcp": 5117.153877349853,
+        "tbt": 505.49999999999864,
+        "cls": 0.0,
+        "fcp": 3720.587877349853,
+        "si": 3720.587877349853
+      },
+      "taken_at": "2026-10-08T14:08:28.791Z",
+      "source": "lighthouse",
+      "report": "samples/s0032.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0033",
+      "label": "ceiling",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 64,
+        "accessibility": 97,
+        "lcp": 4652.244377349853,
+        "tbt": 431.0,
+        "cls": 0.0,
+        "fcp": 3837.969377349854,
+        "si": 3837.969377349854
+      },
+      "taken_at": "2026-10-08T14:09:24.262Z",
+      "source": "lighthouse",
+      "report": "samples/s0033.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0034",
+      "label": "ceiling",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 62,
+        "accessibility": 97,
+        "lcp": 5441.7218773498535,
+        "tbt": 397.49999999999864,
+        "cls": 0.0,
+        "fcp": 3745.665877349855,
+        "si": 3745.665877349855
+      },
+      "taken_at": "2026-10-08T14:10:19.779Z",
+      "source": "lighthouse",
+      "report": "samples/s0034.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0035",
+      "label": "ceiling",
+      "page": "home",
+      "url": "https://store.example/",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 60,
+        "accessibility": 97,
+        "lcp": 5668.575877349855,
+        "tbt": 449.0,
+        "cls": 0.0,
+        "fcp": 3563.844877349854,
+        "si": 3563.844877349854
+      },
+      "taken_at": "2026-10-08T14:11:15.328Z",
+      "source": "lighthouse",
+      "report": "samples/s0035.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0036",
+      "label": "ceiling",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 44,
+        "accessibility": 95,
+        "lcp": 7028.6742928771955,
+        "tbt": 2209.090762939454,
+        "cls": 0.0,
+        "fcp": 2355.8333773498534,
+        "si": 3604.169700334287
+      },
+      "taken_at": "2026-10-08T14:12:17.204Z",
+      "source": "lighthouse",
+      "report": "samples/s0036.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0037",
+      "label": "ceiling",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 77,
+        "accessibility": 95,
+        "lcp": 3226.404877349854,
+        "tbt": 533.5,
+        "cls": 0.0,
+        "fcp": 2326.4048773498535,
+        "si": 2539.870995899175
+      },
+      "taken_at": "2026-10-08T14:13:11.788Z",
+      "source": "lighthouse",
+      "report": "samples/s0037.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0038",
+      "label": "ceiling",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 75,
+        "accessibility": 95,
+        "lcp": 3519.8868773498534,
+        "tbt": 463.0,
+        "cls": 0.000432703345452276,
+        "fcp": 2544.8868773498534,
+        "si": 3122.4952711036176
+      },
+      "taken_at": "2026-10-08T14:14:06.360Z",
+      "source": "lighthouse",
+      "report": "samples/s0038.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0039",
+      "label": "ceiling",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 80,
+        "accessibility": 95,
+        "lcp": 2831.879292877197,
+        "tbt": 497.31660356140037,
+        "cls": 0.0002408088183386579,
+        "fcp": 2295.3894999999998,
+        "si": 2736.0805609276513
+      },
+      "taken_at": "2026-10-08T14:15:01.199Z",
+      "source": "lighthouse",
+      "report": "samples/s0039.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0040",
+      "label": "ceiling",
+      "page": "collection",
+      "url": "https://store.example/collections/example-collection",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 78,
+        "accessibility": 95,
+        "lcp": 2995.2787928771972,
+        "tbt": 545.0000000000009,
+        "cls": 0.0002408088183386579,
+        "fcp": 2210.8048773498535,
+        "si": 2807.3166602489064
+      },
+      "taken_at": "2026-10-08T14:15:56.032Z",
+      "source": "lighthouse",
+      "report": "samples/s0040.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0041",
+      "label": "ceiling",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 68,
+        "accessibility": 94,
+        "lcp": 2480.0648773498533,
+        "tbt": 967.5000000000036,
+        "cls": 0.002945951879775853,
+        "fcp": 2272.5260000000003,
+        "si": 6322.516557644335
+      },
+      "taken_at": "2026-10-08T14:16:56.163Z",
+      "source": "lighthouse",
+      "report": "samples/s0041.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0042",
+      "label": "ceiling",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 67,
+        "accessibility": 94,
+        "lcp": 2327.7068773498536,
+        "tbt": 913.4999999999964,
+        "cls": 0.002945951879775853,
+        "fcp": 2221.181,
+        "si": 8144.757190579856
+      },
+      "taken_at": "2026-10-08T14:17:51.845Z",
+      "source": "lighthouse",
+      "report": "samples/s0042.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0043",
+      "label": "ceiling",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 62,
+        "accessibility": 94,
+        "lcp": 2947.7795000000006,
+        "tbt": 1019.5,
+        "cls": 0.002945951879775853,
+        "fcp": 2352.6265000000003,
+        "si": 8101.866155651532
+      },
+      "taken_at": "2026-10-08T14:18:47.600Z",
+      "source": "lighthouse",
+      "report": "samples/s0043.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0044",
+      "label": "ceiling",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 61,
+        "accessibility": 94,
+        "lcp": 3342.1310000000003,
+        "tbt": 966.9999999999964,
+        "cls": 0.002945951879775853,
+        "fcp": 2292.1310000000003,
+        "si": 6811.862623450693
+      },
+      "taken_at": "2026-10-08T14:19:43.320Z",
+      "source": "lighthouse",
+      "report": "samples/s0044.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    },
+    {
+      "id": "s0045",
+      "label": "ceiling",
+      "page": "product",
+      "url": "https://store.example/products/example-product",
+      "device": "mobile",
+      "theme": "control",
+      "theme_id": 201,
+      "metrics": {
+        "performance": 61,
+        "accessibility": 94,
+        "lcp": 3215.5897928771974,
+        "tbt": 1014.5000000000018,
+        "cls": 0.002945951879775853,
+        "fcp": 2394.2160558166506,
+        "si": 7205.734925141676
+      },
+      "taken_at": "2026-10-08T14:20:39.121Z",
+      "source": "lighthouse",
+      "report": "samples/s0045.json",
+      "warnings": [
+        "The page loaded too slowly to finish within the time limit. Results may be incomplete."
+      ],
+      "lighthouse": "13.5.0",
+      "chrome": "HeadlessChrome/154.0.0.0",
+      "axe": "4.14.0"
+    }
+  ],
+  "schema": 1,
+  "invocation": "20261008-213521",
+  "created_at": "2026-10-08T21:35:21+08:00",
+  "events": [
+    {
+      "at": "2026-10-08T21:35:21+08:00",
+      "op": "start",
+      "text": "created branch speed-tune/20261008-213521"
+    },
+    {
+      "at": "2026-10-08T21:35:25+08:00",
+      "op": "start",
+      "text": "duplicated 100 into the working theme 200"
+    },
+    {
+      "at": "2026-10-08T21:35:28+08:00",
+      "op": "start",
+      "text": "duplicated 100 into the control theme 201"
+    },
+    {
+      "at": "2026-10-08T21:36:03+08:00",
+      "op": "start",
+      "text": "pinned lighthouse 13.5.0 and chrome 154.0.8037.57"
+    },
+    {
+      "at": "2026-10-08T21:36:04+08:00",
+      "op": "start",
+      "text": "installed puppeteer-core 25.12.0 in the workspace"
+    },
+    {
+      "at": "2026-10-08T21:36:16+08:00",
+      "op": "pages",
+      "text": "collection page /collections/example-collection (first collection in the main navigation)"
+    },
+    {
+      "at": "2026-10-08T21:36:16+08:00",
+      "op": "pages",
+      "text": "product page /products/example-product (first available product in best-selling order)"
+    },
+    {
+      "at": "2026-10-08T21:37:46+08:00",
+      "op": "sample",
+      "text": "s0001 recorded (baseline home mobile control)"
+    },
+    {
+      "at": "2026-10-08T21:38:42+08:00",
+      "op": "sample",
+      "text": "s0002 recorded (baseline home mobile control)"
+    },
+    {
+      "at": "2026-10-08T21:39:38+08:00",
+      "op": "sample",
+      "text": "s0003 recorded (baseline home mobile control)"
+    },
+    {
+      "at": "2026-10-08T21:40:33+08:00",
+      "op": "sample",
+      "text": "s0004 recorded (baseline home mobile control)"
+    },
+    {
+      "at": "2026-10-08T21:41:29+08:00",
+      "op": "sample",
+      "text": "s0005 recorded (baseline home mobile control)"
+    },
+    {
+      "at": "2026-10-08T21:42:31+08:00",
+      "op": "sample",
+      "text": "s0006 recorded (baseline home desktop control)"
+    },
+    {
+      "at": "2026-10-08T21:43:27+08:00",
+      "op": "sample",
+      "text": "s0007 recorded (baseline home desktop control)"
+    },
+    {
+      "at": "2026-10-08T21:44:23+08:00",
+      "op": "sample",
+      "text": "s0008 recorded (baseline home desktop control)"
+    },
+    {
+      "at": "2026-10-08T21:45:19+08:00",
+      "op": "sample",
+      "text": "s0009 recorded (baseline home desktop control)"
+    },
+    {
+      "at": "2026-10-08T21:46:15+08:00",
+      "op": "sample",
+      "text": "s0010 recorded (baseline home desktop control)"
+    },
+    {
+      "at": "2026-10-08T21:47:17+08:00",
+      "op": "sample",
+      "text": "s0011 recorded (baseline collection mobile control)"
+    },
+    {
+      "at": "2026-10-08T21:48:13+08:00",
+      "op": "sample",
+      "text": "s0012 recorded (baseline collection mobile control)"
+    },
+    {
+      "at": "2026-10-08T21:49:08+08:00",
+      "op": "sample",
+      "text": "s0013 recorded (baseline collection mobile control)"
+    },
+    {
+      "at": "2026-10-08T21:50:03+08:00",
+      "op": "sample",
+      "text": "s0014 recorded (baseline collection mobile control)"
+    },
+    {
+      "at": "2026-10-08T21:50:59+08:00",
+      "op": "sample",
+      "text": "s0015 recorded (baseline collection mobile control)"
+    },
+    {
+      "at": "2026-10-08T21:52:00+08:00",
+      "op": "sample",
+      "text": "s0016 recorded (baseline collection desktop control)"
+    },
+    {
+      "at": "2026-10-08T21:52:54+08:00",
+      "op": "sample",
+      "text": "s0017 recorded (baseline collection desktop control)"
+    },
+    {
+      "at": "2026-10-08T21:53:49+08:00",
+      "op": "sample",
+      "text": "s0018 recorded (baseline collection desktop control)"
+    },
+    {
+      "at": "2026-10-08T21:54:43+08:00",
+      "op": "sample",
+      "text": "s0019 recorded (baseline collection desktop control)"
+    },
+    {
+      "at": "2026-10-08T21:55:38+08:00",
+      "op": "sample",
+      "text": "s0020 recorded (baseline collection desktop control)"
+    },
+    {
+      "at": "2026-10-08T21:56:40+08:00",
+      "op": "sample",
+      "text": "s0021 recorded (baseline product mobile control)"
+    },
+    {
+      "at": "2026-10-08T21:57:36+08:00",
+      "op": "sample",
+      "text": "s0022 recorded (baseline product mobile control)"
+    },
+    {
+      "at": "2026-10-08T21:58:32+08:00",
+      "op": "sample",
+      "text": "s0023 recorded (baseline product mobile control)"
+    },
+    {
+      "at": "2026-10-08T21:59:28+08:00",
+      "op": "sample",
+      "text": "s0024 recorded (baseline product mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:00:29+08:00",
+      "op": "sample",
+      "text": "s0025 recorded (baseline product mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:01:32+08:00",
+      "op": "sample",
+      "text": "s0026 recorded (baseline product desktop control)"
+    },
+    {
+      "at": "2026-10-08T22:02:28+08:00",
+      "op": "sample",
+      "text": "s0027 recorded (baseline product desktop control)"
+    },
+    {
+      "at": "2026-10-08T22:03:30+08:00",
+      "op": "sample",
+      "text": "s0028 recorded (baseline product desktop control)"
+    },
+    {
+      "at": "2026-10-08T22:04:26+08:00",
+      "op": "sample",
+      "text": "s0029 recorded (baseline product desktop control)"
+    },
+    {
+      "at": "2026-10-08T22:05:22+08:00",
+      "op": "sample",
+      "text": "s0030 recorded (baseline product desktop control)"
+    },
+    {
+      "at": "2026-10-08T22:05:27+08:00",
+      "op": "ceiling",
+      "text": "home probe: 29 patterns, 1 protected"
+    },
+    {
+      "at": "2026-10-08T22:08:25+08:00",
+      "op": "sample",
+      "text": "s0031 recorded (ceiling home mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:09:21+08:00",
+      "op": "sample",
+      "text": "s0032 recorded (ceiling home mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:10:16+08:00",
+      "op": "sample",
+      "text": "s0033 recorded (ceiling home mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:11:12+08:00",
+      "op": "sample",
+      "text": "s0034 recorded (ceiling home mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:12:08+08:00",
+      "op": "sample",
+      "text": "s0035 recorded (ceiling home mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:12:13+08:00",
+      "op": "ceiling",
+      "text": "collection probe: 27 patterns, 1 protected"
+    },
+    {
+      "at": "2026-10-08T22:13:08+08:00",
+      "op": "sample",
+      "text": "s0036 recorded (ceiling collection mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:14:03+08:00",
+      "op": "sample",
+      "text": "s0037 recorded (ceiling collection mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:14:58+08:00",
+      "op": "sample",
+      "text": "s0038 recorded (ceiling collection mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:15:52+08:00",
+      "op": "sample",
+      "text": "s0039 recorded (ceiling collection mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:16:47+08:00",
+      "op": "sample",
+      "text": "s0040 recorded (ceiling collection mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:16:52+08:00",
+      "op": "ceiling",
+      "text": "product probe: 29 patterns, 1 protected"
+    },
+    {
+      "at": "2026-10-08T22:17:49+08:00",
+      "op": "sample",
+      "text": "s0041 recorded (ceiling product mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:18:44+08:00",
+      "op": "sample",
+      "text": "s0042 recorded (ceiling product mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:19:40+08:00",
+      "op": "sample",
+      "text": "s0043 recorded (ceiling product mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:20:36+08:00",
+      "op": "sample",
+      "text": "s0044 recorded (ceiling product mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:21:32+08:00",
+      "op": "sample",
+      "text": "s0045 recorded (ceiling product mobile control)"
+    },
+    {
+      "at": "2026-10-08T22:23:48+08:00",
+      "op": "smoke",
+      "text": "baseline results recorded"
+    },
+    {
+      "at": "2026-10-08T22:24:36+08:00",
+      "op": "diagnose",
+      "text": "known defects: D1, D2, D3, D4"
+    },
+    {
+      "at": "2026-10-08T22:27:13+08:00",
+      "op": "plan",
+      "text": "draft plan recorded: 5 items"
+    }
+  ],
+  "awake": {
+    "pid": 0,
+    "started": "<started>"
+  },
+  "ceilings": {
+    "home": {
+      "patterns": [
+        "https://store.example/cdn/shop/t/30/assets/*.js",
+        "https://store.example/cdn/shop/t/30/compiled_assets/*.js",
+        "https://store.example/cdn/fonts/",
+        "https://store.example/cdn/shop/t/30/assets/*.ttf",
+        "https://store.example/cdn/shop/collections/collection-1.png",
+        "https://store.example/cdn/shop/collections/collection-2.png",
+        "https://store.example/cdn/shop/collections/collection-3.png",
+        "https://store.example/cdn/shop/collections/collection-4.png",
+        "https://store.example/cdn/shop/collections/collection-5.png",
+        "https://store.example/cdn/shop/collections/collection-6.png",
+        "https://store.example/cdn/shop/files/image-7.png",
+        "https://store.example/cdn/shop/files/image-8.png",
+        "https://store.example/cdn/shop/files/image-9.jpg",
+        "https://store.example/cdn/shop/files/image-10.png",
+        "https://store.example/cdn/shop/files/image-11.png",
+        "https://store.example/cdn/shop/files/image-12.png",
+        "https://store.example/cdn/shop/files/image-13.jpg",
+        "https://store.example/cdn/shop/files/image-14.jpg",
+        "https://store.example/cdn/shop/files/image-15.png",
+        "https://store.example/cdn/shop/files/image-16.png",
+        "https://store.example/cdn/shop/files/image-17.png",
+        "https://store.example/cdn/shop/files/image-18.png",
+        "https://store.example/cdn/shop/files/image-19.png",
+        "https://store.example/cdn/shop/files/image-20.png",
+        "https://store.example/cdn/shop/files/image-21.png",
+        "https://store.example/cdn/shop/files/image-22.png",
+        "https://store.example/cdn/shop/files/image-23.png",
+        "https://store.example/cdn/shop/files/image-24.png",
+        "https://store.example/cdn/shop/files/image-25.png"
+      ],
+      "protect": [
+        "https://store.example/cdn/shop/files/image-26.png"
+      ],
+      "notes": [],
+      "url": "https://store.example/",
+      "built_from": [
+        "s0001",
+        "s0002",
+        "s0003",
+        "s0004",
+        "s0005"
+      ],
+      "built_at": "2026-10-08T22:05:27+08:00",
+      "findings": [
+        "the LCP image loads only through a theme script (a lazy loader), so with theme scripts blocked it never loaded, and the largest paint moved to div#text-AExampleTextTokenQ__text_description > p (text) in 5 of 5 Ceiling Samples. This Ceiling leaves out that image's own loading: read it as a rough estimate"
+      ]
+    },
+    "collection": {
+      "patterns": [
+        "https://store.example/cdn/shop/t/30/assets/*.js",
+        "https://store.example/cdn/shop/t/30/compiled_assets/*.js",
+        "https://store.example/cdn/fonts/",
+        "https://store.example/cdn/shop/t/30/assets/*.ttf",
+        "https://store.example/cdn/shop/collections/collection-1.png",
+        "https://store.example/cdn/shop/collections/collection-2.png",
+        "https://store.example/cdn/shop/collections/collection-3.png",
+        "https://store.example/cdn/shop/collections/collection-4.png",
+        "https://store.example/cdn/shop/collections/collection-5.png",
+        "https://store.example/cdn/shop/collections/collection-6.png",
+        "https://store.example/cdn/shop/files/image-7.png",
+        "https://store.example/cdn/shop/files/image-8.png",
+        "https://store.example/cdn/shop/files/image-27.png",
+        "https://store.example/cdn/shop/files/image-28.png",
+        "https://store.example/cdn/shop/files/image-10.png",
+        "https://store.example/cdn/shop/files/image-11.png",
+        "https://store.example/cdn/shop/files/image-12.png",
+        "https://store.example/cdn/shop/files/image-13.jpg",
+        "https://store.example/cdn/shop/files/image-14.jpg",
+        "https://store.example/cdn/shop/files/image-15.png",
+        "https://store.example/cdn/shop/files/image-16.png",
+        "https://store.example/cdn/shop/files/image-17.png",
+        "https://store.example/cdn/shop/files/image-18.png",
+        "https://store.example/cdn/shop/files/image-19.png",
+        "https://store.example/cdn/shop/files/image-23.png",
+        "https://store.example/cdn/shop/files/image-24.png",
+        "https://store.example/cdn/shop/files/image-25.png"
+      ],
+      "protect": [
+        "https://store.example/cdn/shop/files/image-9.jpg"
+      ],
+      "notes": [],
+      "url": "https://store.example/collections/example-collection",
+      "built_from": [
+        "s0011",
+        "s0012",
+        "s0013",
+        "s0014",
+        "s0015"
+      ],
+      "built_at": "2026-10-08T22:12:13+08:00",
+      "findings": [
+        "the LCP image loads only through a theme script (a lazy loader), so with theme scripts blocked it never loaded, and the largest paint moved to div#responsive-image-1000000000001template--2000000000001__main > img.responsive-image (the alt text of an image that never loaded) in 5 of 5 Ceiling Samples. This Ceiling leaves out that image's own loading: read it as a rough estimate"
+      ]
+    },
+    "product": {
+      "patterns": [
+        "https://store.example/cdn/shop/t/30/assets/*.js",
+        "https://store.example/cdn/shop/t/30/compiled_assets/*.js",
+        "https://store.example/cdn/fonts/",
+        "https://store.example/cdn/shop/t/30/assets/*.ttf",
+        "https://store.example/cdn/shop/collections/collection-1.png",
+        "https://store.example/cdn/shop/collections/collection-2.png",
+        "https://store.example/cdn/shop/collections/collection-3.png",
+        "https://store.example/cdn/shop/collections/collection-4.png",
+        "https://store.example/cdn/shop/collections/collection-5.png",
+        "https://store.example/cdn/shop/collections/collection-6.png",
+        "https://store.example/cdn/shop/files/image-29.png",
+        "https://store.example/cdn/shop/files/image-30.jpg",
+        "https://store.example/cdn/shop/files/image-31.jpg",
+        "https://store.example/cdn/shop/files/image-32.png",
+        "https://store.example/cdn/shop/files/image-33.png",
+        "https://store.example/cdn/shop/files/image-34.png",
+        "https://store.example/cdn/shop/files/image-35.png",
+        "https://store.example/cdn/shop/files/image-11.png",
+        "https://store.example/cdn/shop/files/image-36.png",
+        "https://store.example/cdn/shop/files/image-37.png",
+        "https://store.example/cdn/shop/files/image-38.png",
+        "https://store.example/cdn/shop/files/image-39.png",
+        "https://store.example/cdn/shop/files/image-40.png",
+        "https://store.example/cdn/shop/files/image-17.png",
+        "https://store.example/cdn/shop/files/image-18.png",
+        "https://store.example/cdn/shop/files/image-19.png",
+        "https://store.example/cdn/shop/files/image-24.png",
+        "https://store.example/cdn/shop/files/image-25.png",
+        "https://store.example/cdn/shop/files/image-41.png"
+      ],
+      "protect": [
+        "https://store.example/cdn/shop/files/image-9.jpg"
+      ],
+      "notes": [],
+      "url": "https://store.example/products/example-product",
+      "built_from": [
+        "s0021",
+        "s0022",
+        "s0023",
+        "s0024",
+        "s0025"
+      ],
+      "built_at": "2026-10-08T22:16:52+08:00",
+      "findings": [
+        "the LCP image loads only through a theme script (a lazy loader), so with theme scripts blocked it never loaded, and the largest paint moved to div.pdp-title-container > h1.pdp-title (text) in 5 of 5 Ceiling Samples. This Ceiling leaves out that image's own loading: read it as a rough estimate"
+      ]
+    }
+  },
+  "smoke": [
+    {
+      "label": "baseline",
+      "taken_at": "2026-10-08T22:23:48+08:00",
+      "source": "checker",
+      "browser": "Chrome/154.0.8037.57",
+      "pages": {
+        "home": {
+          "control": {
+            "url": "https://store.example/?pb=0",
+            "status": 200,
+            "theme": 201,
+            "served_by": {
+              "201": 1
+            },
+            "preview_bar": false,
+            "checks": {
+              "load": {
+                "status": "pass"
+              },
+              "menu-open": {
+                "status": "pass",
+                "detail": "button \"Open menu\""
+              },
+              "menu-close": {
+                "status": "pass"
+              }
+            },
+            "app_blocks": [
+              "shopify-block-AHomeControlTokenQ__example_feed_app_feed_block_Xk4Rq2",
+              "shopify-block-AEmbedTokenNumber1__4100000000000000001",
+              "shopify-block-AEmbedTokenNumber2__4100000000000000002"
+            ],
+            "console_errors": [
+              {
+                "text": "Uncaught Identifier 'AutoplaySlider' has already been declared",
+                "url": ""
+              },
+              {
+                "text": "Uncaught Identifier 'AutoplaySlider' has already been declared",
+                "url": ""
+              }
+            ],
+            "liquid_errors": []
+          },
+          "working": {
+            "url": "https://store.example/?pb=0",
+            "status": 200,
+            "theme": 200,
+            "served_by": {
+              "200": 1
+            },
+            "preview_bar": false,
+            "checks": {
+              "load": {
+                "status": "pass"
+              },
+              "menu-open": {
+                "status": "pass",
+                "detail": "button \"Open menu\""
+              },
+              "menu-close": {
+                "status": "pass"
+              }
+            },
+            "app_blocks": [
+              "shopify-block-AHomeWorkingTokenQ__example_feed_app_feed_block_Xk4Rq2",
+              "shopify-block-AEmbedTokenNumber2__4100000000000000002",
+              "shopify-block-AEmbedTokenNumber1__4100000000000000001"
+            ],
+            "console_errors": [
+              {
+                "text": "Uncaught Identifier 'AutoplaySlider' has already been declared",
+                "url": ""
+              },
+              {
+                "text": "Uncaught Identifier 'AutoplaySlider' has already been declared",
+                "url": ""
+              }
+            ],
+            "liquid_errors": []
+          }
+        },
+        "collection": {
+          "control": {
+            "url": "https://store.example/collections/example-collection?pb=0",
+            "status": 200,
+            "theme": 201,
+            "served_by": {
+              "201": 1
+            },
+            "preview_bar": false,
+            "checks": {
+              "load": {
+                "status": "pass"
+              },
+              "menu-open": {
+                "status": "pass",
+                "detail": "button \"Open menu\""
+              },
+              "menu-close": {
+                "status": "pass"
+              }
+            },
+            "app_blocks": [
+              "shopify-block-AEmbedTokenNumber2__4100000000000000002",
+              "shopify-block-AEmbedTokenNumber1__4100000000000000001"
+            ],
+            "console_errors": [],
+            "liquid_errors": []
+          },
+          "working": {
+            "url": "https://store.example/collections/example-collection?pb=0",
+            "status": 200,
+            "theme": 200,
+            "served_by": {
+              "200": 1
+            },
+            "preview_bar": false,
+            "checks": {
+              "load": {
+                "status": "pass"
+              },
+              "menu-open": {
+                "status": "pass",
+                "detail": "button \"Open menu\""
+              },
+              "menu-close": {
+                "status": "pass"
+              }
+            },
+            "app_blocks": [
+              "shopify-block-AEmbedTokenNumber2__4100000000000000002",
+              "shopify-block-AEmbedTokenNumber1__4100000000000000001"
+            ],
+            "console_errors": [],
+            "liquid_errors": []
+          }
+        },
+        "product": {
+          "control": {
+            "url": "https://store.example/products/example-product?pb=0",
+            "status": 200,
+            "theme": 201,
+            "served_by": {
+              "201": 5
+            },
+            "preview_bar": false,
+            "checks": {
+              "load": {
+                "status": "pass"
+              },
+              "menu-open": {
+                "status": "pass",
+                "detail": "button \"Open menu\""
+              },
+              "menu-close": {
+                "status": "pass"
+              },
+              "variant": {
+                "status": "pass",
+                "detail": "5 pack -> 4 pack"
+              },
+              "add-to-cart": {
+                "status": "pass",
+                "detail": "0 -> 1 item(s)"
+              },
+              "cart-count": {
+                "status": "pass",
+                "detail": "0 -> 1"
+              }
+            },
+            "app_blocks": [
+              "shopify-block-AProdControlTokenQ__example_restock_app_restock_form_Pz8Lm3",
+              "shopify-block-AEmbedTokenNumber2__4100000000000000002",
+              "shopify-block-AEmbedTokenNumber1__4100000000000000001"
+            ],
+            "console_errors": [],
+            "liquid_errors": []
+          },
+          "working": {
+            "url": "https://store.example/products/example-product?pb=0",
+            "status": 200,
+            "theme": 200,
+            "served_by": {
+              "200": 5
+            },
+            "preview_bar": false,
+            "checks": {
+              "load": {
+                "status": "pass"
+              },
+              "menu-open": {
+                "status": "pass",
+                "detail": "button \"Open menu\""
+              },
+              "menu-close": {
+                "status": "pass"
+              },
+              "variant": {
+                "status": "pass",
+                "detail": "5 pack -> 4 pack"
+              },
+              "add-to-cart": {
+                "status": "pass",
+                "detail": "0 -> 1 item(s)"
+              },
+              "cart-count": {
+                "status": "pass",
+                "detail": "0 -> 1"
+              }
+            },
+            "app_blocks": [
+              "shopify-block-AProdWorkingTokenQ__example_restock_app_restock_form_Pz8Lm3",
+              "shopify-block-AEmbedTokenNumber1__4100000000000000001",
+              "shopify-block-AEmbedTokenNumber2__4100000000000000002"
+            ],
+            "console_errors": [],
+            "liquid_errors": []
+          }
+        }
+      }
+    }
+  ],
+  "defects": {
+    "theme": {
+      "name": "Golden",
+      "version": "3.0"
+    },
+    "golden": true,
+    "results": [
+      {
+        "id": "D1",
+        "state": "found",
+        "pages": [],
+        "evidence": "snippets/responsive-image.liquid defaults lazy_loading to true without allow_false"
+      },
+      {
+        "id": "D2",
+        "state": "found",
+        "pages": [
+          "home",
+          "collection",
+          "product"
+        ],
+        "evidence": "the LCP image waits for lazysizes in the baseline Samples of home (5 of 5), collection (5 of 5), product (5 of 5); blocks/media.liquid renders the hero with no loading argument"
+      },
+      {
+        "id": "D3",
+        "state": "found",
+        "pages": [],
+        "evidence": "snippets/responsive-image.liquid slices the last width descriptor off its srcset"
+      },
+      {
+        "id": "D4",
+        "state": "found",
+        "pages": [],
+        "evidence": "snippets/button.liquid repeats a 12,072-character static style block for every button"
+      }
+    ],
+    "checked_at": "2026-10-08T22:24:36+08:00"
+  },
+  "plan": {
+    "items": [
+      {
+        "change": "Load the home hero image eagerly at high priority: in snippets/responsive-image.liquid read lazy_loading with allow_false, give eager images a real src, srcset, sizes 100vw, loading eager and their fetchpriority with no lazyload class or data- attributes, and stop slicing the last srcset descriptor; in blocks/media.liquid make the first section's media (unless section.index > 1) eager with fetchpriority high",
+        "cause": "D1, D2 and D3: the home LCP image image-26.png renders as a 20 px lazysizes stub with loading=lazy and fetchpriority auto, so it waits for the lazy-loader script (resource load delay 477 ms unthrottled, LCP 8.6 s median); blocks/media.liquid passes no loading argument and the snippet's default ignores false. Follows regressions R2 (lazysizes kept for every other image), R4 (no preload added), R10 (section.index, not a counter) and R8 (the Round must show no CLS loss)",
+        "effect": "The retro's strongest lever: +17 to +18 in 4 of 4 interleaved pairs on one Golden store, hero only. Expected to lift home from 54 to its target of 60; D3 alone changes little on mobile",
+        "pages": [
+          "home"
+        ],
+        "defects": [
+          "D1",
+          "D2",
+          "D3"
+        ],
+        "id": "P1"
+      },
+      {
+        "change": "Load the first product images eagerly at high priority on the collection and product pages: in sections/products.liquid pass an eager flag and fetchpriority high to the first four product cards (forloop.index <= 4), which snippets/product-card.liquid passes to the featured image only; in snippets/pdp-gallery-carousel.liquid make the main swiper's first slide image eager with fetchpriority high",
+        "cause": "D2 on collection and product: both LCP images (image-9.jpg, the first card's featured image and the gallery's first slide) wait for lazysizes; collection LCP 7.3 s, product LCP 20.3 s median. Only above-the-fold images change (R2), picked by forloop.index (R10); the desktop-only grid gallery stays lazy so a phone never downloads two eager copies",
+        "effect": "unmeasured: known-defects says the collection cards and the product gallery's first image were never measured in the retro. Expected gains on both pages, largest on product",
+        "pages": [
+          "collection",
+          "product"
+        ],
+        "defects": [
+          "D2"
+        ],
+        "id": "P2"
+      },
+      {
+        "change": "Serve the button snippet's static CSS once: in snippets/button.liquid swap the style tag pair for stylesheet tags",
+        "cause": "D4: snippets/button.liquid repeats a 12,072-character static style block in the HTML for every button it renders; the home HTML is 926 KB uncompressed, collection 679 KB, product 559 KB",
+        "effect": "+0 to +2 in the retro (86 to 88 on one store, single runs); fewer HTML bytes ahead of the LCP image. The smoke check does not compare styling, so a button's computed styles are compared on both themes in the Round",
+        "pages": [
+          "home",
+          "collection",
+          "product"
+        ],
+        "defects": [
+          "D4"
+        ],
+        "id": "P3"
+      },
+      {
+        "change": "Verification only: make the product page's add-to-cart do nothing, by returning from AddToCart.handleSubmit in assets/cart.js right after event.preventDefault()",
+        "cause": "Verification only, not a speed change: a deliberately broken change the smoke check must catch (ticket 04), placed first after the known-defect items so its removal is proven before the Rounds can stop on targets reached",
+        "effect": "None on speed. The Round's smoke check must report a product add-to-cart regression and verdict must remove it without pairs (smoke-regression); it can never be kept",
+        "pages": [
+          "product"
+        ],
+        "defects": [],
+        "id": "P4"
+      },
+      {
+        "change": "Serve the image snippet's static CSS once: in snippets/responsive-image.liquid move the static .responsive-image, lazyload, no-blur and image-placeholder rules from the per-image style tag into a stylesheet tag, keeping the per-image id rules inline",
+        "cause": "The same mechanism as D4: every image the snippet renders repeats about 0.8 KB of static CSS in the HTML, on pages whose HTML is 926 KB (home), 679 KB (collection) and 559 KB (product) uncompressed",
+        "effect": "unmeasured; small, like D4 (+0 to +2 in the retro, where one store shed about 100 KB of HTML together with this snippet's shared styles)",
+        "pages": [
+          "home",
+          "collection",
+          "product"
+        ],
+        "defects": [],
+        "id": "P5"
+      }
+    ],
+    "recorded_at": "2026-10-08T22:27:13+08:00",
+    "approved_at": null
+  }
+}

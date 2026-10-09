@@ -1,0 +1,40 @@
+#!/bin/sh
+# Refuse AI attribution in a commit message: this repo's commits carry none.
+# Refused, in any letter case:
+#   - a Co-Authored-By trailer naming Claude, Anthropic or another AI
+#   - a "Generated with [Claude Code]" line, or one naming another AI
+#   - noreply@anthropic.com, anywhere
+# Enable once per clone, together with pre-commit:
+#     git config core.hooksPath .githooks
+
+msg_file=$1
+
+# An AI as an attribution names it. "AI" itself counts only as a whole word.
+ai='claude|anthropic|openai|gpt|copilot|gemini|codex|cursor|aider|windsurf|(^|[^[:alnum:]])ai([^[:alnum:]]|$)'
+
+# Git drops comment lines, and under `commit --verbose` everything from the
+# scissors line down, only after this hook has run. Drop them here first, so a
+# diff that merely mentions attribution (this file's own, say) is not refused.
+comment=$(git config --get core.commentString || git config --get core.commentChar)
+case $comment in '' | auto) comment='#' ;; esac
+
+offending=$(
+    awk -v c="$comment" '
+        index($0, c " ------------------------ >8 ------------------------") == 1 { exit }
+        index($0, c) != 1 { print }
+    ' "$msg_file" |
+        grep -iE \
+            -e "^[[:space:]]*co-authored-by[[:space:]]*:.*($ai)" \
+            -e "generated (with|by)[^[:alnum:]]*($ai)" \
+            -e 'noreply@anthropic\.com'
+)
+
+[ -z "$offending" ] && exit 0
+
+{
+    echo "commit-msg: refused. This repo's commits carry no AI attribution, and this message does:"
+    printf '%s\n' "$offending" | sed 's/^/    /'
+    echo "Delete those lines and commit again. To reuse the rest of the message:"
+    echo "    git commit -e -F \"$msg_file\""
+} >&2
+exit 1

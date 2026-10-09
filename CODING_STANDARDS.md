@@ -20,6 +20,7 @@ The conventions themselves live in [`CLAUDE.md`](CLAUDE.md); this is where they 
 | 10 | Every skill carries a non-empty `name:` and `description:` |
 | 11 | No skill occupies the reserved name `figma-shopify-pixel-match` |
 | 12 | The root glossary is `GLOSSARY.md`, and no tracked doc still names the filename it replaced |
+| 13 | Every `<sub>.myshopify.com` host in a tracked file, `deprecated/` included, names a placeholder store, never a client's |
 
 Run `./scripts/check.sh` from anywhere. The script's header comment is the authoritative list; this table is a convenience copy, so trust the script where they disagree.
 
@@ -62,7 +63,7 @@ A model-invoked skill fires on its `description` and nothing else. `check.sh` on
 
 ### Invocation grouping
 
-`README.md` groups each category under **User-invoked** / **Model-invoked**. A skill is user-invoked when it is a slash command or sets `user-invocable: true`. The grouping cannot be checked mechanically, because a slash command carries no frontmatter flag — so confirm by hand that a skill's README group matches how it is actually reached.
+`README.md` groups each category under **User-invoked** / **Model-invoked**. A skill is user-invoked when it is a slash command or its frontmatter sets `user-invocable: true` or `disable-model-invocation: true`. The grouping cannot be checked mechanically, because a slash command carries no frontmatter flag — so confirm by hand that a skill's README group matches how it is actually reached.
 
 ### Don't re-litigate ADRs
 
@@ -76,7 +77,7 @@ A new skill earns its place only when the behaviour does not compose from existi
 
 This repo borrows its agent-skill conventions from [mattpocock/skills](https://github.com/mattpocock/skills), currently **v1.3.1**. Both halves of that are review material.
 
-**Adopted.** The domain-doc convention is upstream's: a root `GLOSSARY.md` plus `docs/adr/`, renamed in v1.3.0 from the filename it carried before. `docs/agents/domain.md` and `docs/agents/issue-tracker.md` are this repo's copies of the `setup-matt-pocock-skills` templates, so re-running that skill should read as a clean diff against them rather than a rewrite. Assertion 12 holds the rename down; nothing holds the templates in step, so check them by hand when upstream moves.
+**Adopted.** The domain-doc convention is upstream's: a root `GLOSSARY.md` plus `docs/adr/`, renamed in v1.3.0 from the filename it carried before. `docs/agents/domain.md` and `docs/agents/issue-tracker.md` are this repo's copies of the `setup-matt-pocock-skills` templates, so re-running that skill should read as a clean diff against them rather than a rewrite. Three sections of `issue-tracker.md` are local additions the template lacks, and a re-run must keep them: "When working in a git worktree", "When an implementation ticket is done" and "When orchestrating a feature's tickets". Assertion 12 holds the rename down; nothing holds the templates in step, so check them by hand when upstream moves.
 
 **Not adopted.** Three divergences, each deliberate:
 

@@ -16,6 +16,16 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Shell syntax
-        run: bash -n scripts/check.sh
+        run: |
+          bash -n scripts/check.sh
+          bash -n scripts/check-leaks.sh
+          bash -n scripts/test.sh
+          sh -n .githooks/pre-commit
+          sh -n .githooks/commit-msg
       - name: Cross-file invariants
         run: ./scripts/check.sh
+      # Every test*.py file outside deprecated/ and the hidden folders runs as
+      # its own unittest process, several at once; every file runs even after
+      # one fails, so no failure hides another. The script's header has the rule.
+      - name: Python test suites
+        run: ./scripts/test.sh

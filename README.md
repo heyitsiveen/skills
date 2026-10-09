@@ -28,7 +28,7 @@ Install a single skill with `npx skills add heyitsiveen/skills --skill=<name>`.
 
 ## Reference
 
-These split on who invokes them. **User-invoked** skills are run on demand — a slash command like `/gc`, or a skill built to be triggered directly (marked `user-invocable: true`), usually with a structured prompt. **Model-invoked** skills are ones the agent reaches for automatically when the task matches their description.
+These split on who invokes them. **User-invoked** skills are run on demand — a slash command like `/gc`, or a skill built to be triggered directly (marked `user-invocable: true` or `disable-model-invocation: true`), usually with a structured prompt. **Model-invoked** skills are ones the agent reaches for automatically when the task matches their description.
 
 ### Shopify
 
@@ -37,6 +37,7 @@ Pixel-accurate theme building, app-widget styling, and product-copy operations �
 **User-invoked**
 
 - **[sheet-to-shopify-metafields](./personal/shopify/sheet-to-shopify-metafields/SKILL.md)** — Push product copy from a Google Sheet into Shopify product metafields through the browser, converting the source HTML into the shape Shopify can actually store and taking a restorable backup before it overwrites anything.
+- **[shopify-speed-tune](./personal/shopify/shopify-speed-tune/SKILL.md)** — Measure a client store's home, collection and product pages on unpublished copies of its theme, each figure the median and range of five Lighthouse Samples, find each page's Ceiling and target, and stop once for the developer to approve a plan that fixes known Golden theme defects first. Then work through the plan one Round at a time, testing each change on one copy against the other in five interleaved pairs per page and keeping it only when it wins clearly and breaks nothing, until every page reaches its target or the plan runs out, with a program owning every number and refusing a store that is not the repo's. Run as `/shopify-speed-tune <store-url> [score]`.
 
 **Model-invoked**
 
@@ -71,7 +72,7 @@ Skills are organised as `<bucket>/<domain>/<skill>/`, where the domain is `globa
 ├── engineering/
 │   └── global/gc/                # git commit helper             (published)
 ├── personal/
-│   └── shopify/                  # 11 Shopify theme & app skills  (published)
+│   └── shopify/                  # 10 Shopify theme & app skills  (published)
 ├── productivity/                 # empty — for future skills
 └── misc/                         # empty — for future skills
 ```

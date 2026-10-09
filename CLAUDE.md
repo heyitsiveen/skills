@@ -35,14 +35,14 @@ Whenever you add, rename, move, or retire a skill, update all three (and this fi
 
 ## Invocation
 
-- **User-invoked** — run on demand: a slash command like `/gc`, or a skill whose frontmatter sets `user-invocable: true` (built to be triggered directly, usually with a structured prompt).
+- **User-invoked** — run on demand: a slash command like `/gc`, or a skill whose frontmatter sets `user-invocable: true` or `disable-model-invocation: true` (built to be triggered directly, usually with a structured prompt).
 - **Model-invoked** — the agent reaches for them automatically when the task matches their `description`.
 
 `README.md` groups each category's entries under **User-invoked** / **Model-invoked** headings.
 
 ## Client-theme skill suite — client-repo output convention
 
-The seven skills `figma-shopify-composer`, `figma-shopify-builder`, `figma-shopify-globals`, `shopify-app-restyle`, `client-theme-onboarding`, `shopify-page-replicate`, and `bugherd-qa-fixer` (all `personal/shopify/`) write every artifact inside a client theme repo under `.agent/`: shared knowledge docs at its root, each produced only when absent or stale and identically by any of their producers (`THEME-CAPABILITIES.md` — globals, composer, builder, replicate, or onboarding; `COMPONENTS.md` — globals, composer, builder, replicate, or onboarding), kept current by the skills that add theme artifacts (globals → both docs plus the retained mapping table; builder → both docs; replicate → both docs, every replica section it wrote marked **Stand-in / do not reuse**; restyle → a COMPONENTS.md row per override stylesheet, plus an Animations row when the override adds reusable motion; bugherd-qa-fixer → dated append-only lines, and only where a doc already exists — it never creates one), per-skill outputs in `.agent/<skill-name>/` (globals mapping/evidence, onboarding depth docs, `app-widget-<handle>.md`, `visual-check/`, replicate's `replication.md`, bugherd-qa-fixer's `remaining/` + `notes/` + `evidence/`). `AGENTS.md`, its `CLAUDE.md` symlink, and `shopify.theme.toml` stay at the client repo root; everything is kept out of git via `.git/info/exclude`. `shopify-page-replicate` writes theme code on two surfaces and no others: the target template JSON, whose whole `order` it replaces, and — only for the sections the user chose to have built — new files under the theme's own `sections/`, `assets/` and `snippets/`, every one carrying the `replica-<template>-<name>` prefix. The Target theme's existing files are read-only in both passes.
+The eight skills `figma-shopify-composer`, `figma-shopify-builder`, `figma-shopify-globals`, `shopify-app-restyle`, `client-theme-onboarding`, `shopify-page-replicate`, `bugherd-qa-fixer`, and `shopify-speed-tune` (all `personal/shopify/`) write every artifact inside a client theme repo under `.agent/`: shared knowledge docs at its root, each produced only when absent or stale and identically by any of their producers (`THEME-CAPABILITIES.md` — globals, composer, builder, replicate, or onboarding; `COMPONENTS.md` — globals, composer, builder, replicate, or onboarding), kept current by the skills that add theme artifacts (globals → both docs plus the retained mapping table; builder → both docs; replicate → both docs, every replica section it wrote marked **Stand-in / do not reuse**; restyle → a COMPONENTS.md row per override stylesheet, plus an Animations row when the override adds reusable motion; bugherd-qa-fixer → dated append-only lines, and only where a doc already exists — it never creates one; `shopify-speed-tune` neither produces nor appends to either), per-skill outputs in `.agent/<skill-name>/` (globals mapping/evidence, onboarding depth docs, `app-widget-<handle>.md`, `visual-check/`, replicate's `replication.md`, bugherd-qa-fixer's `remaining/` + `notes/` + `evidence/`, speed-tune's one `<invocation>/` folder per invocation holding its ledger, Sample reports and report — its only output in the repo besides the theme code each kept Round commits to its own `speed-tune/<invocation>` branch). `AGENTS.md`, its `CLAUDE.md` symlink, and `shopify.theme.toml` stay at the client repo root; everything is kept out of git via `.git/info/exclude`. `shopify-page-replicate` writes theme code on two surfaces and no others: the target template JSON, whose whole `order` it replaces, and — only for the sections the user chose to have built — new files under the theme's own `sections/`, `assets/` and `snippets/`, every one carrying the `replica-<template>-<name>` prefix. The Target theme's existing files are read-only in both passes.
 
 The four **spec-driven** skills — composer, builder, restyle, and `shopify-page-replicate` — each build from a **design spec** and share one visual-check convention and one Phase 4. At `visual-check/<name>/` the root level holds only the design spec and two image classes. The three Figma-driven skills name them `figma-spec.md`, `figma-desktop.png` / `figma-mobile.png` and `result-desktop.png` / `result-mobile.png`; `shopify-page-replicate` drops the `figma-` prefix because its source is a rendered page, giving `design-spec.md`, `source-desktop.png` / `source-mobile.png` and the same `result-desktop.png` / `result-mobile.png`. restyle may add an approved `-<state>` suffix to each image class. No diff images are produced, and no `clean-`, `section-`, or other render variants are generated.
 
@@ -52,7 +52,7 @@ The shared seven-step Phase 4 — render → data check → capture hygiene → 
 
 The two knowledge-doc format specs — `references/theme-capabilities-format.md` and `references/components-format.md` — are byte-identical across the five producer skills: `client-theme-onboarding`, `figma-shopify-builder`, `figma-shopify-composer`, `figma-shopify-globals`, and `shopify-page-replicate`. They change together. The duplication is deliberate.
 
-When editing these skills, keep every path on this convention and the seven skills in agreement.
+When editing these skills, keep every path on this convention and the eight skills in agreement.
 
 ## Checking the repo's invariants
 
@@ -64,7 +64,13 @@ When editing these skills, keep every path on this convention and the seven skil
 
 It exits 0 when every rule holds, and otherwise names the offending path and exits non-zero.
 
-It runs on its own now: a pre-commit hook and a CI job both call it, so a broken invariant cannot land. Enable the hook once per clone with `git config core.hooksPath .githooks`.
+It runs on its own now: a pre-commit hook and a CI job both call it, so a broken invariant cannot land. Enable the hooks once per clone with `git config core.hooksPath .githooks`.
+
+The same CI job also runs every skill's Python tests through `./scripts/test.sh`: each `test*.py` file outside `deprecated/` runs as its own standard-library `unittest` process, in parallel with the others. Name a test file `test*.py`, or CI never runs it, and make each file self-contained: a unique path for everything it writes, and no state shared with another file.
+
+Commits credit their author alone: the `commit-msg` hook refuses AI attribution.
+
+The repo is public: write placeholders for client data. The pre-commit hook refuses the client identifiers the gitignored `.leak-denylist` lists; run `scripts/check-leaks.sh --all` before a push.
 
 The rules that need **judgement** — the three permitted Phase 4 variations, which duplication is deliberate and which divergence is, whether a `description` fires at the right time — cannot be asserted and live in [`CODING_STANDARDS.md`](CODING_STANDARDS.md), read at review time. When a check turns out to be wrong, change the rule here and the assertion in `check.sh` in the same commit.
 

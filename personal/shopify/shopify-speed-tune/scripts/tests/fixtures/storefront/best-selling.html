@@ -1,0 +1,19 @@
+<!doctype html>
+<!-- Modelled on a real Golden theme listing in best-selling order, with neutral
+     handles: product cards inside <main>, the first one sold out, each linked
+     both as /collections/<c>/products/<h> and with a query string. -->
+<html><body>
+<header><a href="/products/header-promo">Promo</a></header>
+<main id="MainContent">
+  <div class="product-card">
+    <a href="/collections/all/products/sold-out-bestseller" class="product-card__link">Sold out</a>
+    <a href="/collections/all/products/sold-out-bestseller?variant=1" class="product-card__quick">Quick view</a>
+  </div>
+  <div class="product-card">
+    <a href="/products/example-product?variant=42" class="product-card__link">Example</a>
+  </div>
+  <div class="product-card">
+    <a href="/products/third-bestseller" class="product-card__link">Third</a>
+  </div>
+</main>
+</body></html>
