@@ -16,7 +16,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - name: Shell syntax
-        run: bash -n scripts/check.sh
+        run: |
+          bash -n scripts/check.sh
+          sh -n .githooks/commit-msg
       - name: Cross-file invariants
         run: ./scripts/check.sh
       # Each folder holding test*.py files is one standard-library unittest
