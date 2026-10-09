@@ -20,6 +20,7 @@ The conventions themselves live in [`CLAUDE.md`](CLAUDE.md); this is where they 
 | 10 | Every skill carries a non-empty `name:` and `description:` |
 | 11 | No skill occupies the reserved name `figma-shopify-pixel-match` |
 | 12 | The root glossary is `GLOSSARY.md`, and no tracked doc still names the filename it replaced |
+| 13 | Every `<sub>.myshopify.com` host in a tracked file, `deprecated/` included, names a placeholder store, never a client's |
 
 Run `./scripts/check.sh` from anywhere. The script's header comment is the authoritative list; this table is a convenience copy, so trust the script where they disagree.
 

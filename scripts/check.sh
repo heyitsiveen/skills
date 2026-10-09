@@ -21,6 +21,8 @@
 #  11. no skill occupies the reserved, unbuilt name `figma-shopify-pixel-match`
 #  12. the root glossary is `GLOSSARY.md`, and no tracked Markdown outside
 #      `deprecated/` still names the filename it replaced
+#  13. every `<sub>.myshopify.com` host in a tracked file, `deprecated/`
+#      included, names a placeholder store, never a client's: the repo is public
 #
 # Run from anywhere; it resolves the repo root itself.
 #   ./scripts/check.sh
@@ -104,6 +106,11 @@ RETIRED_GLOSSARY_NAMES='CONTEXT\.md|CONTEXT-MAP\.md'
 # Reserved, unbuilt skill name: CLAUDE.md forbids creating one under it, and
 # ADR 0001 says why. Nothing else enforces that, so a stray folder would ship.
 RESERVED_NAMES=(figma-shopify-pixel-match)
+
+# The store handles a `<sub>.myshopify.com` host may name. The repo is public
+# and its Shopify fixtures come from client runs, so any other handle is taken
+# for a client's. Add placeholders here, never a real store.
+PLACEHOLDER_STORES=(example-store other-store handle)
 
 FAILURES=0
 
@@ -561,6 +568,60 @@ check_glossary_convention() {
   done < <(git ls-files '*.md' | grep -v '^deprecated/')
 }
 
+# ---------------------------------------------------------------------------
+# 13. Every `<sub>.myshopify.com` host names a placeholder store.
+#
+# A client's store handle is the identifier a fixture or an example most easily
+# carries over. The local `.leak-denylist` catches names and theme IDs too, but
+# it is never committed, so it cannot run here; this rule needs no list, so CI
+# holds it. `deprecated/` is included: a snapshot is as public as a skill.
+
+# myshopify_hosts <file>
+# Print `<line>\t<sub>` for every host in <file> that names a store: <sub> is
+# the run of `[a-z0-9_-]` right before `.myshopify.com`, lowercased. A template
+# names none (`<handle>.myshopify.com`, `*.myshopify.com`, `$STORE.myshopify.com`),
+# and neither does a bare `.myshopify.com` suffix.
+myshopify_hosts() {
+  awk '
+    {
+      rest = tolower($0)
+      while ((i = index(rest, ".myshopify.com")) > 0) {
+        before = substr(rest, 1, i - 1)
+        rest = substr(rest, i + length(".myshopify.com"))
+        if (!match(before, /[a-z0-9_-]+$/)) continue
+        if (RSTART > 1 && substr(before, RSTART - 1, 1) == "$") continue
+        print NR "\t" substr(before, RSTART)
+      }
+    }
+  ' "$1"
+}
+
+check_store_placeholders() {
+  local files status file line sub allowed
+
+  allowed="$(printf '%s, ' "${PLACEHOLDER_STORES[@]}")"
+  allowed="${allowed%, }"
+
+  files="$(git grep -I -l -i -F -e '.myshopify.com')"
+  status=$?
+  # 0 = matched, 1 = no match, anything else = git grep itself failed.
+  if [ "$status" -gt 1 ]; then
+    fail "cannot scan the tracked files for myshopify.com hosts (git grep exited $status)"
+    return
+  fi
+  [ "$status" -eq 0 ] || return
+
+  while IFS= read -r file; do
+    [ -f "$file" ] || continue
+    while IFS=$'\t' read -r line sub; do
+      case " ${PLACEHOLDER_STORES[*]} " in
+        *" $sub "*) ;;
+        *) fail "$file:$line: '$sub.myshopify.com' is not a placeholder store — the repo is public, so use a placeholder ($allowed) or a template such as <handle>.myshopify.com" ;;
+      esac
+    done < <(myshopify_hosts "$file")
+  done <<< "$files"
+}
+
 check_format_specs
 check_asset_export
 check_registries
@@ -571,6 +632,7 @@ check_registry_entries
 check_asset_export_rules
 check_skill_layout
 check_glossary_convention
+check_store_placeholders
 
 if [ "$FAILURES" -ne 0 ]; then
   printf '\n%d check(s) failed.\n' "$FAILURES" >&2
