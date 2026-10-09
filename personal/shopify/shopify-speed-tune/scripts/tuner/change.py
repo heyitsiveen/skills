@@ -13,9 +13,9 @@ import hashlib
 import os
 import re
 
-from tuner import repo
+from tuner import hook, repo
 from tuner.output import Failed, Refused
-from tuner.proc import run
+from tuner.proc import capture
 
 SETTINGS = "config/settings_data.json"
 THEME_FOLDERS = ("assets", "blocks", "config", "layout", "locales", "sections", "snippets",
@@ -24,6 +24,8 @@ THEME_FOLDERS = ("assets", "blocks", "config", "layout", "locales", "sections", 
 TEMPLATE_JSON = re.compile(r"templates/.+\.json|sections/[^/]+\.json")
 # How far git looks for a NUL byte before it calls a file binary.
 BINARY_PROBE = 8000
+# How long a keep commit may take, its hooks included.
+COMMIT_SECONDS = 900
 
 # Ways a page can tell Lighthouse, its emulated phone or its platform from a
 # visitor, after Shopify's guide to fake performance apps. Liquid cannot see the
@@ -171,8 +173,9 @@ def commit(root, base, paths, subject, body, verify=True):
     """Commit exactly `paths` as one commit on `base`, running the repo's own hooks
     unless `verify` is False (the developer approved --no-verify at start).
 
-    Returns Committed(sha) or, when git or a hook refuses, Committed(output=its
-    last lines) with nothing committed and the paths unstaged.
+    Returns Committed(sha) or, when git or a hook refuses, Committed(output=how its
+    output ended, as `start` shows a failing hook) with nothing committed and the paths
+    unstaged.
     """
     repo.git(root, "add", "-A", "--", *paths)
     staged = {p for p in repo.git(root, "diff", "--cached", "--name-only", "-z").stdout.split("\0") if p}
@@ -180,12 +183,13 @@ def commit(root, base, paths, subject, body, verify=True):
         raise Failed("commit-unexpected", "the index also holds %s, which is not the Round's "
                      "change" % ", ".join(sorted(staged - set(paths))),
                      "Unstage it with `git restore --staged <path>` and run `verdict` again.")
-    proc = run(["git", "commit", "-q", *([] if verify else ["--no-verify"]), "-m", subject,
-                "-m", body], cwd=root, timeout=900)
-    if proc.returncode != 0:
+    code, output = capture(["git", "commit", "-q", *([] if verify else ["--no-verify"]),
+                            "-m", subject, "-m", body], cwd=root, timeout=COMMIT_SECONDS)
+    if code is None:
+        raise Failed("timeout", "`git` did not finish within %d s" % COMMIT_SECONDS)
+    if code != 0:
         repo.git(root, "reset", "-q", "--", *paths)
-        lines = [l for l in (proc.stderr + "\n" + proc.stdout).splitlines() if l.strip()]
-        return Committed(output=lines[-5:] or ["git commit exited %d" % proc.returncode])
+        return Committed(output=hook.ending(output) or ["git commit exited %d" % code])
     sha = repo.head(root)
     parent = repo.git(root, "rev-parse", sha + "^").stdout.strip()
     touched = {p for p in repo.git(root, "diff", "--name-only", "-z", base, sha).stdout.split("\0")

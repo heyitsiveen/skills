@@ -8,7 +8,14 @@ import tempfile
 import unittest
 from pathlib import Path
 
-from support import FAILING_HOOK, LIVE_THEME, STORE_URL, Sandbox, hook, running
+from support import (FAILING_HOOK, HOOK_ENDING, LIVE_THEME, STORE_URL, Sandbox, hook,
+                     long_failing_hook, running)
+
+# The REFUSED line for a hook that fails as FAILING_HOOK does.
+HOOK_REFUSED = ("REFUSED pre-commit-fails: the pre-commit hook .git/hooks/pre-commit exits 1 on "
+                "the unchanged repo: 412 files inspected with 733 total offenses found across "
+                "120 files. | 12 errors. | 700 warnings. | 21 info issues. | husky - pre-commit "
+                "script failed (code 1)")
 
 
 def old_git_on_path(test):
@@ -169,10 +176,7 @@ class TheReposPreCommitHookMustPass(unittest.TestCase):
         result = box.run("start", "--store", STORE_URL)
 
         self.assertEqual(result.code, 1, result)
-        self.assertEqual(result.lines("REFUSED"), [
-            "REFUSED pre-commit-fails: the pre-commit hook .git/hooks/pre-commit exits 1 on the "
-            "unchanged repo: No staged files found. | snippets/image.liquid:3 MissingAsset | "
-            "733 problems found in 412 files"])
+        self.assertEqual(result.lines("REFUSED"), [HOOK_REFUSED])
         self.assertFalse(box.lock.exists(), "a refused start must not take the lock")
         self.assertEqual(box.theme_ids(), {LIVE_THEME, 101, 102})
         self.assertEqual(box.git(box.repo, "branch", "--list", "speed-tune/*"), "")
@@ -198,10 +202,35 @@ class TheReposPreCommitHookMustPass(unittest.TestCase):
         result = box.run("start", "--store", STORE_URL,
                          env={"PATH": old_git + os.pathsep + box.env()["PATH"]})
 
+        self.assertEqual(result.lines("REFUSED"), [HOOK_REFUSED])
+
+    def test_a_hook_writing_past_what_a_pipe_holds_keeps_its_summary(self):
+        # The second real invocation lost theme check's summary so, and showed a cut line of
+        # page HTML run into husky's line.
+        box = Sandbox(self)
+        long_failing_hook(box.repo, box.root)
+
+        result = box.run("start", "--store", STORE_URL)
+
+        self.assertEqual(result.lines("REFUSED"), [HOOK_REFUSED])
+
+    def test_shows_the_last_lines_as_a_terminal_would_when_nothing_counts_problems(self):
+        box = Sandbox(self)
+        page_html = "0123456789abcdefghij" * 15
+        hook(box.repo, "printf '[error]: LiquidHTMLSyntaxError\\n'\n"
+                       "printf '12  %s\\n'\n"
+                       "printf '\\342\\240\\213 Checking\\r\\033[32m\\342\\234\\224\\033[39m "
+                       "Checked\\r\\n'\n"
+                       "echo 'husky - pre-commit script failed (code 1)'\n"
+                       "exit 1\n" % page_html)
+
+        result = box.run("start", "--store", STORE_URL)
+
         self.assertEqual(result.lines("REFUSED"), [
             "REFUSED pre-commit-fails: the pre-commit hook .git/hooks/pre-commit exits 1 on the "
-            "unchanged repo: No staged files found. | snippets/image.liquid:3 MissingAsset | "
-            "733 problems found in 412 files"])
+            "unchanged repo: 12 0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij"
+            "0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij0123456789abcdefghij"
+            "0123456789abcd... | ✔ Checked | husky - pre-commit script failed (code 1)"])
 
     def test_a_hook_that_does_not_finish_is_stopped_with_its_children_and_refused(self):
         box = Sandbox(self)

@@ -42,19 +42,66 @@ def read_report(name):
         return json.load(f)
 
 
+def cli_box(kind, rows, width=80):
+    """An alert as Shopify CLI 4.8 renders it when its output is not a terminal: a box
+    `width` columns wide with the alert's kind in its top edge and each row padded inside."""
+    inner = width - 6
+    blank = "│%s│" % (" " * (width - 2))
+    return "\n".join(["╭─ %s %s╮" % (kind, "─" * (width - len(kind) - 5)), blank]
+                     + ["│  %s  │" % row.ljust(inner) for row in rows]
+                     + [blank, "╰%s╯" % ("─" * (width - 2))]) + "\n"
+
+
+# What a failing `shopify theme check` prints: a box per file holding its offenses, then
+# a summary box.
+THEME_CHECK_OFFENSES = cli_box("info", [
+    "snippets/image.liquid", "", "[error]: MissingAsset",
+    "'assets/placeholder.svg' does not exist", "", "3  {{ 'placeholder.svg' | asset_url }}"])
+THEME_CHECK_SUMMARY = cli_box("info", [
+    "Theme Check Summary.", "", "412 files inspected with 733 total offenses found across 120 files.",
+    "12 errors.", "700 warnings.", "21 info issues."])
+HUSKY_FAILED = "husky - pre-commit script failed (code 1)"
+# How a failing hook's output ends, as the program shows it: the summary, then the last line.
+HOOK_ENDING = ["412 files inspected with 733 total offenses found across 120 files.",
+               "12 errors.", "700 warnings.", "21 info issues.", HUSKY_FAILED]
+
 # What a Golden repo's pre-commit hook does on its unchanged tree: lint-staged finds
-# nothing staged, then a whole-theme `shopify theme check --fail-level=info` fails.
-FAILING_HOOK = ("echo 'No staged files found.'\n"
-                "echo 'snippets/image.liquid:3 MissingAsset' >&2\n"
-                "echo '733 problems found in 412 files' >&2\n"
-                "exit 1\n")
+# nothing staged, a whole-theme `shopify theme check --fail-level=info` fails, and
+# husky says so.
+FAILING_HOOK = ("echo '→ No staged files found.'\n"
+                "cat >&2 <<'EOF'\n" + THEME_CHECK_OFFENSES + THEME_CHECK_SUMMARY + "EOF\n"
+                "echo '%s'\n"
+                "exit 1\n" % HUSKY_FAILED)
 
 
 def hook(repo, script, path=".git/hooks/pre-commit"):
     """Install `script` as an executable shell hook at `path` in the client repo."""
     target = Path(repo) / path
     target.parent.mkdir(parents=True, exist_ok=True)
-    target.write_text("#!/bin/sh\n" + script)
+    target.write_text("#!/bin/sh\n" + script, encoding="utf-8")
+    target.chmod(0o755)
+    return target
+
+
+def long_failing_hook(repo, folder):
+    """Install a pre-commit hook that fails as `shopify theme check` does on a big theme:
+    well past 64 KB of offenses, then its summary, written the way Node writes them. Node
+    writes to a pipe without waiting on macOS, and process.exit() drops what the pipe has
+    not taken: a pipe gets the first 64 KB, cut mid-line, while a file gets everything.
+    Then husky's own line, as its wrapper prints it once the hook's script has failed."""
+    output = Path(folder) / "theme-check-output.txt"
+    output.write_text(THEME_CHECK_OFFENSES * 120 + THEME_CHECK_SUMMARY, encoding="utf-8")
+    target = Path(repo) / ".git" / "hooks" / "pre-commit"
+    target.write_text(
+        "#!%s\n"
+        "import os, stat, sys\n"
+        "with open(%r, 'rb') as f:\n"
+        "    out = f.read()\n"
+        "if stat.S_ISFIFO(os.fstat(1).st_mode):\n"
+        "    out = out[:65536]\n"
+        "sys.stdout.buffer.write(out + %r)\n"
+        "sys.exit(1)\n" % (sys.executable, str(output), (HUSKY_FAILED + "\n").encode()),
+        encoding="utf-8")
     target.chmod(0o755)
     return target
 

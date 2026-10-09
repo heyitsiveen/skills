@@ -11,25 +11,38 @@ v9 sets `.husky/_`), else `.git/hooks`, and only when it is executable. `git
 hook run` runs it as `git commit` would; a git older than 2.36 has no such
 command, and gets the hook file run from the repo root, as git itself does.
 
+A failing hook is shown by how its output ends (`ending`): the lines that count
+its problems, such as theme check's `733 total offenses` and `12 errors`, then
+its last line, as a terminal would show them.
+
 What the invocation keeps is the ledger's `hook` record, which the report
-renders: {"status": "passed" | "absent" | "bypass-approved", "detail": text}.
+renders: {"status": "passed" | "absent" | "bypass-approved", "detail": text},
+plus, for a bypassed hook, "output": the lines of its ending.
 """
 
 import os
 import re
-import signal
-import subprocess
 
 from tuner import repo
 from tuner.output import Refused
-from tuner.proc import child_env, require
+from tuner.proc import capture, child_env
 
 PASSED, ABSENT, BYPASS = "passed", "absent", "bypass-approved"
 FLAG = "--no-verify-approved"
 HOOK_RUN = (2, 36)  # the first git with `git hook run`
 SECONDS = 300
-ANSI = re.compile(r"\x1b\[[0-?]*[ -/]*[@-~]")
-BOX = "│┃║╭╮╯╰─━═┌┐└┘├┤┬┴┼ "
+ANSI = re.compile(r"\x1b(?:\[[0-?]*[ -/]*[@-~]|\][^\x07\x1b]*(?:\x07|\x1b\\)|[@-Z\\-_])")
+CONTROL = re.compile(r"[\x00-\x08\x0b-\x1f\x7f]")
+# Box drawing a CLI frames its messages with: a line from a left corner to a right one is a
+# box's top or bottom edge, and the sides come off each line's ends.
+LEFT_CORNERS, RIGHT_CORNERS = "╭╰┌└╔╚", "╮╯┐┘╗╝"
+SIDES = "│┃║╭╮╯╰─━═┌┐└┘├┤┬┴┼╔╗╚╝ "
+WIDTH = 160  # characters a line keeps; a longer one is cut, ending in "..."
+# A line that counts problems: `733 total offenses`, `12 errors.`, `21 info issues.`,
+# `5 problems (5 errors, 0 warnings)`.
+SUMMARY = re.compile(r"\b\d[\d,]*\s+(?:[a-z]+\s+)?(?:problems?|offen[cs]es?|errors?|warnings?|"
+                     r"issues?)\b", re.I)
+ENDING_LINES = 5
 
 
 class Hook:
@@ -44,15 +57,17 @@ class Hook:
     def record(self):
         """The ledger's `hook` record."""
         if self.status == ABSENT:
-            detail = "No pre-commit hook is active, so keep commits run none."
-        elif self.status == PASSED:
-            detail = ("The pre-commit hook %s passes on the unchanged repo, so every keep commit "
-                      "runs it." % self.path)
-        else:
-            detail = ("The pre-commit hook %s %s on the unchanged repo (%s). The developer approved "
-                      "committing this invocation's kept Rounds with --no-verify."
-                      % (self.path, self.outcome(), tail(self.output) or "no output"))
-        return {"status": self.status, "detail": detail}
+            return {"status": ABSENT,
+                    "detail": "No pre-commit hook is active, so keep commits run none."}
+        if self.status == PASSED:
+            return {"status": PASSED,
+                    "detail": "The pre-commit hook %s passes on the unchanged repo, so every "
+                              "keep commit runs it." % self.path}
+        said = ending(self.output)
+        return {"status": BYPASS, "output": said,
+                "detail": "The pre-commit hook %s %s on the unchanged repo (%s). The developer "
+                          "approved committing this invocation's kept Rounds with --no-verify."
+                          % (self.path, self.outcome(), " | ".join(said) or "no output")}
 
     def outcome(self):
         if self.code is None:
@@ -97,36 +112,37 @@ def active(root):
 def run(root, path):
     """(exit code, or None when it was stopped at the time limit; its output, both streams)."""
     argv = ["git", "hook", "run", "pre-commit"] if repo.git_version(root) >= HOOK_RUN else [path]
-    require(argv[0])
-    proc = subprocess.Popen(argv, cwd=root, env=child_env(), stdin=subprocess.DEVNULL,
-                            stdout=subprocess.PIPE, stderr=subprocess.STDOUT, text=True,
-                            errors="replace", start_new_session=True)
-    try:
-        output, _ = proc.communicate(timeout=seconds())
-        return proc.returncode, output
-    except subprocess.TimeoutExpired:
-        pass
-    # The hook's own children (node, theme check) share the process group it leads.
-    try:
-        os.killpg(proc.pid, signal.SIGKILL)
-    except ProcessLookupError:
-        pass
-    try:
-        output, _ = proc.communicate(timeout=10)
-    except subprocess.TimeoutExpired:  # a child that left the group still holds the output
-        output = ""
-    return None, output
+    return capture(argv, cwd=root, env=child_env(), timeout=seconds())
 
 
-def tail(output, lines=3, width=240):
-    """The last few lines of a hook's output on one line, without colour or box drawing."""
-    kept = []
-    for line in ANSI.sub("", output or "").splitlines():
-        line = " ".join(line.strip(BOX).split())
+def readable(output):
+    """The output's lines as a terminal shows them: colour codes, control characters and
+    box drawing gone, a line rewritten in place by a carriage return read as it was left,
+    blank lines dropped, and each line cut to WIDTH characters."""
+    lines = []
+    for raw in ANSI.sub("", output or "").split("\n"):
+        line = CONTROL.sub("", raw.rstrip("\r").rsplit("\r", 1)[-1]).strip()
+        if not line or (line[0] in LEFT_CORNERS and line[-1] in RIGHT_CORNERS):
+            continue
+        line = " ".join(line.strip(SIDES).split())
         if line:
-            kept.append(line)
-    text = " | ".join(kept[-lines:])
-    return text if len(text) <= width else "..." + text[-(width - 3):]
+            lines.append(line if len(line) <= WIDTH else line[:WIDTH - 3].rstrip() + "...")
+    return lines
+
+
+def ending(output):
+    """How a hook's output ends, in at most ENDING_LINES readable lines: its summary, the
+    last run of lines that count problems, then its last line; or, when no line counts
+    problems, its last three lines."""
+    lines = readable(output)
+    counted = [n for n, line in enumerate(lines) if SUMMARY.search(line)]
+    if not counted:
+        return lines[-3:]
+    first = last = counted[-1]
+    while first - 1 in counted:
+        first -= 1
+    said = lines[first:last + 1][:ENDING_LINES - 1]
+    return said + lines[-1:] if last < len(lines) - 1 else said
 
 
 def check(root, approved):
@@ -142,9 +158,9 @@ def check(root, approved):
     found = Hook(BYPASS, shown, code, output)
     if approved:
         return found
-    ending = tail(output)
+    said = " | ".join(ending(output))
     raise Refused("pre-commit-fails", "the pre-commit hook %s %s on the unchanged repo%s"
-                  % (shown, found.outcome(), ": " + ending if ending else ", with no output"),
+                  % (shown, found.outcome(), ": " + said if said else ", with no output"),
                   "Every kept Round is committed through this hook, so it would refuse every "
                   "keep. Fix what it reports and commit the fix, then run `start` again.",
                   "Only when the developer approves it for this invocation, run `start` again "

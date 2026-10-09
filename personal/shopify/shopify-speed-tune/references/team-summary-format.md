@@ -8,7 +8,7 @@ Every heading below is one of the report's own, in the report's order; a test ho
 
 ### What changed
 
-How many plan items were kept, then each item: kept, with its Round, its commit and its pairs on every page; removed, with its Round and why, "without being measured" when its pairs did not decide it; or not tried, and why. When the kept Rounds were committed with `--no-verify`, what the repo's pre-commit hook said before the invocation.
+How many plan items were kept, then each item: kept, with its Round, its commit and its pairs on every page; removed, with its Round and why, "without being measured" when its pairs did not decide it; or not tried, and why. When the kept Rounds were committed with `--no-verify`, the end of what the repo's pre-commit hook said before the invocation: its summary, the lines counting its problems, then its last line.
 
 ### Performance by page
 

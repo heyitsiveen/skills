@@ -10,7 +10,7 @@ from pathlib import Path
 
 from report_support import ran
 from round_support import ITEMS, approved, pushed
-from support import Sandbox, report
+from support import HOOK_ENDING, Sandbox, report
 
 
 def written(test, box, *args):
@@ -264,14 +264,33 @@ class TheCommitHookTheInvocationStartedWith(unittest.TestCase):
     """`start` records the client repo's pre-commit hook: passed, absent, or already failing
     and bypassed with the developer's approval (`--no-verify-approved`)."""
 
-    def test_a_bypass_is_told_to_the_team_with_what_the_hook_said(self):
+    def test_a_bypass_is_told_to_the_team_with_how_the_hook_ended(self):
         _, text = written(self, ran(self, "hook-bypassed"))
 
         changed = section(text, "### What changed")
         self.assertIn("The kept Rounds were committed with `--no-verify`: the repo's pre-commit "
                       "hook already failed before this invocation, and the developer approved the "
                       "bypass for it", changed)
-        self.assertIn("733 problems found in 412 files", changed)
+        self.assertIn("\n".join(["```"] + HOOK_ENDING + ["```"]), changed)
+        self.assertIn("- **Commit hook.** bypass-approved: The pre-commit hook "
+                      ".git/hooks/pre-commit exits 1 on the unchanged repo (%s)" % " | ".join(
+                          HOOK_ENDING), text.split("\n## Detail log\n", 1)[1])
+
+    def test_a_bypass_an_earlier_release_recorded_shows_its_detail(self):
+        # That release kept the hook's output in its detail only.
+        box = ran(self, "hook-bypassed")
+        ledger = next((box.repo / ".agent" / "shopify-speed-tune").glob("*/ledger.json"))
+        data = json.loads(ledger.read_text())
+        data["hook"] = {"status": "bypass-approved", "detail": "The pre-commit hook "
+                        ".husky/_/pre-commit exits 1 on the unchanged repo (733 problems found "
+                        "in 412 files). The developer approved committing this invocation's kept "
+                        "Rounds with --no-verify."}
+        ledger.write_text(json.dumps(data))
+
+        _, text = written(self, box)
+
+        self.assertIn("```\nThe pre-commit hook .husky/_/pre-commit exits 1 on the unchanged repo "
+                      "(733 problems found in 412 files).", section(text, "### What changed"))
 
     def test_a_hook_that_passed_is_only_in_the_detail_log(self):
         _, text = written(self, ran(self, "hook-passed"))

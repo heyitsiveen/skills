@@ -11,7 +11,7 @@ import unittest
 
 from round_support import (CONTROL, EAGER, ITEMS, LAZY, NEUTRAL, THEME, WIN_4, WORKING, apply_item,
                            approved, checked, measure, opened, pushed, write)
-from support import FAILING_HOOK
+from support import FAILING_HOOK, HOOK_ENDING, long_failing_hook
 
 
 def commits_since(box, rev):
@@ -186,6 +186,19 @@ class TheReposOwnCommitHook(unittest.TestCase):
         self.assertIn("NOTE theme check: 1 offense", result.out)
         self.assertEqual(commits_since(box, base), "0")
         self.assertEqual(box.theme_files(WORKING), box.theme_files(CONTROL))
+
+    def test_a_refusal_shows_how_the_hook_ended_as_start_shows_it(self):
+        box = pushed(self)
+        checked(box)
+        measure(box, {"home": WIN_4})
+        long_failing_hook(box.repo, box.root)
+
+        result = box.run("verdict")
+
+        self.assertEqual(result.code, 0, result.lines("FAILED") or result.err[-2000:])
+        self.assertEqual(result.lines("VERDICT"),
+                         ["VERDICT 1 remove item=P1 reasons=commit-refused"])
+        self.assertEqual(result.lines("NOTE"), ["NOTE " + line for line in HOOK_ENDING])
 
     def test_a_file_the_hook_reformats_reaches_both_themes_as_committed(self):
         box = pushed(self)

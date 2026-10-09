@@ -190,11 +190,13 @@ def what_changed(inv):
               for item in planning.unused(inv)]
     hook = data["hook"]
     if kept and hook["status"] == "bypass-approved":
+        # A ledger an earlier release wrote keeps the hook's output in its detail only.
+        said = (hook["output"] or ["no output"]) if "output" in hook \
+            else [str(hook.get("detail") or "").strip()]
         lines += ["", "The kept Rounds were committed with `--no-verify`: the repo's pre-commit "
                       "hook already failed before this invocation, and the developer approved the "
-                      "bypass for it, so the hook checked none of these commits. What it said "
-                      "before the invocation:", "", "```", str(hook.get("detail") or "").strip(),
-                  "```"]
+                      "bypass for it, so the hook checked none of these commits. The end of what "
+                      "it said before the invocation:", "", "```"] + said + ["```"]
     return lines + [""]
 
 
